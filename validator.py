@@ -18,13 +18,13 @@ import yaml
 
 class DataFrameValidator(HasTraits):
 
-    specfile = File
+    specfile = File(exists=True)
 
     name = Str
 
     specification = Property(Dict, depends_on=['specfile'])
 
-    filepath = Property(File, depends_on=['specification'])
+    filepath = File(exists=True)
 
     delimiter = Property(Str, depends_on=['specification'])
 
@@ -40,6 +40,8 @@ class DataFrameValidator(HasTraits):
 
     _dtypes = Property(Dict, depends_on=['specification'])
 
+    _filepath = Property(File(exists=True), depends_on=['specification'])
+
     # Property getters and setters
 
     @cached_property
@@ -49,7 +51,7 @@ class DataFrameValidator(HasTraits):
         return data
 
     @cached_property
-    def _get_filepath(self):
+    def _get__filepath(self):
         return self.specification['path']
 
     @cached_property
@@ -77,5 +79,11 @@ class DataFrameValidator(HasTraits):
         to do proper validation."""
         self.dtypes = self._dtypes
 
+    def __filepath_changed(self):
+        """ Required because Dictionary traits that are properties don't seem
+        to do proper validation."""
+        self.filepath = self._filepath
+
 if __name__ == '__main__':
     validator = DataFrameValidator(specfile="dictionary.yaml", name="mtlogs")
+    validator.filepath
