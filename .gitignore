@@ -52,3 +52,9 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# Directory for sample data
+data/
+
+# No need to commit the data dictionary
+*.yaml
