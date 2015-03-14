@@ -10,8 +10,25 @@
 
 """
 
-from traits.api import Dict, TraitError
+from traits.api import Dict, TraitError, BaseInt
 from traits.trait_handlers import TraitDictObject
+
+
+class NaturalNumber(BaseInt):
+    """ An integer trait that has a value greater than a given value."""
+
+    default_value = 1
+
+    def error(self, name):
+        msg = "The {0} trait of a data dictionary has to be a".format(name) + \
+              " value greater than zero"
+        raise TraitError(args=(msg,))
+
+    def validate(self, object, name, value):
+        value = super(NaturalNumber, self).validate(object, name, value)
+        if value > 0:
+            return value
+        self.error(name)
 
 
 class DTypeTraitDictObject(TraitDictObject):
