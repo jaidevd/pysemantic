@@ -26,7 +26,7 @@ class DataFrameValidator(HasTraits):
 
     filepath = File(exists=True)
 
-    delimiter = Property(Str, depends_on=['specification'])
+    delimiter = Str
 
     nrows = Property(Int, depends_on=['specification'])
 
@@ -41,6 +41,8 @@ class DataFrameValidator(HasTraits):
     _dtypes = Property(Dict, depends_on=['specification'])
 
     _filepath = Property(File(exists=True), depends_on=['specification'])
+
+    _delimiter = Property(Str, depends_on=['specification'])
 
     # Property getters and setters
 
@@ -71,6 +73,10 @@ class DataFrameValidator(HasTraits):
         return self.specification['dtypes']
 
     @cached_property
+    def _get__delimiter(self):
+        return self.specification['delimiter']
+
+    @cached_property
     def _get_colnames(self):
         return self.dtypes.keys()
 
@@ -80,10 +86,15 @@ class DataFrameValidator(HasTraits):
         self.dtypes = self._dtypes
 
     def __filepath_changed(self):
-        """ Required because Dictionary traits that are properties don't seem
+        """ Required because File traits that are properties don't seem
         to do proper validation."""
         self.filepath = self._filepath
 
+    def __delimiter_changed(self):
+        """ Required because Str traits that are properties don't seem
+        to do proper validation."""
+        self.delimiter = self._delimiter
+
+
 if __name__ == '__main__':
-    validator = DataFrameValidator(specfile="dictionary.yaml", name="mtlogs")
-    validator.filepath
+    validator = DataFrameValidator(specfile="/tmp/foo.yaml", name="mtlogs")
