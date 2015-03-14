@@ -7,7 +7,7 @@
 # Distributed under terms of the MIT license.
 
 """
-
+Customized traits for advanced validation
 """
 
 from traits.api import Dict, TraitError, BaseInt
@@ -70,6 +70,9 @@ class DTypeTraitDictObject(TraitDictObject):
 
 
 class DTypesDict(Dict):
+    """ A trait whose keys are strings, and values are Type traits. Ideally
+    this is the kind of dictionary that is passed as the `dtypes` argument in
+    `pandas.read_table`."""
 
     def validate(self, object, name, value):
         """ Subclassed from the parent to return a `DTypeTraitDictObject`

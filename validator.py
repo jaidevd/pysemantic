@@ -16,29 +16,37 @@ from custom_traits import DTypesDict, NaturalNumber
 import yaml
 
 
-def _ndim_validator(value):
-    if int(value) > 1:
-        return int(value)
+class DataDictValidator(HasTraits):
 
+    # Public traits
 
-class DataFrameValidator(HasTraits):
-
+    # Path to the data dictionary
     specfile = File(exists=True)
 
+    # Name of the dataset described in the data dictionary
     name = Str
 
+    # Dict trait that holds the properties of the dataset
     specification = Property(Dict, depends_on=['specfile'])
 
+    # Path to the file containing the data
     filepath = File(exists=True)
 
+    # Delimiter
     delimiter = Str
 
+    # number of rows in the dataset
     nrows = NaturalNumber
 
+    # number of columns in the dataset
     ncols = NaturalNumber
 
+    # A dictionary whose keys are the names of the columns in the dataset, and
+    # the keys are the datatypes of the corresponding columns
     dtypes = DTypesDict(key_trait=Str, value_trait=Type)
 
+    # Names of the columns in the dataset. This is just a convenience trait,
+    # it's value is just a list of the keys of `dtypes`
     colnames = Property(List, depends_on=['dtypes'])
 
     # Protected traits
@@ -62,12 +70,16 @@ class DataFrameValidator(HasTraits):
         return data
 
     @cached_property
-    def _get__filepath(self):
-        return self.specification['path']
-
-    @cached_property
     def _get_delimiter(self):
         return self.specification['delimiter']
+
+    @cached_property
+    def _get_colnames(self):
+        return self.dtypes.keys()
+
+    @cached_property
+    def _get__filepath(self):
+        return self.specification['path']
 
     @cached_property
     def _get__nrows(self):
@@ -85,9 +97,7 @@ class DataFrameValidator(HasTraits):
     def _get__delimiter(self):
         return self.specification['delimiter']
 
-    @cached_property
-    def _get_colnames(self):
-        return self.dtypes.keys()
+    # Trait change handlers
 
     def __dtypes_changed(self):
         """ Required because Dictionary traits that are properties don't seem
@@ -116,4 +126,4 @@ class DataFrameValidator(HasTraits):
 
 
 if __name__ == '__main__':
-    validator = DataFrameValidator(specfile="dictionary.yaml", name="mtlogs")
+    validator = DataDictValidator(specfile="dictionary.yaml", name="mtlogs")
