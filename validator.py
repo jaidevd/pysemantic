@@ -7,13 +7,18 @@
 # Distributed under terms of the MIT license.
 
 """
-
+Traited Data validator for `pandas.DataFrame` objects
 """
 
 from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
                         cached_property)
-from custom_traits import DTypesDict
+from custom_traits import DTypesDict, NaturalNumber
 import yaml
+
+
+def _ndim_validator(value):
+    if int(value) > 1:
+        return int(value)
 
 
 class DataFrameValidator(HasTraits):
@@ -28,9 +33,9 @@ class DataFrameValidator(HasTraits):
 
     delimiter = Str
 
-    nrows = Property(Int, depends_on=['specification'])
+    nrows = NaturalNumber
 
-    ncols = Property(Int, depends_on=['specification'])
+    ncols = NaturalNumber
 
     dtypes = DTypesDict(key_trait=Str, value_trait=Type)
 
@@ -43,6 +48,10 @@ class DataFrameValidator(HasTraits):
     _filepath = Property(File(exists=True), depends_on=['specification'])
 
     _delimiter = Property(Str, depends_on=['specification'])
+
+    _nrows = Property(Int, depends_on=['specification'])
+
+    _ncols = Property(Int, depends_on=['specification'])
 
     # Property getters and setters
 
@@ -61,11 +70,11 @@ class DataFrameValidator(HasTraits):
         return self.specification['delimiter']
 
     @cached_property
-    def _get_nrows(self):
+    def _get__nrows(self):
         return self.specification['nrows']
 
     @cached_property
-    def _get_ncols(self):
+    def _get__ncols(self):
         return self.specification['ncols']
 
     @cached_property
@@ -95,6 +104,16 @@ class DataFrameValidator(HasTraits):
         to do proper validation."""
         self.delimiter = self._delimiter
 
+    def __nrows_changed(self):
+        """ Required because Str traits that are properties don't seem
+        to do proper validation."""
+        self.nrows = self._nrows
+
+    def __ncols_changed(self):
+        """ Required because Str traits that are properties don't seem
+        to do proper validation."""
+        self.ncols = self._ncols
+
 
 if __name__ == '__main__':
-    validator = DataFrameValidator(specfile="/tmp/foo.yaml", name="mtlogs")
+    validator = DataFrameValidator(specfile="dictionary.yaml", name="mtlogs")
