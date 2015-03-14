@@ -100,7 +100,7 @@ class DataDictValidator(HasTraits):
     # Trait change handlers
 
     def __dtypes_changed(self):
-        """ Required because Dictionary traits that are properties don't seem
+        """ Required because Dict traits that are properties don't seem
         to do proper validation."""
         self.dtypes = self._dtypes
 
@@ -115,12 +115,12 @@ class DataDictValidator(HasTraits):
         self.delimiter = self._delimiter
 
     def __nrows_changed(self):
-        """ Required because Str traits that are properties don't seem
+        """ Required because Int traits that are properties don't seem
         to do proper validation."""
         self.nrows = self._nrows
 
     def __ncols_changed(self):
-        """ Required because Str traits that are properties don't seem
+        """ Required because Int traits that are properties don't seem
         to do proper validation."""
         self.ncols = self._ncols
 

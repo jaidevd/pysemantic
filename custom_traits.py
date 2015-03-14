@@ -15,7 +15,7 @@ from traits.trait_handlers import TraitDictObject
 
 
 class NaturalNumber(BaseInt):
-    """ An integer trait that has a value greater than a given value."""
+    """ An integer trait whose value is a natural number."""
 
     default_value = 1
 
