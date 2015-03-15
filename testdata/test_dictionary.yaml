@@ -1,0 +1,27 @@
+person_activity:
+  path: person_activity.tsv
+  delimiter: "\t"
+  nrows: 100
+  ncols: 8
+  dtypes:
+    sequence_name: !!python/name:__builtin__.str
+    tag: !!python/name:__builtin__.str
+    date: !!python/name:datetime.date
+    x: !!python/name:__builtin__.float
+    y: !!python/name:__builtin__.float
+    z: !!python/name:__builtin__.float
+    activity: !!python/name:__builtin__.str
+
+iris:
+  path: iris.csv
+  delimiter: ","
+  nrows: 150
+  ncols: 5
+  dtypes:
+    "Sepal Length": !!python/name:__builtin__.float
+    "Sepal Width": !!python/name:__builtin__.float
+    "Petal Length": !!python/name:__builtin__.float
+    "Petal Width": !!python/name:__builtin__.float
+    "Species": !!python/name:__builtin__.str
+
+
