@@ -8,7 +8,7 @@ iris:
     Species: &id002 !!python/name:__builtin__.str 
   ncols: 5
   nrows: 150
-  path: /home/jaidev/src/pysemantic/testdata/iris.csv
+  path: testdata/iris.csv
 person_activity:
   delimiter: "\t"
   dtypes:
@@ -21,4 +21,4 @@ person_activity:
     z: *id001
   ncols: 8
   nrows: 100
-  path: /home/jaidev/src/pysemantic/testdata/person_activity.tsv
+  path: testdata/person_activity.tsv

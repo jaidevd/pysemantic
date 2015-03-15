@@ -15,6 +15,7 @@ from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
 from custom_traits import DTypesDict, NaturalNumber, AbsFile
 import yaml
 import datetime
+import os.path as op
 
 
 class DataDictValidator(HasTraits):
@@ -74,17 +75,17 @@ class DataDictValidator(HasTraits):
 
     @cached_property
     def _get_parser_args(self):
-        args = {'filepath_or_buffer': self.filepath,
-                'sep': self.delimiter,
-                'nrows': self.nrows,
+        args = {'filepath_or_buffer': self._filepath,
+                'sep': self._delimiter,
+                'nrows': self._nrows,
                 'usecols': self.colnames}
         parse_dates = []
-        for k, v in self.dtypes.iteritems():
+        for k, v in self._dtypes.iteritems():
             if v is datetime.date:
                 parse_dates.append(k)
         for k in parse_dates:
-            del self.dtypes[k]
-        args['dtype'] = self.dtypes
+            del self._dtypes[k]
+        args['dtype'] = self._dtypes
         if len(parse_dates) > 0:
             args['parse_dates'] = parse_dates
         return args
@@ -93,9 +94,8 @@ class DataDictValidator(HasTraits):
     def _get_delimiter(self):
         return self.specification['delimiter']
 
-    @cached_property
     def _get_colnames(self):
-        return self.dtypes.keys()
+        return self._dtypes.keys()
 
     @cached_property
     def _get__filepath(self):
@@ -119,7 +119,11 @@ class DataDictValidator(HasTraits):
 
     # Trait change handlers
 
-    def __dtypes_changed(self):
+    def _specfile_changed(self):
+        with open(self.specfile, "r") as f:
+            self.specification = yaml.load(f, Loader=yaml.CLoader)[self.name]
+
+    def __dtypes_items_changed(self):
         """ Required because Dict traits that are properties don't seem
         to do proper validation."""
         self.dtypes = self._dtypes
@@ -143,6 +147,15 @@ class DataDictValidator(HasTraits):
         """ Required because Int traits that are properties don't seem
         to do proper validation."""
         self.ncols = self._ncols
+
+    # Trait initializers
+
+    def _specification_default(self):
+        if op.isfile(self.specfile):
+            with open(self.specfile, 'r') as f:
+                data = yaml.load(f, Loader=yaml.CLoader)[self.name]
+            return data
+        return {}
 
 
 if __name__ == '__main__':
