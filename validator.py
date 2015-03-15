@@ -92,36 +92,38 @@ class DataDictValidator(HasTraits):
 
     @cached_property
     def _get_delimiter(self):
-        return self.specification['delimiter']
+        return self.specification.get('delimiter', '')
 
     def _get_colnames(self):
         return self._dtypes.keys()
 
     @cached_property
     def _get__filepath(self):
-        return self.specification['path']
+        return self.specification.get('path', "")
 
     @cached_property
     def _get__nrows(self):
-        return self.specification['nrows']
+        return self.specification.get('nrows', 1)
 
     @cached_property
     def _get__ncols(self):
-        return self.specification['ncols']
+        return self.specification.get('ncols', 0)
 
     @cached_property
     def _get__dtypes(self):
-        return self.specification['dtypes']
+        return self.specification.get('dtypes', {})
 
     @cached_property
     def _get__delimiter(self):
-        return self.specification['delimiter']
+        return self.specification.get('delimiter', '')
 
     # Trait change handlers
 
     def _specfile_changed(self):
         with open(self.specfile, "r") as f:
-            self.specification = yaml.load(f, Loader=yaml.CLoader)[self.name]
+            self.specification = yaml.load(f,
+                                           Loader=yaml.CLoader).get(self.name,
+                                                                    {})
 
     def __dtypes_items_changed(self):
         """ Required because Dict traits that are properties don't seem
@@ -153,7 +155,7 @@ class DataDictValidator(HasTraits):
     def _specification_default(self):
         if op.isfile(self.specfile):
             with open(self.specfile, 'r') as f:
-                data = yaml.load(f, Loader=yaml.CLoader)[self.name]
+                data = yaml.load(f, Loader=yaml.CLoader).get(self.name, {})
             return data
         return {}
 
