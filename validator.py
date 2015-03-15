@@ -84,7 +84,9 @@ class DataDictValidator(HasTraits):
                 parse_dates.append(k)
         for k in parse_dates:
             del self.dtypes[k]
-        args.update({'dtype': self.dtypes, 'parse_dates': parse_dates})
+        args['dtype'] = self.dtypes
+        if len(parse_dates) > 0:
+            args['parse_dates'] = parse_dates
         return args
 
 #    def _specification_default(self):
