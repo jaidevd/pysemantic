@@ -52,6 +52,11 @@ class TestDataDictValidator(unittest.TestCase):
         with open(cls.specfile, "r") as f:
             cls.basespecs = yaml.load(f, Loader=yaml.CLoader)
 
+        # fix the paths in basespecs if they aren't absolute
+        for name, dataspec in cls.basespecs.iteritems():
+            if not op.isabs(dataspec['path']):
+                dataspec['path'] = op.abspath(dataspec['path'])
+
         cls.ideal_activity_parser_args = _get_person_activity_args()
         cls.ideal_iris_parser_args = _get_iris_args()
 
@@ -84,6 +89,18 @@ class TestDataDictValidator(unittest.TestCase):
         validated_parser_args = validator.get_parser_args()
         self.assertKwargsEqual(validated_parser_args,
                                self.ideal_activity_parser_args)
+
+    def test_error_for_relative_filepath(self):
+        """Test if validator raises errors when relative paths are found in the
+        dictionary."""
+        specs = self.basespecs['iris']
+        old_path = specs['path']
+        try:
+            specs['path'] = op.join("testdata", "iris.csv")
+            validator = DataDictValidator(specifications=specs)
+            self.assertEqual(validator.filepath, "")
+        finally:
+            specs['path'] = old_path
 
 
 if __name__ == '__main__':

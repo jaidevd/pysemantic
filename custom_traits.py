@@ -10,8 +10,22 @@
 Customized traits for advanced validation
 """
 
-from traits.api import Dict, TraitError, BaseInt
+import os.path as op
+from traits.api import Dict, TraitError, BaseInt, File
 from traits.trait_handlers import TraitDictObject
+
+
+class AbsFile(File):
+    """ A File trait whose value must be an absolute path."""
+
+    def validate(self, object, name, value):
+        validated_value = super(File, self).validate(object, name, value)
+        if op.isabs(validated_value) and not self.exists:
+            return validated_value
+        elif op.isabs(validated_value) and op.isfile(value):
+            return validated_value
+
+        self.error(object, name, value)
 
 
 class NaturalNumber(BaseInt):

@@ -12,7 +12,7 @@ Traited Data validator for `pandas.DataFrame` objects
 
 from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
                         cached_property)
-from custom_traits import DTypesDict, NaturalNumber
+from custom_traits import DTypesDict, NaturalNumber, AbsFile
 import yaml
 import datetime
 
@@ -31,7 +31,7 @@ class DataDictValidator(HasTraits):
     specification = Dict
 
     # Path to the file containing the data
-    filepath = File(exists=True)
+    filepath = AbsFile(exists=True)
 
     # Delimiter
     delimiter = Str
@@ -88,12 +88,6 @@ class DataDictValidator(HasTraits):
         if len(parse_dates) > 0:
             args['parse_dates'] = parse_dates
         return args
-
-#    def _specification_default(self):
-#        with open(self.specfile, "r") as f:
-#            data = yaml.load(f, Loader=yaml.CLoader)[self.name]
-#        print "datadict parseD!!!"
-#        return data
 
     @cached_property
     def _get_delimiter(self):
@@ -158,6 +152,5 @@ if __name__ == '__main__':
         data = yaml.load(f, Loader=yaml.CLoader)
     datasets = {}
     for k, v in data.iteritems():
-        print k
         val = DataDictValidator(specification=v, name=k)
         datasets[k] = pd.read_table(**val.get_parser_args())

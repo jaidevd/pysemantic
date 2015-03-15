@@ -1,5 +1,5 @@
 person_activity:
-  path: /home/jaidev/src/pysemantic/testdata/person_activity.tsv
+  path: testdata/person_activity.tsv
   delimiter: "\t"
   nrows: 100
   ncols: 8
@@ -13,7 +13,7 @@ person_activity:
     activity: !!python/name:__builtin__.str
 
 iris:
-  path: /home/jaidev/src/pysemantic/testdata/iris.csv
+  path: testdata/iris.csv
   delimiter: ","
   nrows: 150
   ncols: 5
