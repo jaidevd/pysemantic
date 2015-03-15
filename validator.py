@@ -14,6 +14,7 @@ from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
                         cached_property)
 from custom_traits import DTypesDict, NaturalNumber
 import yaml
+import datetime
 
 
 class DataDictValidator(HasTraits):
@@ -49,6 +50,10 @@ class DataDictValidator(HasTraits):
     # it's value is just a list of the keys of `dtypes`
     colnames = Property(List, depends_on=['dtypes'])
 
+    # Parser args for pandas
+    parser_args = Property(Dict, depends_on=['filepath', 'delimiter', 'nrows',
+                                             'dtypes', 'colnames'])
+
     # Protected traits
 
     _dtypes = Property(Dict, depends_on=['specification'])
@@ -61,7 +66,26 @@ class DataDictValidator(HasTraits):
 
     _ncols = Property(Int, depends_on=['specification'])
 
+    # Public interface
+    def get_parser_args(self):
+        return self.parser_args
+
     # Property getters and setters
+
+    @cached_property
+    def _get_parser_args(self):
+        args = {'filepath_or_buffer': self.filepath,
+                'sep': self.delimiter,
+                'nrows': self.nrows,
+                'usecols': self.colnames}
+        parse_dates = []
+        for k, v in self.dtypes.iteritems():
+            if v is datetime.time:
+                parse_dates.append(k)
+        for k in parse_dates:
+            del self.dtypes[k]
+        args.update({'dtype': self.dtypes, 'parse_dates': parse_dates})
+        return args
 
     @cached_property
     def _get_specification(self):
@@ -126,4 +150,6 @@ class DataDictValidator(HasTraits):
 
 
 if __name__ == '__main__':
+    import pandas as pd
     validator = DataDictValidator(specfile="dictionary.yaml", name="mtlogs")
+    df = pd.read_table(**validator.get_parser_args())
