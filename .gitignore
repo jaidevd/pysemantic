@@ -58,3 +58,4 @@ data/
 
 # No need to commit the data dictionary
 *.yaml
+!testdata/*.yaml
