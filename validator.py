@@ -28,7 +28,7 @@ class DataDictValidator(HasTraits):
     name = Str
 
     # Dict trait that holds the properties of the dataset
-    specification = Property(Dict, depends_on=['specfile'])
+    specification = Dict
 
     # Path to the file containing the data
     filepath = File(exists=True)
@@ -80,18 +80,18 @@ class DataDictValidator(HasTraits):
                 'usecols': self.colnames}
         parse_dates = []
         for k, v in self.dtypes.iteritems():
-            if v is datetime.time:
+            if v is datetime.date:
                 parse_dates.append(k)
         for k in parse_dates:
             del self.dtypes[k]
         args.update({'dtype': self.dtypes, 'parse_dates': parse_dates})
         return args
 
-    @cached_property
-    def _get_specification(self):
-        with open(self.specfile, "r") as f:
-            data = yaml.load(f, Loader=yaml.CLoader)[self.name]
-        return data
+#    def _specification_default(self):
+#        with open(self.specfile, "r") as f:
+#            data = yaml.load(f, Loader=yaml.CLoader)[self.name]
+#        print "datadict parseD!!!"
+#        return data
 
     @cached_property
     def _get_delimiter(self):
@@ -151,5 +151,11 @@ class DataDictValidator(HasTraits):
 
 if __name__ == '__main__':
     import pandas as pd
-    validator = DataDictValidator(specfile="dictionary.yaml", name="mtlogs")
-    df = pd.read_table(**validator.get_parser_args())
+    specfile = "dictionary.yaml"
+    with open(specfile, "r") as f:
+        data = yaml.load(f, Loader=yaml.CLoader)
+    datasets = {}
+    for k, v in data.iteritems():
+        print k
+        val = DataDictValidator(specification=v, name=k)
+        datasets[k] = pd.read_table(**val.get_parser_args())
