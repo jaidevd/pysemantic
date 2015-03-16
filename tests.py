@@ -13,38 +13,75 @@ Tests
 import unittest
 import yaml
 import os.path as op
+import os
 from copy import deepcopy
+from ConfigParser import RawConfigParser
 from validator import DataDictValidator
+from loaders import _get_default_data_dictionary
+
+TEST_CONFIG_FILE = op.join(op.dirname(__file__), "testdata", "test.conf")
 
 
-def _get_iris_args():
-    filepath = op.join(op.dirname(__file__), "testdata", "iris.csv")
-    return dict(filepath_or_buffer=op.abspath(filepath),
-                sep=",", nrows=150,
-                dtype={'Petal Length': float,
-                       'Petal Width': float,
-                       'Sepal Length': float,
-                       'Sepal Width': float,
-                       'Species': str},
-                usecols=['Petal Length', 'Sepal Length', 'Petal Width',
-                         'Sepal Width', 'Species'])
+class TestIO(unittest.TestCase):
+    """
+    Test the dataset loading utilities.
+    """
 
+    @classmethod
+    def setUpClass(cls):
+        # Fix the relative paths in the config file.
+        parser = RawConfigParser()
+        parser.read(TEST_CONFIG_FILE)
+        cls.old_fpath = parser.get("pysemantic", "specfile")
+        parser.set("pysemantic", "specfile", op.abspath(cls.old_fpath))
+        with open(TEST_CONFIG_FILE, "w") as f:
+            parser.write(f)
+        cls._parser = parser
 
-def _get_person_activity_args():
-    filepath = op.join(op.dirname(__file__), "testdata", "person_activity.tsv")
-    return dict(filepath_or_buffer=op.abspath(filepath),
-                sep="\t", nrows=100, dtype={'sequence_name': str,
-                                            'tag': str,
-                                            'x': float,
-                                            'y': float,
-                                            'z': float,
-                                            'activity': str},
-                usecols=['sequence_name', 'tag', 'date', 'x', 'y', 'z',
-                         'activity'],
-                parse_dates=['date'])
+    @classmethod
+    def tearDownClass(cls):
+        cls._parser.set("pysemantic", "specfile", cls.old_fpath)
+        with open(TEST_CONFIG_FILE, "w") as f:
+            cls._parser.write(f)
+
+    def setUp(self):
+        self.testParser = RawConfigParser()
+        for section in self._parser.sections():
+            self.testParser.add_section(section)
+            for item in self._parser.items(section):
+                self.testParser.set(section, item[0], item[1])
+
+    def test_config_loader_default_location(self):
+        """Check if the config loader looks for the files in the correct
+        places."""
+        # Put the test config file in the current and home directories, with
+        # some modifications.
+        cwd_file = op.join(os.getcwd(), "test.conf")
+        home_file = op.join(op.expanduser('~'), "test.conf")
+
+        try:
+            self.testParser.set("pysemantic", "specfile", os.getcwd())
+            with open(cwd_file, "w") as f:
+                self.testParser.write(f)
+            specfile = _get_default_data_dictionary("pysemantic", "test.conf")
+            self.assertEqual(specfile, os.getcwd())
+
+            os.unlink(cwd_file)
+
+            self.testParser.set("pysemantic", "specfile", op.expanduser('~'))
+            with open(home_file, "w") as f:
+                self.testParser.write(f)
+            specfile = _get_default_data_dictionary("pysemantic", "test.conf")
+            self.assertEqual(specfile, op.expanduser('~'))
+
+        finally:
+            os.unlink(home_file)
 
 
 class TestDataDictValidator(unittest.TestCase):
+    """
+    Test the `pysemantic.validator.DataDictValidatorClass`
+    """
 
     @classmethod
     def setUpClass(cls):
@@ -146,6 +183,33 @@ class TestDataDictValidator(unittest.TestCase):
         validated_parser_args = validator.get_parser_args()
         self.assertKwargsEqual(validated_parser_args,
                                self.ideal_activity_parser_args)
+
+
+def _get_iris_args():
+    filepath = op.join(op.dirname(__file__), "testdata", "iris.csv")
+    return dict(filepath_or_buffer=op.abspath(filepath),
+                sep=",", nrows=150,
+                dtype={'Petal Length': float,
+                       'Petal Width': float,
+                       'Sepal Length': float,
+                       'Sepal Width': float,
+                       'Species': str},
+                usecols=['Petal Length', 'Sepal Length', 'Petal Width',
+                         'Sepal Width', 'Species'])
+
+
+def _get_person_activity_args():
+    filepath = op.join(op.dirname(__file__), "testdata", "person_activity.tsv")
+    return dict(filepath_or_buffer=op.abspath(filepath),
+                sep="\t", nrows=100, dtype={'sequence_name': str,
+                                            'tag': str,
+                                            'x': float,
+                                            'y': float,
+                                            'z': float,
+                                            'activity': str},
+                usecols=['sequence_name', 'tag', 'date', 'x', 'y', 'z',
+                         'activity'],
+                parse_dates=['date'])
 
 
 if __name__ == '__main__':
