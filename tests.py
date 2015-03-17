@@ -17,14 +17,36 @@ import os
 from copy import deepcopy
 from ConfigParser import RawConfigParser
 from validator import DataDictValidator
-from loaders import _get_default_data_dictionary
+import loaders as ldr
 
 TEST_CONFIG_FILE = op.join(op.dirname(__file__), "testdata", "test.conf")
 
 
-class TestIO(unittest.TestCase):
+class TestProject(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.old_config = ldr.CONF_FILE_NAME
+        ldr.CONF_FILE_NAME = TEST_CONFIG_FILE
+
+    @classmethod
+    def tearDownClass(cls):
+        ldr.CONF_FILE_NAME = cls.old_config
+
+    def setUp(self):
+        self.project = ldr.Project(project_name="pysemantic")
+
+    def test_load_dataset(self):
+        """
+        Test if the project object can load the dataset properly.
+        """
+        loaded = self.project.load_dataset("iris")
+        self.assertItemsEqual(loaded.shape, (150, 5))
+
+
+class TestConfig(unittest.TestCase):
     """
-    Test the dataset loading utilities.
+    Test the configuration management utilities.
     """
 
     @classmethod
@@ -63,7 +85,7 @@ class TestIO(unittest.TestCase):
             self.testParser.set("pysemantic", "specfile", os.getcwd())
             with open(cwd_file, "w") as f:
                 self.testParser.write(f)
-            specfile = _get_default_data_dictionary("pysemantic", "test.conf")
+            specfile = _get_default_specfile("pysemantic", "test.conf")
             self.assertEqual(specfile, os.getcwd())
 
             os.unlink(cwd_file)
@@ -71,7 +93,7 @@ class TestIO(unittest.TestCase):
             self.testParser.set("pysemantic", "specfile", op.expanduser('~'))
             with open(home_file, "w") as f:
                 self.testParser.write(f)
-            specfile = _get_default_data_dictionary("pysemantic", "test.conf")
+            specfile = _get_default_specfile("pysemantic", "test.conf")
             self.assertEqual(specfile, op.expanduser('~'))
 
         finally:

@@ -13,11 +13,14 @@
 import os.path as op
 import os
 from ConfigParser import RawConfigParser
+from validator import DataDictValidator
+import yaml
+import pandas as pd
 
 CONF_FILE_NAME = "pysemantic.conf"
 
 
-def _get_default_data_dictionary(project_name, config_fname=CONF_FILE_NAME):
+def _get_default_specfile(project_name, config_fname=CONF_FILE_NAME):
     """_get_default_data_dictionary
 
     Returns the specifications file used by the given project. The
@@ -33,6 +36,30 @@ def _get_default_data_dictionary(project_name, config_fname=CONF_FILE_NAME):
             parser = RawConfigParser()
             parser.read(path)
             return parser.get(project_name, 'specfile')
+
+
+class Project(object):
+
+    def __init__(self, project_name, parser=pd.read_table):
+        self.project_name = project_name
+        self.specfile = _get_default_specfile(self.project_name)
+        self.validators = {}
+        self.parser = parser
+        with open(self.specfile, 'r') as f:
+            specifications = yaml.loader(f, Loader=yaml.CLoader)
+        for name, specs in specifications.iteritems():
+            self.validators[name] = DataDictValidator(specification=specs)
+
+    def load_dataset(self, dataset_name):
+        validator = self.validators[dataset_name]
+        return self.parser(**validator.get_parser_args())
+
+    def load_datasets(self):
+        datasets = {}
+        for name in self.validators.iterkeyes():
+            datasets[name] = self.load_dataset(name)
+        return datasets
+
 
 if __name__ == '__main__':
     specfile = _get_default_data_dictionary("valuefirst")
