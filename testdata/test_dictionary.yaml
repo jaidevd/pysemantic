@@ -19,6 +19,6 @@ person_activity:
     x: *id001
     y: *id001
     z: *id001
-  ncols: 8
+  ncols: 7
   nrows: 100
   path: testdata/person_activity.tsv

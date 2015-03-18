@@ -14,7 +14,9 @@ import unittest
 import yaml
 import os.path as op
 import os
+import datetime
 from copy import deepcopy
+import numpy as np
 from ConfigParser import RawConfigParser
 from validator import DataDictValidator
 import loaders as ldr
@@ -37,6 +39,7 @@ class TestProject(unittest.TestCase):
         with open(TEST_DATA_DICT, "w") as f:
             yaml.dump(testData, f, Dumper=yaml.CDumper,
                       default_flow_style=False)
+        cls.data_specs = testData
 
         config_fname = op.basename(TEST_CONFIG_FILE_PATH)
         cls.test_conf_file = op.join(os.getcwd(), config_fname)
@@ -64,12 +67,41 @@ class TestProject(unittest.TestCase):
     def setUp(self):
         self.project = ldr.Project(project_name="pysemantic")
 
-    def test_load_dataset(self):
+    def test_dataset_shape(self):
         """
         Test if the project object can load the dataset properly.
         """
         loaded = self.project.load_dataset("iris")
-        self.assertItemsEqual(loaded.shape, (150, 5))
+        spec_shape = (self.data_specs['iris']['nrows'],
+                      self.data_specs['iris']['ncols'])
+        self.assertItemsEqual(loaded.shape, spec_shape)
+        loaded = self.project.load_dataset("person_activity")
+        spec_shape = (self.data_specs['person_activity']['nrows'],
+                      self.data_specs['person_activity']['ncols'])
+        self.assertItemsEqual(loaded.shape, spec_shape)
+
+    def test_dataset_colnames(self):
+        """Check if the column names read by the loader are correct."""
+        for name in ['iris', 'person_activity']:
+            loaded = self.project.load_dataset(name)
+            columns = loaded.columns.tolist()
+            spec_colnames = self.data_specs[name]['dtypes'].keys()
+            self.assertItemsEqual(spec_colnames, columns)
+
+    def test_dataset_coltypes(self):
+        """Check whether the columns have the correct datatypes."""
+        for name in ['iris', 'person_activity']:
+            loaded = self.project.load_dataset(name)
+            for colname in loaded:
+                if loaded[colname].dtype == np.dtype('O'):
+                    self.assertEqual(self.data_specs[name]['dtypes'][colname],
+                                     str)
+                elif loaded[colname].dtype == np.dtype('<M8[ns]'):
+                    self.assertEqual(self.data_specs[name]['dtypes'][colname],
+                                     datetime.date)
+                else:
+                    self.assertEqual(loaded[colname].dtype,
+                                     self.data_specs[name]['dtypes'][colname])
 
 
 class TestConfig(unittest.TestCase):
