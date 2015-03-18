@@ -19,19 +19,24 @@ from ConfigParser import RawConfigParser
 from validator import DataDictValidator
 import loaders as ldr
 
-TEST_CONFIG_FILE = op.join(op.dirname(__file__), "testdata", "test.conf")
+TEST_CONFIG_FILE_PATH = op.join(op.dirname(__file__), "testdata", "test.conf")
 
 
 class TestProject(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.old_config = ldr.CONF_FILE_NAME
-        ldr.CONF_FILE_NAME = TEST_CONFIG_FILE
+        config_fname = op.basename(TEST_CONFIG_FILE_PATH)
+        cls.test_conf_file = op.join(os.getcwd(), config_fname)
+        with open(TEST_CONFIG_FILE_PATH, 'r') as f:
+            confData = f.read()
+        with open(cls.test_conf_file, 'w') as f:
+            f.write(confData)
+        ldr.CONF_FILE_NAME = config_fname
 
     @classmethod
     def tearDownClass(cls):
-        ldr.CONF_FILE_NAME = cls.old_config
+        os.unlink(cls.test_conf_file)
 
     def setUp(self):
         self.project = ldr.Project(project_name="pysemantic")
@@ -53,17 +58,18 @@ class TestConfig(unittest.TestCase):
     def setUpClass(cls):
         # Fix the relative paths in the config file.
         parser = RawConfigParser()
-        parser.read(TEST_CONFIG_FILE)
+        parser.read(TEST_CONFIG_FILE_PATH)
         cls.old_fpath = parser.get("pysemantic", "specfile")
         parser.set("pysemantic", "specfile", op.abspath(cls.old_fpath))
-        with open(TEST_CONFIG_FILE, "w") as f:
+        with open(TEST_CONFIG_FILE_PATH, "w") as f:
             parser.write(f)
         cls._parser = parser
+        ldr.CONF_FILE_NAME = "test.conf"
 
     @classmethod
     def tearDownClass(cls):
         cls._parser.set("pysemantic", "specfile", cls.old_fpath)
-        with open(TEST_CONFIG_FILE, "w") as f:
+        with open(TEST_CONFIG_FILE_PATH, "w") as f:
             cls._parser.write(f)
 
     def setUp(self):
@@ -85,7 +91,7 @@ class TestConfig(unittest.TestCase):
             self.testParser.set("pysemantic", "specfile", os.getcwd())
             with open(cwd_file, "w") as f:
                 self.testParser.write(f)
-            specfile = _get_default_specfile("pysemantic", "test.conf")
+            specfile = ldr._get_default_specfile("pysemantic")
             self.assertEqual(specfile, os.getcwd())
 
             os.unlink(cwd_file)
@@ -93,7 +99,7 @@ class TestConfig(unittest.TestCase):
             self.testParser.set("pysemantic", "specfile", op.expanduser('~'))
             with open(home_file, "w") as f:
                 self.testParser.write(f)
-            specfile = _get_default_specfile("pysemantic", "test.conf")
+            specfile = ldr._get_default_specfile("pysemantic")
             self.assertEqual(specfile, op.expanduser('~'))
 
         finally:

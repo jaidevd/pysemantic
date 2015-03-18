@@ -20,7 +20,7 @@ import pandas as pd
 CONF_FILE_NAME = "pysemantic.conf"
 
 
-def _get_default_specfile(project_name, config_fname=CONF_FILE_NAME):
+def _get_default_specfile(project_name):
     """_get_default_data_dictionary
 
     Returns the specifications file used by the given project. The
@@ -29,8 +29,8 @@ def _get_default_specfile(project_name, config_fname=CONF_FILE_NAME):
 
     :param project_name: Name of the project for which to get the spcfile.
     """
-    paths = [op.join(os.getcwd(), config_fname),
-             op.join(op.expanduser('~'), config_fname)]
+    paths = [op.join(os.getcwd(), CONF_FILE_NAME),
+             op.join(op.expanduser('~'), CONF_FILE_NAME)]
     for path in paths:
         if op.exists(path):
             parser = RawConfigParser()
@@ -46,7 +46,7 @@ class Project(object):
         self.validators = {}
         self.parser = parser
         with open(self.specfile, 'r') as f:
-            specifications = yaml.loader(f, Loader=yaml.CLoader)
+            specifications = yaml.load(f, Loader=yaml.CLoader)
         for name, specs in specifications.iteritems():
             self.validators[name] = DataDictValidator(specification=specs)
 
@@ -62,4 +62,4 @@ class Project(object):
 
 
 if __name__ == '__main__':
-    specfile = _get_default_data_dictionary("valuefirst")
+    specfile = _get_default_specfile("valuefirst")
