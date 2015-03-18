@@ -20,12 +20,24 @@ from validator import DataDictValidator
 import loaders as ldr
 
 TEST_CONFIG_FILE_PATH = op.join(op.dirname(__file__), "testdata", "test.conf")
+TEST_DATA_DICT = op.join(op.dirname(__file__), "testdata",
+                                               "test_dictionary.yaml")
 
 
 class TestProject(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        # modify the testdata dict to have absolute paths
+        with open(TEST_DATA_DICT, "r") as f:
+            testData = yaml.load(f, Loader=yaml.CLoader)
+        for name, specs in testData.iteritems():
+            path = op.join(op.abspath(op.dirname(__file__)), specs['path'])
+            specs['path'] = path
+        with open(TEST_DATA_DICT, "w") as f:
+            yaml.dump(testData, f, Dumper=yaml.CDumper,
+                      default_flow_style=False)
+
         config_fname = op.basename(TEST_CONFIG_FILE_PATH)
         cls.test_conf_file = op.join(os.getcwd(), config_fname)
         with open(TEST_CONFIG_FILE_PATH, 'r') as f:
@@ -36,7 +48,18 @@ class TestProject(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        os.unlink(cls.test_conf_file)
+        try:
+            # modify the testdata back
+            with open(TEST_DATA_DICT, "r") as f:
+                testData = yaml.load(f, Loader=yaml.CLoader)
+            testData['iris']['path'] = op.join("testdata", "iris.csv")
+            testData['person_activity']['path'] = op.join("testdata",
+                                                         "person_activity.tsv")
+            with open(TEST_DATA_DICT, "w") as f:
+                testData = yaml.dump(testData, f, Dumper=yaml.CDumper,
+                                     default_flow_style=False)
+        finally:
+            os.unlink(cls.test_conf_file)
 
     def setUp(self):
         self.project = ldr.Project(project_name="pysemantic")
