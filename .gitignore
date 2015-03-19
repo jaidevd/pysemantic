@@ -63,3 +63,6 @@ data/
 # Ignore the config files.
 *.conf
 !testdata/*.conf
+
+# Vim swap files
+*.swp
