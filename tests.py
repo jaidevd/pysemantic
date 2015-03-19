@@ -17,7 +17,7 @@ import os
 import datetime
 from copy import deepcopy
 import numpy as np
-from ConfigParser import RawConfigParser
+from ConfigParser import RawConfigParser, NoSectionError
 from validator import DataDictValidator
 import project as pr
 
@@ -74,6 +74,12 @@ class TestProject(unittest.TestCase):
         # Check if the project name is indeed present in the config file
         test_dict = pr._get_default_specfile(test_project_name)
         self.assertTrue(test_dict, TEST_DATA_DICT)
+
+    def test_remove_project(self):
+        """Test if removing a project works properly."""
+        self.assertTrue(pr.remove_project("test_project"))
+        self.assertRaises(NoSectionError, pr._get_default_specfile,
+                          "test_project")
 
     def test_load_all(self):
         """Test if loading all datasets in a project works as expected."""

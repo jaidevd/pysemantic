@@ -57,6 +57,26 @@ def add_project(project_name, specfile):
         parser.write(f)
 
 
+def remove_project(project_name):
+    """Remove a project from the global configuration file.
+
+    :param project_name: Name of the project to remove.
+    Returns true if the project existed.
+    """
+    paths = [op.join(os.getcwd(), CONF_FILE_NAME),
+             op.join(op.expanduser('~'), CONF_FILE_NAME)]
+    for path in paths:
+        if op.exists(path):
+            parser = RawConfigParser()
+            parser.read(path)
+            break
+    result = parser.remove_section(project_name)
+    if result:
+        with open(path, "w") as f:
+            parser.write(f)
+    return result
+
+
 class Project(object):
 
     def __init__(self, project_name, parser=pd.read_table):
