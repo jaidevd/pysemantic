@@ -19,7 +19,7 @@ from copy import deepcopy
 import numpy as np
 from ConfigParser import RawConfigParser
 from validator import DataDictValidator
-import loaders as ldr
+import project as pr
 
 TEST_CONFIG_FILE_PATH = op.join(op.dirname(__file__), "testdata", "test.conf")
 TEST_DATA_DICT = op.join(op.dirname(__file__), "testdata",
@@ -47,7 +47,7 @@ class TestProject(unittest.TestCase):
             confData = f.read()
         with open(cls.test_conf_file, 'w') as f:
             f.write(confData)
-        ldr.CONF_FILE_NAME = config_fname
+        pr.CONF_FILE_NAME = config_fname
 
     @classmethod
     def tearDownClass(cls):
@@ -65,7 +65,20 @@ class TestProject(unittest.TestCase):
             os.unlink(cls.test_conf_file)
 
     def setUp(self):
-        self.project = ldr.Project(project_name="pysemantic")
+        self.project = pr.Project(project_name="pysemantic")
+
+    def test_add_project(self):
+        """Test if adding a project works properly."""
+        test_project_name = "test_project"
+        pr.add_project(test_project_name, TEST_DATA_DICT)
+        # Check if the project name is indeed present in the config file
+        test_dict = pr._get_default_specfile(test_project_name)
+        self.assertTrue(test_dict, TEST_DATA_DICT)
+
+    def test_load_all(self):
+        """Test if loading all datasets in a project works as expected."""
+        loaded = self.project.load_datasets()
+        self.assertItemsEqual(loaded.keys(), ('iris', 'person_activity'))
 
     def test_dataset_shape(self):
         """
@@ -119,7 +132,7 @@ class TestConfig(unittest.TestCase):
         with open(TEST_CONFIG_FILE_PATH, "w") as f:
             parser.write(f)
         cls._parser = parser
-        ldr.CONF_FILE_NAME = "test.conf"
+        pr.CONF_FILE_NAME = "test.conf"
 
     @classmethod
     def tearDownClass(cls):
@@ -146,7 +159,7 @@ class TestConfig(unittest.TestCase):
             self.testParser.set("pysemantic", "specfile", os.getcwd())
             with open(cwd_file, "w") as f:
                 self.testParser.write(f)
-            specfile = ldr._get_default_specfile("pysemantic")
+            specfile = pr._get_default_specfile("pysemantic")
             self.assertEqual(specfile, os.getcwd())
 
             os.unlink(cwd_file)
@@ -154,7 +167,7 @@ class TestConfig(unittest.TestCase):
             self.testParser.set("pysemantic", "specfile", op.expanduser('~'))
             with open(home_file, "w") as f:
                 self.testParser.write(f)
-            specfile = ldr._get_default_specfile("pysemantic")
+            specfile = pr._get_default_specfile("pysemantic")
             self.assertEqual(specfile, op.expanduser('~'))
 
         finally:

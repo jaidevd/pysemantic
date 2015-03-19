@@ -38,6 +38,25 @@ def _get_default_specfile(project_name):
             return parser.get(project_name, 'specfile')
 
 
+def add_project(project_name, specfile):
+    """ Add a project to the global configuration file.
+
+    :param project_name: Name of the project
+    :param specfile: path to the data dictionary used by the project.
+    """
+    paths = [op.join(os.getcwd(), CONF_FILE_NAME),
+             op.join(op.expanduser('~'), CONF_FILE_NAME)]
+    for path in paths:
+        if op.exists(path):
+            parser = RawConfigParser()
+            parser.read(path)
+            break
+    parser.add_section(project_name)
+    parser.set(project_name, "specfile", specfile)
+    with open(path, "w") as f:
+        parser.write(f)
+
+
 class Project(object):
 
     def __init__(self, project_name, parser=pd.read_table):
@@ -56,7 +75,7 @@ class Project(object):
 
     def load_datasets(self):
         datasets = {}
-        for name in self.validators.iterkeyes():
+        for name in self.validators.iterkeys():
             datasets[name] = self.load_dataset(name)
         return datasets
 
