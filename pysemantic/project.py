@@ -89,6 +89,15 @@ class Project(object):
         for name, specs in specifications.iteritems():
             self.validators[name] = DataDictValidator(specification=specs)
 
+    def get_dataset_specs(self, dataset_name=None):
+        if dataset_name is not None:
+            return self.validators[dataset_name].get_parser_args()
+        else:
+            specs = {}
+            for name, validator in self.validators.iteritems():
+                specs[name] = validator.get_parser_args()
+            return specs
+
     def load_dataset(self, dataset_name):
         validator = self.validators[dataset_name]
         return self.parser(**validator.get_parser_args())

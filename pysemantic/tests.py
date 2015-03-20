@@ -27,11 +27,34 @@ TEST_DATA_DICT = op.join(op.abspath(op.dirname(__file__)), "testdata",
                          "test_dictionary.yaml")
 
 
-class TestProject(unittest.TestCase):
+class BaseTestCase(unittest.TestCase):
+
+    def assertKwargsEqual(self, dict1, dict2):
+        """Assert that dictionaries are equal, to a deeper extent."""
+        self.assertEqual(len(dict1.keys()), len(dict2.keys()))
+        for k, v in dict1.iteritems():
+            self.assertIn(k, dict2)
+            left = v
+            right = dict2[k]
+            if isinstance(left, (tuple, list)):
+                self.assertItemsEqual(left, right)
+            elif isinstance(left, dict):
+                self.assertDictEqual(left, right)
+            else:
+                self.assertEqual(left, right)
+
+    def assertKwargsEmpty(self, data):
+        """Assert that a dictionary is empty."""
+        for value in data.itervalues():
+            self.assertIn(value, ("", 0, 1, [], (), {}, None, False))
+
+
+class TestProject(BaseTestCase):
     """ Tests for the project manager."""
 
     @classmethod
     def setUpClass(cls):
+        cls.maxDiff = None
         # modify the testdata dict to have absolute paths
         with open(TEST_DATA_DICT, "r") as f:
             testData = yaml.load(f, Loader=yaml.CLoader)
@@ -73,53 +96,54 @@ class TestProject(unittest.TestCase):
             os.unlink(cls.test_conf_file)
 
     def setUp(self):
-#        expected = {'iris': {'delimiter': ',',
-#                             'dtypes': {'Petal Length': float,
-#                                        'Sepal Width': float,
-#                                        'Petal Width': float,
-#                                        'Sepal Length': float,
-#                                        'Species': str},
-#                             'usecols': ['Petal Length', 'Sepal Length',
-#                                         'Sepal Width', 'Petal Width'],
-#                             'nrows': 150,
-#                             'filepath_or_buffer': op.join(op.dirname(__file__),
-#                                                           "testdata",
-#                                                           "iris.csv")
-#                             },
-#                    'person_activity': {'delimiter': '\t',
-#                                        'dtypes': {'activity': str,
-#                                                   'date': datetime.date,
-#                                                   'sequence_name': str,
-#                                                   'tag': str, 'x': float,
-#                                                   'y': float, 'z': float,
-#                                                   },
-#                                        'usecols': ['activity',
-#                                                    'sequence_name', 'tag',
-#                                                    'x', 'y', 'z'],
-#                                        'parse_dates': ['date'],
-#                                        'nrows': 100,
-#                                        'filepath_or_buffer': op.join(
-#                                                         op.dirname(__file__),
-#                                                         "testdata",
-#                                                         "person_activity.tsv")
-#                                        }
-#                    }
-#        self.expected_specs = expected
+        expected = {'iris': {'sep': ',',
+                             'dtype': {'Petal Length': float,
+                                       'Sepal Width': float,
+                                       'Petal Width': float,
+                                       'Sepal Length': float,
+                                       'Species': str},
+                             'usecols': ['Petal Length', 'Sepal Length',
+                                         'Sepal Width', 'Petal Width',
+                                         'Species'],
+                             'nrows': 150,
+                             'filepath_or_buffer': op.join(
+                                              op.abspath(op.dirname(__file__)),
+                                              "testdata", "iris.csv")
+                             },
+                    'person_activity': {'sep': '\t',
+                                        'dtype': {'activity': str,
+                                                  'sequence_name': str,
+                                                  'tag': str, 'x': float,
+                                                  'y': float, 'z': float,
+                                                  },
+                                        'usecols': ['activity',
+                                                    'sequence_name', 'tag',
+                                                    'x', 'y', 'z', 'date'],
+                                        'parse_dates': ['date'],
+                                        'nrows': 100,
+                                        'filepath_or_buffer': op.join(
+                                              op.abspath(op.dirname(__file__)),
+                                              "testdata",
+                                              "person_activity.tsv")
+                                        }
+                    }
+        self.expected_specs = expected
         self.project = pr.Project(project_name="pysemantic")
 
-#    def test_get_project_specs(self):
-#        """Check if the project manager produces all specifications correctly.
-#        """
-#        self.assertKwargsEqual(self.project.get_dataset_specs(),
-#                               self.expected_specs)
-#
-#    def test_get_dataset_specs(self):
-#        """Check if the project manager produces specifications for each
-#        dataset correctly."""
-#        for name in ['iris', 'person_activity']:
-#            self.assertKwargsEqual(self.project.get_dataset_specs(name),
-#                                   self.expected_specs[name])
-#
+    def test_get_project_specs(self):
+        """Check if the project manager produces all specifications correctly.
+        """
+        specs = self.project.get_dataset_specs()
+        for name, argdict in specs.iteritems():
+            self.assertKwargsEqual(argdict, self.expected_specs[name])
+
+    def test_get_dataset_specs(self):
+        """Check if the project manager produces specifications for each
+        dataset correctly."""
+        for name in ['iris', 'person_activity']:
+            self.assertKwargsEqual(self.project.get_dataset_specs(name),
+                                   self.expected_specs[name])
+
     def test_add_project(self):
         """Test if adding a project works properly."""
         test_project_name = "test_project"
@@ -176,7 +200,7 @@ class TestProject(unittest.TestCase):
                                      self.data_specs[name]['dtypes'][colname])
 
 
-class TestConfig(unittest.TestCase):
+class TestConfig(BaseTestCase):
     """
     Test the configuration management utilities.
     """
@@ -233,7 +257,7 @@ class TestConfig(unittest.TestCase):
             os.unlink(home_file)
 
 
-class TestDataDictValidator(unittest.TestCase):
+class TestDataDictValidator(BaseTestCase):
     """
     Test the `pysemantic.validator.DataDictValidatorClass`
     """
@@ -266,23 +290,6 @@ class TestDataDictValidator(unittest.TestCase):
         with open(cls.specfile, "w") as f:
             yaml.dump(cls._basespecs, f, Dumper=yaml.CDumper,
                       default_flow_style=False)
-
-    def assertKwargsEqual(self, dict1, dict2):
-        self.assertEqual(len(dict1.keys()), len(dict2.keys()))
-        for k, v in dict1.iteritems():
-            self.assertIn(k, dict2)
-            left = v
-            right = dict2[k]
-            if isinstance(left, (tuple, list)):
-                self.assertItemsEqual(left, right)
-            elif isinstance(left, dict):
-                self.assertDictEqual(left, right)
-            else:
-                self.assertEqual(left, right)
-
-    def assertKwargsEmpty(self, data):
-        for value in data.itervalues():
-            self.assertIn(value, ("", 0, 1, [], (), {}, None, False))
 
     def test_validator_with_specdict_iris(self):
         """Check if the validator works when only the specification is supplied
