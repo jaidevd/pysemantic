@@ -58,11 +58,11 @@ data/
 
 # No need to commit the data dictionary
 *.yaml
-!testdata/*.yaml
+!pysemantic/testdata/*.yaml
 
 # Ignore the config files.
 *.conf
-!testdata/*.conf
+!pysemantic/testdata/*.conf
 
 # Vim swap files
 *.swp
