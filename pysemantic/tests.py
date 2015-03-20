@@ -21,12 +21,14 @@ from ConfigParser import RawConfigParser, NoSectionError
 from validator import DataDictValidator
 import project as pr
 
-TEST_CONFIG_FILE_PATH = op.join(op.dirname(__file__), "testdata", "test.conf")
-TEST_DATA_DICT = op.join(op.dirname(__file__), "testdata",
-                                               "test_dictionary.yaml")
+TEST_CONFIG_FILE_PATH = op.join(op.abspath(op.dirname(__file__)), "testdata",
+                                "test.conf")
+TEST_DATA_DICT = op.join(op.abspath(op.dirname(__file__)), "testdata",
+                         "test_dictionary.yaml")
 
 
 class TestProject(unittest.TestCase):
+    """ Tests for the project manager."""
 
     @classmethod
     def setUpClass(cls):
@@ -41,12 +43,18 @@ class TestProject(unittest.TestCase):
                       default_flow_style=False)
         cls.data_specs = testData
 
+        # Fix config file to have absolute paths
+
         config_fname = op.basename(TEST_CONFIG_FILE_PATH)
         cls.test_conf_file = op.join(os.getcwd(), config_fname)
-        with open(TEST_CONFIG_FILE_PATH, 'r') as f:
-            confData = f.read()
+        parser = RawConfigParser()
+        parser.read(TEST_CONFIG_FILE_PATH)
+        specfile = parser.get('pysemantic', 'specfile')
+        specfile = op.join(op.abspath(op.dirname(__file__)), specfile)
+        parser.remove_option("pysemantic", "specfile")
+        parser.set("pysemantic", "specfile", specfile)
         with open(cls.test_conf_file, 'w') as f:
-            f.write(confData)
+            parser.write(f)
         pr.CONF_FILE_NAME = config_fname
 
     @classmethod
@@ -65,8 +73,53 @@ class TestProject(unittest.TestCase):
             os.unlink(cls.test_conf_file)
 
     def setUp(self):
+#        expected = {'iris': {'delimiter': ',',
+#                             'dtypes': {'Petal Length': float,
+#                                        'Sepal Width': float,
+#                                        'Petal Width': float,
+#                                        'Sepal Length': float,
+#                                        'Species': str},
+#                             'usecols': ['Petal Length', 'Sepal Length',
+#                                         'Sepal Width', 'Petal Width'],
+#                             'nrows': 150,
+#                             'filepath_or_buffer': op.join(op.dirname(__file__),
+#                                                           "testdata",
+#                                                           "iris.csv")
+#                             },
+#                    'person_activity': {'delimiter': '\t',
+#                                        'dtypes': {'activity': str,
+#                                                   'date': datetime.date,
+#                                                   'sequence_name': str,
+#                                                   'tag': str, 'x': float,
+#                                                   'y': float, 'z': float,
+#                                                   },
+#                                        'usecols': ['activity',
+#                                                    'sequence_name', 'tag',
+#                                                    'x', 'y', 'z'],
+#                                        'parse_dates': ['date'],
+#                                        'nrows': 100,
+#                                        'filepath_or_buffer': op.join(
+#                                                         op.dirname(__file__),
+#                                                         "testdata",
+#                                                         "person_activity.tsv")
+#                                        }
+#                    }
+#        self.expected_specs = expected
         self.project = pr.Project(project_name="pysemantic")
 
+#    def test_get_project_specs(self):
+#        """Check if the project manager produces all specifications correctly.
+#        """
+#        self.assertKwargsEqual(self.project.get_dataset_specs(),
+#                               self.expected_specs)
+#
+#    def test_get_dataset_specs(self):
+#        """Check if the project manager produces specifications for each
+#        dataset correctly."""
+#        for name in ['iris', 'person_activity']:
+#            self.assertKwargsEqual(self.project.get_dataset_specs(name),
+#                                   self.expected_specs[name])
+#
     def test_add_project(self):
         """Test if adding a project works properly."""
         test_project_name = "test_project"
@@ -188,7 +241,8 @@ class TestDataDictValidator(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.maxDiff = None
-        cls.specfile = "testdata/test_dictionary.yaml"
+        cls.specfile = op.join(op.dirname(__file__), "testdata",
+                               "test_dictionary.yaml")
         with open(cls.specfile, "r") as f:
             cls._basespecs = yaml.load(f, Loader=yaml.CLoader)
         cls.basespecs = deepcopy(cls._basespecs)
@@ -196,7 +250,8 @@ class TestDataDictValidator(unittest.TestCase):
         # fix the paths in basespecs if they aren't absolute
         for name, dataspec in cls.basespecs.iteritems():
             if not op.isabs(dataspec['path']):
-                dataspec['path'] = op.abspath(dataspec['path'])
+                dataspec['path'] = op.join(op.abspath(op.dirname(__file__)),
+                                           dataspec['path'])
         # The updated values also need to be dumped into the yaml file, because
         # some functionality of the validator depends on parsing it.
         with open(cls.specfile, "w") as f:
