@@ -17,6 +17,7 @@ import os
 import datetime
 from copy import deepcopy
 import numpy as np
+import pandas as pd
 from ConfigParser import RawConfigParser, NoSectionError
 from validator import DataDictValidator
 import project as pr
@@ -47,6 +48,13 @@ class BaseTestCase(unittest.TestCase):
         """Assert that a dictionary is empty."""
         for value in data.itervalues():
             self.assertIn(value, ("", 0, 1, [], (), {}, None, False))
+
+    def assertDataFrameEqual(self, df1, df2):
+        self.assertTrue(np.all(df1.index == df2.index))
+        self.assertTrue(np.all(df1.columns == df2.columns))
+        for col in df1:
+            self.assertTrue(np.all(df1[col].values == df2[col].values))
+            self.assertEqual(df1[col].dtype, df2[col].dtype)
 
 
 class TestProject(BaseTestCase):
@@ -143,6 +151,39 @@ class TestProject(BaseTestCase):
         for name in ['iris', 'person_activity']:
             self.assertKwargsEqual(self.project.get_dataset_specs(name),
                                    self.expected_specs[name])
+
+    def test_set_dataset_specs(self):
+        """Check if setting dataset specifications through the Project object
+        works."""
+        path = op.join(op.abspath(op.dirname(__file__)), "testdata",
+                       "iris.csv")
+        specs = dict(filepath_or_buffer=path,
+                     usecols=['Sepal Length', 'Petal Width', 'Species'],
+                     dtype={'Sepal Length': str})
+        self.assertTrue(self.project.set_dataset_specs("iris", specs))
+        expected = pd.read_csv(**specs)
+        loaded = self.project.load_dataset("iris")
+        self.assertDataFrameEqual(expected, loaded)
+
+    def test_set_dataset_specs_to_file(self):
+        """Check if newly set dataset specifications are written to file
+        properly."""
+        try:
+            with open(TEST_DATA_DICT, "r") as f:
+                oldspecs = yaml.load(f, Loader=yaml.CLoader)
+            path = op.join(op.abspath(op.dirname(__file__)), "testdata",
+                           "iris.csv")
+            specs = dict(filepath_or_buffer=path,
+                         usecols=['Sepal Length', 'Petal Width', 'Species'],
+                         dtype={'Sepal Length': str})
+            self.assertTrue(self.project.set_dataset_specs("iris", specs,
+                                                           write_to_file=True))
+            with open(TEST_DATA_DICT, "r") as f:
+                newspecs = yaml.load(f, Loader=yaml.CLoader)
+            self.assertKwargsEqual(newspecs['iris'], specs)
+        finally:
+            with open(TEST_DATA_DICT, "w") as f:
+                yaml.dump(oldspecs, f, Dumper=yaml.CDumper)
 
     def test_add_project(self):
         """Test if adding a project works properly."""
@@ -295,6 +336,17 @@ class TestDataDictValidator(BaseTestCase):
         """Check if the validator works when only the specification is supplied
         as a dictionary for the iris dataset."""
         validator = DataDictValidator(specification=self.basespecs['iris'])
+        validated_parser_args = validator.get_parser_args()
+        self.assertKwargsEqual(validated_parser_args,
+                               self.ideal_iris_parser_args)
+
+    def test_validator_with_specdict_spec(self):
+        """Check if the validator works when the specfile and specification are
+        both provided."""
+        # This is necessary because the validator might have to write
+        # specifications to the dictionary.
+        validator = DataDictValidator(specification=self.basespecs['iris'],
+                                      specfile=self.specfile)
         validated_parser_args = validator.get_parser_args()
         self.assertKwargsEqual(validated_parser_args,
                                self.ideal_iris_parser_args)

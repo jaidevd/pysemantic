@@ -71,6 +71,24 @@ class DataDictValidator(HasTraits):
     def get_parser_args(self):
         return self.parser_args
 
+    def set_parser_args(self, specs, write_to_file=False):
+        self.parser_args = specs
+        if write_to_file:
+            try:
+                with open(self.specfile, "r") as f:
+                    allSpecs = yaml.load(f, Loader=yaml.CLoader)
+                allSpecs[self.name] = specs
+                with open(self.specfile, "w") as f:
+                    yaml.dump(allSpecs, f, Dumper=yaml.CDumper)
+                return True
+            except Exception as e:
+                import warnings
+                msg = ("Writing specification to file failed with the "
+                       "following error - {0}.".format(e))
+                warnings.warn(msg, RuntimeWarning, stacklevel=3)
+                return False
+        return True
+
     # Property getters and setters
 
     @cached_property
@@ -89,6 +107,9 @@ class DataDictValidator(HasTraits):
         if len(parse_dates) > 0:
             args['parse_dates'] = parse_dates
         return args
+
+    def _set_parser_args(self, specs):
+        self.parser_args.update(specs)
 
     @cached_property
     def _get_delimiter(self):
@@ -120,10 +141,11 @@ class DataDictValidator(HasTraits):
     # Trait change handlers
 
     def _specfile_changed(self):
-        with open(self.specfile, "r") as f:
-            self.specification = yaml.load(f,
-                                           Loader=yaml.CLoader).get(self.name,
-                                                                    {})
+        if self.specification == {}:
+            with open(self.specfile, "r") as f:
+                self.specification = yaml.load(f,
+                                               Loader=yaml.CLoader).get(
+                                                                 self.name, {})
 
     def __dtypes_items_changed(self):
         """ Required because Dict traits that are properties don't seem

@@ -12,6 +12,7 @@
 
 import os.path as op
 import os
+import pprint
 from ConfigParser import RawConfigParser
 from validator import DataDictValidator
 import yaml
@@ -80,6 +81,11 @@ def remove_project(project_name):
 class Project(object):
 
     def __init__(self, project_name, parser=pd.read_table):
+        """__init__
+
+        :param project_name:
+        :param parser:
+        """
         self.project_name = project_name
         self.specfile = _get_default_specfile(self.project_name)
         self.validators = {}
@@ -87,9 +93,15 @@ class Project(object):
         with open(self.specfile, 'r') as f:
             specifications = yaml.load(f, Loader=yaml.CLoader)
         for name, specs in specifications.iteritems():
-            self.validators[name] = DataDictValidator(specification=specs)
+            self.validators[name] = DataDictValidator(specification=specs,
+                                                      specfile=self.specfile,
+                                                      name=name)
 
     def get_dataset_specs(self, dataset_name=None):
+        """get_dataset_specs
+
+        :param dataset_name:
+        """
         if dataset_name is not None:
             return self.validators[dataset_name].get_parser_args()
         else:
@@ -98,11 +110,33 @@ class Project(object):
                 specs[name] = validator.get_parser_args()
             return specs
 
+    def view_dataset_specs(self, dataset_name=None):
+        """view_dataset_specs
+
+        :param dataset_name:
+        """
+        specs = self.get_dataset_specs(dataset_name)
+        pprint.pprint(specs)
+
+    def set_dataset_specs(self, dataset_name, specs, write_to_file=False):
+        """set_dataset_specs
+
+        :param dataset_name:
+        :param specs:
+        """
+        validator = self.validators[dataset_name]
+        return validator.set_parser_args(specs, write_to_file)
+
     def load_dataset(self, dataset_name):
+        """load_dataset
+
+        :param dataset_name:
+        """
         validator = self.validators[dataset_name]
         return self.parser(**validator.get_parser_args())
 
     def load_datasets(self):
+        """load_datasets"""
         datasets = {}
         for name in self.validators.iterkeys():
             datasets[name] = self.load_dataset(name)
