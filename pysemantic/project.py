@@ -7,7 +7,7 @@
 # Distributed under terms of the MIT license.
 
 """
-
+The Project class
 """
 
 import os.path as op
@@ -83,8 +83,10 @@ class Project(object):
     def __init__(self, project_name, parser=pd.read_table):
         """__init__
 
-        :param project_name:
-        :param parser:
+        :param project_name: Name of the project as specified in the pysemantic
+        configuration file.
+        :param parser: The parser to be used for reading dataset files. The
+        default is `pandas.read_table`
         """
         self.project_name = project_name
         self.specfile = _get_default_specfile(self.project_name)
@@ -98,9 +100,9 @@ class Project(object):
                                                       name=name)
 
     def get_dataset_specs(self, dataset_name=None):
-        """get_dataset_specs
+        """Returns the specifications for the specified dataset in the project.
 
-        :param dataset_name:
+        :param dataset_name: Name of the dataset
         """
         if dataset_name is not None:
             return self.validators[dataset_name].get_parser_args()
@@ -111,32 +113,41 @@ class Project(object):
             return specs
 
     def view_dataset_specs(self, dataset_name=None):
-        """view_dataset_specs
+        """Pretty print the specifications for a dataset.
 
-        :param dataset_name:
+        :param dataset_name: Name of the dataset
         """
         specs = self.get_dataset_specs(dataset_name)
         pprint.pprint(specs)
 
     def set_dataset_specs(self, dataset_name, specs, write_to_file=False):
-        """set_dataset_specs
+        """Sets the specifications to the dataset. Using this is not
+        recommended. All specifications for datasets should be handled through
+        the data dictionary.
 
-        :param dataset_name:
-        :param specs:
+        :param dataset_name: Name of the dataset for which specifications need
+        to be modified.
+        :param specs: A dictionary containing the new specifications for the
+        dataset.
+        :param write_to_file: If true, the data dictionary will be updated to
+        the new specifications. If False (the default), the new specifications
+        are used for the respective dataset only for the lifetime of the
+        `Project` object.
         """
         validator = self.validators[dataset_name]
         return validator.set_parser_args(specs, write_to_file)
 
     def load_dataset(self, dataset_name):
-        """load_dataset
+        """Load and return the dataset.
 
-        :param dataset_name:
+        :param dataset_name: Name of the dataset
         """
         validator = self.validators[dataset_name]
         return self.parser(**validator.get_parser_args())
 
     def load_datasets(self):
-        """load_datasets"""
+        """Loads and returns all datasets listed in the data dictionary for the
+        project."""
         datasets = {}
         for name in self.validators.iterkeys():
             datasets[name] = self.load_dataset(name)
