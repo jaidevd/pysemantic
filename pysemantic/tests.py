@@ -446,7 +446,7 @@ class TestCustomTraits(unittest.TestCase):
         """Test if the `custom_traits.AbsFile` trait works correctly."""
         self.custom_traits(filepath=op.abspath(__file__))
         self.assertRaises(TraitError, self.custom_traits,
-                          filepath=__file__)
+                          filepath=op.basename(__file__))
         self.assertRaises(TraitError, self.custom_traits, filepath="foo/bar")
 
     def test_natural_number_trait(self):
