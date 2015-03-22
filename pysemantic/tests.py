@@ -21,6 +21,8 @@ import pandas as pd
 from ConfigParser import RawConfigParser, NoSectionError
 from validator import DataDictValidator
 import project as pr
+from traits.api import HasTraits, TraitError, Str, Type
+from custom_traits import AbsFile, NaturalNumber, DTypesDict
 
 TEST_CONFIG_FILE_PATH = op.join(op.abspath(op.dirname(__file__)), "testdata",
                                 "test.conf")
@@ -426,6 +428,38 @@ def _get_person_activity_args():
                 usecols=['sequence_name', 'tag', 'date', 'x', 'y', 'z',
                          'activity'],
                 parse_dates=['date'])
+
+
+class TestCustomTraits(unittest.TestCase):
+    """ Testcase for the custom_traits module. This consists purely of testing
+    whether validation is happening correctly on the custom_traits."""
+
+    @classmethod
+    def setUpClass(cls):
+        class CustomTraits(HasTraits):
+            filepath = AbsFile
+            number = NaturalNumber
+            dtype = DTypesDict(key_trait=Str, value_trait=Type)
+        cls.custom_traits = CustomTraits
+
+    def test_absolute_path_file_trait(self):
+        """Test if the `custom_traits.AbsFile` trait works correctly."""
+        self.custom_traits(filepath=op.abspath(__file__))
+        self.assertRaises(TraitError, self.custom_traits,
+                          filepath=__file__)
+        self.assertRaises(TraitError, self.custom_traits, filepath="foo/bar")
+
+    def test_natural_number_trait(self):
+        """Test if the `custom_traits.NaturalNumber` trait works correctly."""
+        self.custom_traits(number=1)
+        self.assertRaises(TraitError, self.custom_traits, number=0)
+        self.assertRaises(TraitError, self.custom_traits, number=-1)
+
+    def test_dtypes_dict_trait(self):
+        """Test if the `custom_traits.DTypesDict` trait works correctly."""
+        self.custom_traits(dtype={'foo': int, 'bar': str, 'baz': float})
+        self.assertRaises(TraitError, self.custom_traits, dtype={'foo': 1})
+        self.assertRaises(TraitError, self.custom_traits, dtype={1: float})
 
 
 if __name__ == '__main__':
