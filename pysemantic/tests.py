@@ -21,7 +21,7 @@ import pandas as pd
 from ConfigParser import RawConfigParser, NoSectionError
 from validator import DataDictValidator
 import project as pr
-from traits.api import HasTraits, TraitError, Str, Type
+from traits.api import HasTraits, TraitError, Str, Type, List, Either
 from custom_traits import AbsFile, NaturalNumber, DTypesDict
 
 TEST_CONFIG_FILE_PATH = op.join(op.abspath(op.dirname(__file__)), "testdata",
@@ -439,8 +439,17 @@ class TestCustomTraits(unittest.TestCase):
         class CustomTraits(HasTraits):
             filepath = AbsFile
             number = NaturalNumber
+            numberlist = Either(List(NaturalNumber), NaturalNumber)
             dtype = DTypesDict(key_trait=Str, value_trait=Type)
         cls.custom_traits = CustomTraits
+
+    def test_natural_number_either_traits(self):
+        """Test of the NaturalNumber trait works within Either and List traits.
+        """
+        self.custom_traits(numberlist=1)
+        self.custom_traits(numberlist=[1, 2])
+        self.assertRaises(TraitError, self.custom_traits, numberlist=0)
+        self.assertRaises(TraitError, self.custom_traits, numberlist=[0, 1])
 
     def test_absolute_path_file_trait(self):
         """Test if the `custom_traits.AbsFile` trait works correctly."""

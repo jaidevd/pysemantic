@@ -33,7 +33,7 @@ class NaturalNumber(BaseInt):
 
     default_value = 1
 
-    def error(self, name):
+    def error(self, object, name, value):
         msg = "The {0} trait of a data dictionary has to be a".format(name) + \
               " value greater than zero"
         raise TraitError(args=(msg,))
@@ -42,7 +42,7 @@ class NaturalNumber(BaseInt):
         value = super(NaturalNumber, self).validate(object, name, value)
         if value > 0:
             return value
-        self.error(name)
+        self.error(object, name, value)
 
 
 class DTypeTraitDictObject(TraitDictObject):
