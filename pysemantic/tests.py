@@ -440,6 +440,7 @@ class TestCustomTraits(unittest.TestCase):
             filepath = AbsFile
             number = NaturalNumber
             numberlist = Either(List(NaturalNumber), NaturalNumber)
+            filelist = Either(List(AbsFile), AbsFile)
             dtype = DTypesDict(key_trait=Str, value_trait=Type)
         cls.custom_traits = CustomTraits
 
@@ -450,6 +451,19 @@ class TestCustomTraits(unittest.TestCase):
         self.custom_traits(numberlist=[1, 2])
         self.assertRaises(TraitError, self.custom_traits, numberlist=0)
         self.assertRaises(TraitError, self.custom_traits, numberlist=[0, 1])
+
+    def test_absfile_either_list_traits(self):
+        """Test if the AbsFile trait works within Either and List traits
+        """
+        self.custom_traits(filelist=op.abspath(__file__))
+        self.custom_traits(filelist=[op.abspath(__file__), TEST_DATA_DICT])
+        self.assertRaises(TraitError, self.custom_traits,
+                          filelist=[op.basename(__file__)])
+        self.assertRaises(TraitError, self.custom_traits,
+                          filelist=["/foo/bar"])
+        self.assertRaises(TraitError, self.custom_traits,
+                          filelist=op.basename(__file__))
+        self.assertRaises(TraitError, self.custom_traits, filelist="/foo/bar")
 
     def test_absolute_path_file_trait(self):
         """Test if the `custom_traits.AbsFile` trait works correctly."""
