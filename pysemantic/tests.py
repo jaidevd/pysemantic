@@ -72,6 +72,18 @@ class TestProject(BaseTestCase):
         for name, specs in testData.iteritems():
             path = op.join(op.abspath(op.dirname(__file__)), specs['path'])
             specs['path'] = path
+        # Put in the multifile specs
+        cls.copied_iris_path = testData['iris']['path'].replace("iris",
+                                                                "iris2")
+        df = pd.read_csv(testData['iris']['path'])
+        df.to_csv(cls.copied_iris_path, index=False)
+
+        copied_iris_specs = deepcopy(testData['iris'])
+        copied_iris_specs['path'] = [copied_iris_specs['path'],
+                                     cls.copied_iris_path]
+        copied_iris_specs['nrows'] = [150, 150]
+        testData['multi_iris'] = copied_iris_specs
+
         with open(TEST_DATA_DICT, "w") as f:
             yaml.dump(testData, f, Dumper=yaml.CDumper,
                       default_flow_style=False)
@@ -100,14 +112,16 @@ class TestProject(BaseTestCase):
             testData['iris']['path'] = op.join("testdata", "iris.csv")
             testData['person_activity']['path'] = op.join("testdata",
                                                          "person_activity.tsv")
+            del testData['multi_iris']
             with open(TEST_DATA_DICT, "w") as f:
                 testData = yaml.dump(testData, f, Dumper=yaml.CDumper,
                                      default_flow_style=False)
         finally:
             os.unlink(cls.test_conf_file)
+            os.unlink(cls.copied_iris_path)
 
     def setUp(self):
-        expected = {'iris': {'sep': ',',
+        iris_specs = {'sep': ',',
                              'dtype': {'Petal Length': float,
                                        'Sepal Width': float,
                                        'Petal Width': float,
@@ -119,25 +133,30 @@ class TestProject(BaseTestCase):
                              'nrows': 150,
                              'filepath_or_buffer': op.join(
                                               op.abspath(op.dirname(__file__)),
-                                              "testdata", "iris.csv")
-                             },
-                    'person_activity': {'sep': '\t',
-                                        'dtype': {'activity': str,
-                                                  'sequence_name': str,
-                                                  'tag': str, 'x': float,
-                                                  'y': float, 'z': float,
-                                                  },
-                                        'usecols': ['activity',
-                                                    'sequence_name', 'tag',
-                                                    'x', 'y', 'z', 'date'],
-                                        'parse_dates': ['date'],
-                                        'nrows': 100,
-                                        'filepath_or_buffer': op.join(
-                                              op.abspath(op.dirname(__file__)),
-                                              "testdata",
-                                              "person_activity.tsv")
-                                        }
-                    }
+                                              "testdata", "iris.csv")}
+        copied_iris_specs = deepcopy(iris_specs)
+        copied_iris_specs.update(
+               {'filepath_or_buffer': iris_specs['filepath_or_buffer'].replace(
+                                                        "iris", "iris2")})
+        multi_iris_specs = [iris_specs, copied_iris_specs]
+        person_activity_specs = {'sep': '\t',
+                                'dtype': {'activity': str,
+                                          'sequence_name': str,
+                                          'tag': str, 'x': float,
+                                          'y': float, 'z': float,
+                                          },
+                                'usecols': ['activity',
+                                            'sequence_name', 'tag',
+                                            'x', 'y', 'z', 'date'],
+                                'parse_dates': ['date'],
+                                'nrows': 100,
+                                'filepath_or_buffer': op.join(
+                                      op.abspath(op.dirname(__file__)),
+                                      "testdata",
+                                      "person_activity.tsv")}
+        expected = {'iris': iris_specs,
+                    'person_activity': person_activity_specs,
+                    'multi_iris': multi_iris_specs}
         self.expected_specs = expected
         self.project = pr.Project(project_name="pysemantic")
 
@@ -146,7 +165,12 @@ class TestProject(BaseTestCase):
         """
         specs = self.project.get_project_specs()
         for name, argdict in specs.iteritems():
-            self.assertKwargsEqual(argdict, self.expected_specs[name])
+            if isinstance(argdict, list):
+                for i in range(len(argdict)):
+                    self.assertKwargsEqual(argdict[i],
+                                           self.expected_specs[name][i])
+            else:
+                self.assertKwargsEqual(argdict, self.expected_specs[name])
 
     def test_get_dataset_specs(self):
         """Check if the project manager produces specifications for each
@@ -154,6 +178,14 @@ class TestProject(BaseTestCase):
         for name in ['iris', 'person_activity']:
             self.assertKwargsEqual(self.project.get_dataset_specs(name),
                                    self.expected_specs[name])
+
+    def test_get_multifile_dataset_specs(self):
+        outArgs = self.project.get_dataset_specs("multi_iris")
+        self.assertTrue(isinstance(outArgs, list))
+        self.assertEqual(len(outArgs), len(self.expected_specs['multi_iris']))
+        for i in range(len(outArgs)):
+            self.assertKwargsEqual(outArgs[i],
+                                   self.expected_specs['multi_iris'][i])
 
     def test_set_dataset_specs(self):
         """Check if setting dataset specifications through the Project object
@@ -205,7 +237,16 @@ class TestProject(BaseTestCase):
     def test_load_all(self):
         """Test if loading all datasets in a project works as expected."""
         loaded = self.project.load_datasets()
-        self.assertItemsEqual(loaded.keys(), ('iris', 'person_activity'))
+        self.assertItemsEqual(loaded.keys(), ('iris', 'person_activity',
+                                              'multi_iris'))
+        df = pd.read_csv(**self.expected_specs['iris'])
+        self.assertDataFrameEqual(loaded['iris'], df)
+        df = pd.read_csv(**self.expected_specs['person_activity'])
+        self.assertDataFrameEqual(loaded['person_activity'], df)
+        dfs = [pd.read_csv(**args) for args in
+               self.expected_specs['multi_iris']]
+        df = pd.concat(dfs)
+        self.assertDataFrameEqual(loaded['multi_iris'], df)
 
     def test_dataset_shape(self):
         """
@@ -354,6 +395,7 @@ class TestDataDictValidator(BaseTestCase):
 
         try:
             validator = DataDictValidator(specification=schema)
+            self.assertTrue(validator.is_multifile)
             self.assertItemsEqual(validator.filepath, schema['path'])
             self.assertItemsEqual(validator.nrows, schema['nrows'])
         finally:
@@ -363,6 +405,7 @@ class TestDataDictValidator(BaseTestCase):
         """Check if the validator works when only the specification is supplied
         as a dictionary for the iris dataset."""
         validator = DataDictValidator(specification=self.basespecs['iris'])
+        self.assertFalse(validator.is_multifile)
         validated_parser_args = validator.get_parser_args()
         self.assertKwargsEqual(validated_parser_args,
                                self.ideal_iris_parser_args)
@@ -374,6 +417,7 @@ class TestDataDictValidator(BaseTestCase):
         # specifications to the dictionary.
         validator = DataDictValidator(specification=self.basespecs['iris'],
                                       specfile=self.specfile)
+        self.assertFalse(validator.is_multifile)
         validated_parser_args = validator.get_parser_args()
         self.assertKwargsEqual(validated_parser_args,
                                self.ideal_iris_parser_args)
@@ -383,6 +427,7 @@ class TestDataDictValidator(BaseTestCase):
         as a dictionary for the person activity dataset."""
         validator = DataDictValidator(
                                specification=self.basespecs['person_activity'])
+        self.assertFalse(validator.is_multifile)
         validated = validator.get_parser_args()
         self.assertKwargsEqual(validated, self.ideal_activity_parser_args)
 

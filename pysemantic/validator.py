@@ -11,10 +11,11 @@ Traited Data validator for `pandas.DataFrame` objects
 """
 
 from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
-                        Either, cached_property)
+                        Bool, Either, cached_property)
 from custom_traits import DTypesDict, NaturalNumber, AbsFile
 import yaml
 import datetime
+import copy
 import os.path as op
 
 
@@ -33,6 +34,9 @@ class DataDictValidator(HasTraits):
 
     # Path to the file containing the data
     filepath = Either(AbsFile, List(AbsFile))
+
+    # Whether the dataset spans multiple files
+    is_multifile = Property(Bool, depends_on=['filepath'])
 
     # Delimiter
     delimiter = Str
@@ -92,10 +96,15 @@ class DataDictValidator(HasTraits):
     # Property getters and setters
 
     @cached_property
+    def _get_is_multifile(self):
+        if isinstance(self.filepath, list):
+            if len(self.filepath) > 1:
+                return True
+        return False
+
+    @cached_property
     def _get_parser_args(self):
-        args = {'filepath_or_buffer': self._filepath,
-                'sep': self._delimiter,
-                'nrows': self._nrows,
+        args = {'sep': self._delimiter,
                 'usecols': self.colnames}
         parse_dates = []
         for k, v in self._dtypes.iteritems():
@@ -106,7 +115,18 @@ class DataDictValidator(HasTraits):
         args['dtype'] = self._dtypes
         if len(parse_dates) > 0:
             args['parse_dates'] = parse_dates
-        return args
+        if self.is_multifile:
+            arglist = []
+            for i in range(len(self._filepath)):
+                argset = copy.deepcopy(args)
+                argset.update({'filepath_or_buffer': self._filepath[i]})
+                argset.update({'nrows': self._nrows[i]})
+                arglist.append(argset)
+            return arglist
+        else:
+            args.update({'filepath_or_buffer': self._filepath})
+            args.update({'nrows': self._nrows})
+            return args
 
     def _set_parser_args(self, specs):
         self.parser_args.update(specs)

@@ -86,7 +86,7 @@ class Project(object):
         :param project_name: Name of the project as specified in the pysemantic
         configuration file.
         :param parser: The parser to be used for reading dataset files. The
-        default is `pandas.read_table`
+        default is `pandas.read_table`.
         """
         self.project_name = project_name
         self.specfile = _get_default_specfile(self.project_name)
@@ -145,7 +145,12 @@ class Project(object):
         :param dataset_name: Name of the dataset
         """
         validator = self.validators[dataset_name]
-        return self.parser(**validator.get_parser_args())
+        args = validator.get_parser_args()
+        if isinstance(args, dict):
+            return self.parser(**args)
+        else:
+            dfs = [self.parser(**argset) for argset in args]
+            return pd.concat(dfs, axis=0)
 
     def load_datasets(self):
         """Loads and returns all datasets listed in the data dictionary for the
