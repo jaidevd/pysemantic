@@ -21,7 +21,8 @@ import pandas as pd
 from ConfigParser import RawConfigParser, NoSectionError
 from validator import DataDictValidator
 import project as pr
-from traits.api import HasTraits, TraitError, Str, Type, List, Either
+from traits.api import (HasTraits, TraitError, Str, Type, List, Either,
+                        push_exception_handler)
 from custom_traits import AbsFile, NaturalNumber, DTypesDict
 
 TEST_CONFIG_FILE_PATH = op.join(op.abspath(op.dirname(__file__)), "testdata",
@@ -328,11 +329,35 @@ class TestDataDictValidator(BaseTestCase):
         cls.ideal_activity_parser_args = _get_person_activity_args()
         cls.ideal_iris_parser_args = _get_iris_args()
 
+        push_exception_handler(lambda *args: None, reraise_exceptions=True)
+
     @classmethod
     def tearDownClass(cls):
         with open(cls.specfile, "w") as f:
             yaml.dump(cls._basespecs, f, Dumper=yaml.CDumper,
                       default_flow_style=False)
+
+    def test_multifile_dataset_schema(self):
+        """Test if a dataset schema with multiple files works properly."""
+        duplicate_iris_path = self.basespecs['iris']['path'].replace("iris",
+                                                                     "iris2")
+        # Copy the file
+        df = pd.read_csv(self.basespecs['iris']['path'])
+        df.to_csv(duplicate_iris_path, index=False)
+
+        # Create the news chema
+        schema = {'nrows': [150, 150], 'path': [duplicate_iris_path,
+                  self.basespecs['iris']['path']]}
+        for k, v in self.basespecs['iris'].iteritems():
+            if k not in schema:
+                schema[k] = v
+
+        try:
+            validator = DataDictValidator(specification=schema)
+            self.assertItemsEqual(validator.filepath, schema['path'])
+            self.assertItemsEqual(validator.nrows, schema['nrows'])
+        finally:
+            os.unlink(duplicate_iris_path)
 
     def test_validator_with_specdict_iris(self):
         """Check if the validator works when only the specification is supplied
@@ -342,7 +367,7 @@ class TestDataDictValidator(BaseTestCase):
         self.assertKwargsEqual(validated_parser_args,
                                self.ideal_iris_parser_args)
 
-    def test_validator_with_specdict_spec(self):
+    def test_validator_with_specfile_spec(self):
         """Check if the validator works when the specfile and specification are
         both provided."""
         # This is necessary because the validator might have to write
@@ -368,8 +393,8 @@ class TestDataDictValidator(BaseTestCase):
         old_path = specs['path']
         try:
             specs['path'] = op.join("testdata", "iris.csv")
-            validator = DataDictValidator(specifications=specs)
-            self.assertEqual(validator.filepath, "")
+            self.assertRaises(TraitError, DataDictValidator,
+                              specification=specs)
         finally:
             specs['path'] = old_path
 

@@ -11,7 +11,7 @@ Traited Data validator for `pandas.DataFrame` objects
 """
 
 from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
-                        cached_property)
+                        Either, cached_property)
 from custom_traits import DTypesDict, NaturalNumber, AbsFile
 import yaml
 import datetime
@@ -32,13 +32,13 @@ class DataDictValidator(HasTraits):
     specification = Dict
 
     # Path to the file containing the data
-    filepath = AbsFile(exists=True)
+    filepath = Either(AbsFile, List(AbsFile))
 
     # Delimiter
     delimiter = Str
 
     # number of rows in the dataset
-    nrows = NaturalNumber
+    nrows = Either(NaturalNumber, List(NaturalNumber))
 
     # number of columns in the dataset
     ncols = NaturalNumber
@@ -59,7 +59,7 @@ class DataDictValidator(HasTraits):
 
     _dtypes = Property(Dict, depends_on=['specification'])
 
-    _filepath = Property(File(exists=True), depends_on=['specification'])
+    _filepath = Property(AbsFile, depends_on=['specification'])
 
     _delimiter = Property(Str, depends_on=['specification'])
 
