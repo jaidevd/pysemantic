@@ -99,18 +99,20 @@ class Project(object):
                                                       specfile=self.specfile,
                                                       name=name)
 
-    def get_dataset_specs(self, dataset_name=None):
+    def get_dataset_specs(self, dataset_name):
         """Returns the specifications for the specified dataset in the project.
 
         :param dataset_name: Name of the dataset
         """
-        if dataset_name is not None:
-            return self.validators[dataset_name].get_parser_args()
-        else:
-            specs = {}
-            for name, validator in self.validators.iteritems():
-                specs[name] = validator.get_parser_args()
-            return specs
+        return self.validators[dataset_name].get_parser_args()
+
+    def get_project_specs(self):
+        """Returns a dictionary containing the schema for all datasets listed
+        under this project."""
+        specs = {}
+        for name, validator in self.validators.iteritems():
+            specs[name] = validator.get_parser_args()
+        return specs
 
     def view_dataset_specs(self, dataset_name=None):
         """Pretty print the specifications for a dataset.

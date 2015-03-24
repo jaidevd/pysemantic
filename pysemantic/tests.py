@@ -144,7 +144,7 @@ class TestProject(BaseTestCase):
     def test_get_project_specs(self):
         """Check if the project manager produces all specifications correctly.
         """
-        specs = self.project.get_dataset_specs()
+        specs = self.project.get_project_specs()
         for name, argdict in specs.iteritems():
             self.assertKwargsEqual(argdict, self.expected_specs[name])
 
