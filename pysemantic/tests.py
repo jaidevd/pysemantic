@@ -443,7 +443,7 @@ class TestCustomTraits(unittest.TestCase):
             dtype = DTypesDict(key_trait=Str, value_trait=Type)
         cls.custom_traits = CustomTraits
 
-    def test_natural_number_either_traits(self):
+    def test_natural_number_either_list_traits(self):
         """Test of the NaturalNumber trait works within Either and List traits.
         """
         self.custom_traits(numberlist=1)
@@ -457,6 +457,7 @@ class TestCustomTraits(unittest.TestCase):
         self.assertRaises(TraitError, self.custom_traits,
                           filepath=op.basename(__file__))
         self.assertRaises(TraitError, self.custom_traits, filepath="foo/bar")
+        self.assertRaises(TraitError, self.custom_traits, filepath="/foo/bar")
 
     def test_natural_number_trait(self):
         """Test if the `custom_traits.NaturalNumber` trait works correctly."""
