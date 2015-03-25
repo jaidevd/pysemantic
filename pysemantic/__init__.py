@@ -12,4 +12,9 @@
 
 from project import Project
 
-__all__ = ['Project']
+
+def test():
+    import unittest
+    unittest.main(module='pysemantic.tests', exit=False)
+
+__all__ = ['Project', 'test']

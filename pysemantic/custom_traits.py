@@ -20,7 +20,7 @@ class AbsFile(File):
     file."""
 
     def validate(self, object, name, value):
-        validated_value = super(File, self).validate(object, name, value)
+        validated_value = super(AbsFile, self).validate(object, name, value)
         if op.isabs(validated_value) and op.isfile(value):
             return validated_value
 

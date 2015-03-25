@@ -19,10 +19,9 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 from ConfigParser import RawConfigParser, NoSectionError
-from validator import DataDictValidator
+from validator import SchemaValidator
 import project as pr
-from traits.api import (HasTraits, TraitError, Str, Type, List, Either,
-                        push_exception_handler)
+from traits.api import HasTraits, TraitError, Str, Type, List, Either
 from custom_traits import AbsFile, NaturalNumber, DTypesDict
 
 TEST_CONFIG_FILE_PATH = op.join(op.abspath(op.dirname(__file__)), "testdata",
@@ -342,9 +341,9 @@ class TestConfig(BaseTestCase):
             os.unlink(home_file)
 
 
-class TestDataDictValidator(BaseTestCase):
+class TestSchemaValidator(BaseTestCase):
     """
-    Test the `pysemantic.validator.DataDictValidatorClass`
+    Test the `pysemantic.validator.SchemaValidatorClass`
     """
 
     @classmethod
@@ -370,8 +369,6 @@ class TestDataDictValidator(BaseTestCase):
         cls.ideal_activity_parser_args = _get_person_activity_args()
         cls.ideal_iris_parser_args = _get_iris_args()
 
-        push_exception_handler(lambda *args: None, reraise_exceptions=True)
-
     @classmethod
     def tearDownClass(cls):
         with open(cls.specfile, "w") as f:
@@ -394,17 +391,20 @@ class TestDataDictValidator(BaseTestCase):
                 schema[k] = v
 
         try:
-            validator = DataDictValidator(specification=schema)
+            validator = SchemaValidator(specification=schema)
             self.assertTrue(validator.is_multifile)
             self.assertItemsEqual(validator.filepath, schema['path'])
             self.assertItemsEqual(validator.nrows, schema['nrows'])
+            validated_args = validator.get_parser_args()
+            self.assertTrue(isinstance(validated_args, list))
+            self.assertEqual(len(validated_args), 2)
         finally:
             os.unlink(duplicate_iris_path)
 
     def test_validator_with_specdict_iris(self):
         """Check if the validator works when only the specification is supplied
         as a dictionary for the iris dataset."""
-        validator = DataDictValidator(specification=self.basespecs['iris'])
+        validator = SchemaValidator(specification=self.basespecs['iris'])
         self.assertFalse(validator.is_multifile)
         validated_parser_args = validator.get_parser_args()
         self.assertKwargsEqual(validated_parser_args,
@@ -415,8 +415,8 @@ class TestDataDictValidator(BaseTestCase):
         both provided."""
         # This is necessary because the validator might have to write
         # specifications to the dictionary.
-        validator = DataDictValidator(specification=self.basespecs['iris'],
-                                      specfile=self.specfile)
+        validator = SchemaValidator(specification=self.basespecs['iris'],
+                                    specfile=self.specfile)
         self.assertFalse(validator.is_multifile)
         validated_parser_args = validator.get_parser_args()
         self.assertKwargsEqual(validated_parser_args,
@@ -425,7 +425,7 @@ class TestDataDictValidator(BaseTestCase):
     def test_validator_with_specdist_activity(self):
         """Check if the validator works when only the specification is supplied
         as a dictionary for the person activity dataset."""
-        validator = DataDictValidator(
+        validator = SchemaValidator(
                                specification=self.basespecs['person_activity'])
         self.assertFalse(validator.is_multifile)
         validated = validator.get_parser_args()
@@ -438,7 +438,7 @@ class TestDataDictValidator(BaseTestCase):
         old_path = specs['path']
         try:
             specs['path'] = op.join("testdata", "iris.csv")
-            self.assertRaises(TraitError, DataDictValidator,
+            self.assertRaises(TraitError, SchemaValidator,
                               specification=specs)
         finally:
             specs['path'] = old_path
@@ -446,19 +446,19 @@ class TestDataDictValidator(BaseTestCase):
     def test_error_only_specfile(self):
         """Test if the validator fails when only the path to the specfile is
         provided. """
-        validator = DataDictValidator(specfile=self.specfile)
+        validator = SchemaValidator(specfile=self.specfile)
         self.assertKwargsEmpty(validator.get_parser_args())
 
     def test_error_only_name(self):
         """Test if the validator fails when only the path to the specfile is
         provided. """
-        validator = DataDictValidator(name="iris")
+        validator = SchemaValidator(name="iris")
         self.assertKwargsEmpty(validator.get_parser_args())
 
     def test_validator_specfile_name_iris(self):
         """Test if the validator works when providing specifle and name for the
         iris dataset."""
-        validator = DataDictValidator(specfile=self.specfile, name="iris")
+        validator = SchemaValidator(specfile=self.specfile, name="iris")
         validated_parser_args = validator.get_parser_args()
         self.assertKwargsEqual(validated_parser_args,
                                self.ideal_iris_parser_args)
@@ -466,8 +466,8 @@ class TestDataDictValidator(BaseTestCase):
     def test_validator_specfile_name_activity(self):
         """Test if the validator works when providing specifle and name for the
         activity dataset."""
-        validator = DataDictValidator(specfile=self.specfile,
-                                      name="person_activity")
+        validator = SchemaValidator(specfile=self.specfile,
+                                    name="person_activity")
         validated_parser_args = validator.get_parser_args()
         self.assertKwargsEqual(validated_parser_args,
                                self.ideal_activity_parser_args)

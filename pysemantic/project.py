@@ -14,7 +14,7 @@ import os.path as op
 import os
 import pprint
 from ConfigParser import RawConfigParser
-from validator import DataDictValidator
+from validator import SchemaValidator
 import yaml
 import pandas as pd
 
@@ -95,9 +95,9 @@ class Project(object):
         with open(self.specfile, 'r') as f:
             specifications = yaml.load(f, Loader=yaml.CLoader)
         for name, specs in specifications.iteritems():
-            self.validators[name] = DataDictValidator(specification=specs,
-                                                      specfile=self.specfile,
-                                                      name=name)
+            self.validators[name] = SchemaValidator(specification=specs,
+                                                    specfile=self.specfile,
+                                                    name=name)
 
     def get_dataset_specs(self, dataset_name):
         """Returns the specifications for the specified dataset in the project.

@@ -11,15 +11,17 @@ Traited Data validator for `pandas.DataFrame` objects
 """
 
 from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
-                        Bool, Either, cached_property)
+                        Bool, Either, push_exception_handler, cached_property)
 from custom_traits import DTypesDict, NaturalNumber, AbsFile
 import yaml
 import datetime
 import copy
 import os.path as op
 
+push_exception_handler(lambda *args: None, reraise_exceptions=True)
 
-class DataDictValidator(HasTraits):
+
+class SchemaValidator(HasTraits):
 
     # Public traits
 
@@ -131,10 +133,6 @@ class DataDictValidator(HasTraits):
     def _set_parser_args(self, specs):
         self.parser_args.update(specs)
 
-    @cached_property
-    def _get_delimiter(self):
-        return self.specification.get('delimiter', '')
-
     def _get_colnames(self):
         return self._dtypes.keys()
 
@@ -209,5 +207,5 @@ if __name__ == '__main__':
         data = yaml.load(f, Loader=yaml.CLoader)
     datasets = {}
     for k, v in data.iteritems():
-        val = DataDictValidator(specification=v, name=k)
+        val = SchemaValidator(specification=v, name=k)
         datasets[k] = pd.read_table(**val.get_parser_args())
