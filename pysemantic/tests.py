@@ -465,6 +465,18 @@ class TestSchemaValidator(BaseTestCase):
         finally:
             specs['path'] = old_path
 
+    def test_error_for_bad_dtypes(self):
+        """Check if the validator raises an error if a bad dtype dictionary is
+        passed."""
+        specs = self.basespecs['iris']
+        old = specs['dtypes'].pop('Species')
+        try:
+            specs['dtypes']['Species'] = "random_string"
+            validator = SchemaValidator(specification=specs)
+            self.assertRaises(TraitError, validator.get_parser_args)
+        finally:
+            specs['dtypes']['Species'] = old
+
     def test_error_only_specfile(self):
         """Test if the validator fails when only the path to the specfile is
         provided. """
@@ -589,7 +601,7 @@ class TestCustomTraits(unittest.TestCase):
         self.traits.dtype = {'foo': int, 'bar': str, 'baz': float}
         self.assertRaises(TraitError, self.setter, "dtype", {'foo': 1})
         self.assertRaises(TraitError, self.setter, "dtype", {1: float})
-
+        self.assertRaises(TraitError, self.setter, "dtype", {"bar": "foo"})
 
 if __name__ == '__main__':
     unittest.main()

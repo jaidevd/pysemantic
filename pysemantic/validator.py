@@ -63,6 +63,10 @@ class SchemaValidator(HasTraits):
     # it's value is just a list of the keys of `dtypes`
     colnames = Property(List, depends_on=['dtypes'])
 
+    # List of required traits
+    # FIXME: Arguments required by the schema should't have to be programmed
+    # into the validator class. There must be a way to enforce requirements
+    # right in the schema itself.
     required_args = ValidTraitList
 
     # Parser args for pandas
@@ -71,7 +75,8 @@ class SchemaValidator(HasTraits):
 
     # Protected traits
 
-    _dtypes = Property(Dict, depends_on=['specification'])
+    _dtypes = Property(DTypesDict(key_trait=Str, value_trait=Type),
+                       depends_on=['specification'])
 
     _filepath = Property(AbsFile, depends_on=['specification'])
 
@@ -122,7 +127,7 @@ class SchemaValidator(HasTraits):
                 parse_dates.append(k)
         for k in parse_dates:
             del self._dtypes[k]
-        args['dtype'] = self._dtypes
+        args['dtype'] = self.dtypes
         if len(parse_dates) > 0:
             args['parse_dates'] = parse_dates
         if self.is_multifile:
@@ -156,7 +161,7 @@ class SchemaValidator(HasTraits):
     def _get__ncols(self):
         return self.specification.get('ncols', 0)
 
-    @cached_property
+#    @cached_property
     def _get__dtypes(self):
         return self.specification.get('dtypes', {})
 
@@ -209,3 +214,6 @@ class SchemaValidator(HasTraits):
                 data = yaml.load(f, Loader=yaml.CLoader).get(self.name, {})
             return data
         return {}
+
+    def _dtypes_default(self):
+        return self._dtypes
