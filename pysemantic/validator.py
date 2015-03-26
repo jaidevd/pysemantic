@@ -12,7 +12,7 @@ Traited Data validator for `pandas.DataFrame` objects
 
 from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
                         Bool, Either, push_exception_handler, cached_property)
-from custom_traits import DTypesDict, NaturalNumber, AbsFile
+from custom_traits import DTypesDict, NaturalNumber, AbsFile, ValidTraitList
 import yaml
 import datetime
 import copy
@@ -22,6 +22,12 @@ push_exception_handler(lambda *args: None, reraise_exceptions=True)
 
 
 class SchemaValidator(HasTraits):
+
+    def __init__(self, **kwargs):
+        """Overwritten to ensure that the `required_args` trait is validated
+        when the object is created, not when the trait is accessed."""
+        super(SchemaValidator, self).__init__(**kwargs)
+        self.required_args = ['filepath', 'delimiter']
 
     # Public traits
 
@@ -56,6 +62,8 @@ class SchemaValidator(HasTraits):
     # Names of the columns in the dataset. This is just a convenience trait,
     # it's value is just a list of the keys of `dtypes`
     colnames = Property(List, depends_on=['dtypes'])
+
+    required_args = ValidTraitList
 
     # Parser args for pandas
     parser_args = Property(Dict, depends_on=['filepath', 'delimiter', 'nrows',
@@ -164,6 +172,9 @@ class SchemaValidator(HasTraits):
                 self.specification = yaml.load(f,
                                                Loader=yaml.CLoader).get(
                                                                  self.name, {})
+
+    def _filepath_default(self):
+        return self.specification.get("path")
 
     def __dtypes_items_changed(self):
         """ Required because Dict traits that are properties don't seem

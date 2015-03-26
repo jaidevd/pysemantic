@@ -22,7 +22,7 @@ from ConfigParser import RawConfigParser, NoSectionError
 from validator import SchemaValidator
 import project as pr
 from traits.api import HasTraits, TraitError, Str, Type, List, Either
-from custom_traits import AbsFile, NaturalNumber, DTypesDict
+from custom_traits import AbsFile, NaturalNumber, DTypesDict, ValidTraitList
 
 TEST_CONFIG_FILE_PATH = op.join(op.abspath(op.dirname(__file__)), "testdata",
                                 "test.conf")
@@ -177,6 +177,15 @@ class TestProject(BaseTestCase):
         for name in ['iris', 'person_activity']:
             self.assertKwargsEqual(self.project.get_dataset_specs(name),
                                    self.expected_specs[name])
+
+    def test_parser(self):
+        """Check if the dataset assigns the correct parser to the loader."""
+        iris_specs = self.project.get_dataset_specs("iris")
+        self.project._update_parser(iris_specs)
+        self.assertEqual(self.project.parser, pd.read_csv)
+        person_specs = self.project.get_dataset_specs("person_activity")
+        self.project._update_parser(person_specs)
+        self.assertEqual(self.project.parser, pd.read_table)
 
     def test_get_multifile_dataset_specs(self):
         outArgs = self.project.get_dataset_specs("multi_iris")
@@ -375,6 +384,19 @@ class TestSchemaValidator(BaseTestCase):
             yaml.dump(cls._basespecs, f, Dumper=yaml.CDumper,
                       default_flow_style=False)
 
+    def test_required_args(self):
+        """Test if the required arguments for the validator are working
+        properly."""
+        filepath = self.basespecs['iris'].pop('path')
+        delimiter = self.basespecs['iris'].pop('delimiter')
+        try:
+            # Remove the path and delimiter from the scehma
+            self.assertRaises(TraitError, SchemaValidator,
+                              specification=self.basespecs['iris'])
+        finally:
+            self.basespecs['iris']['delimiter'] = delimiter
+            self.basespecs['iris']['path'] = filepath
+
     def test_multifile_dataset_schema(self):
         """Test if a dataset schema with multiple files works properly."""
         duplicate_iris_path = self.basespecs['iris']['path'].replace("iris",
@@ -446,14 +468,12 @@ class TestSchemaValidator(BaseTestCase):
     def test_error_only_specfile(self):
         """Test if the validator fails when only the path to the specfile is
         provided. """
-        validator = SchemaValidator(specfile=self.specfile)
-        self.assertKwargsEmpty(validator.get_parser_args())
+        self.assertRaises(TraitError, SchemaValidator, specfile=self.specfile)
 
     def test_error_only_name(self):
         """Test if the validator fails when only the path to the specfile is
         provided. """
-        validator = SchemaValidator(name="iris")
-        self.assertKwargsEmpty(validator.get_parser_args())
+        self.assertRaises(TraitError, SchemaValidator, name="iris")
 
     def test_validator_specfile_name_iris(self):
         """Test if the validator works when providing specifle and name for the
@@ -507,53 +527,68 @@ class TestCustomTraits(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         class CustomTraits(HasTraits):
+            def __init__(self, **kwargs):
+                super(CustomTraits, self).__init__(**kwargs)
+                self.required = ['filepath', 'number', 'dtype']
             filepath = AbsFile
             number = NaturalNumber
             numberlist = Either(List(NaturalNumber), NaturalNumber)
             filelist = Either(List(AbsFile), AbsFile)
             dtype = DTypesDict(key_trait=Str, value_trait=Type)
+            required = ValidTraitList(Str)
+
         cls.custom_traits = CustomTraits
 
-    def test_natural_number_either_list_traits(self):
-        """Test of the NaturalNumber trait works within Either and List traits.
+    def setUp(self):
+        self.traits = self.custom_traits(filepath=op.abspath(__file__),
+                                         number=2, dtype={'a': int})
+        self.setter = lambda x, y: setattr(self.traits, x, y)
+
+    def test_validtraitlist_trait(self):
+        """Test if `pysemantic.self.traits.ValidTraitsList` works properly.
         """
-        self.custom_traits(numberlist=1)
-        self.custom_traits(numberlist=[1, 2])
-        self.assertRaises(TraitError, self.custom_traits, numberlist=0)
-        self.assertRaises(TraitError, self.custom_traits, numberlist=[0, 1])
+        self.assertItemsEqual(self.traits.required, ['filepath', 'number',
+                                                     'dtype'])
+
+    def test_natural_number_either_list_trait(self):
+        """Test of the NaturalNumber trait works within Either and List self.traits.
+        """
+        self.traits.numberlist = 1
+        self.traits.numberlist = [1, 2]
+        self.assertRaises(TraitError, self.setter, "numberlist", 0)
+        self.assertRaises(TraitError, self.setter, "numberlist", [0, 1])
 
     def test_absfile_either_list_traits(self):
-        """Test if the AbsFile trait works within Either and List traits
+        """Test if the AbsFile trait works within Either and List self.traits
         """
-        self.custom_traits(filelist=op.abspath(__file__))
-        self.custom_traits(filelist=[op.abspath(__file__), TEST_DATA_DICT])
-        self.assertRaises(TraitError, self.custom_traits,
-                          filelist=[op.basename(__file__)])
-        self.assertRaises(TraitError, self.custom_traits,
-                          filelist=["/foo/bar"])
-        self.assertRaises(TraitError, self.custom_traits,
-                          filelist=op.basename(__file__))
-        self.assertRaises(TraitError, self.custom_traits, filelist="/foo/bar")
+        self.traits.filelist = op.abspath(__file__)
+        self.traits.filelist = [op.abspath(__file__), TEST_DATA_DICT]
+        self.assertRaises(TraitError, self.setter, "filelist",
+                          [op.basename(__file__)])
+        self.assertRaises(TraitError, self.setter, "filelist", ["/foo/bar"])
+        self.assertRaises(TraitError, self.setter, "filelist",
+                          op.basename(__file__))
+        self.assertRaises(TraitError, self.setter, "filelist", "/foo/bar")
 
     def test_absolute_path_file_trait(self):
-        """Test if the `custom_traits.AbsFile` trait works correctly."""
-        self.custom_traits(filepath=op.abspath(__file__))
-        self.assertRaises(TraitError, self.custom_traits,
-                          filepath=op.basename(__file__))
-        self.assertRaises(TraitError, self.custom_traits, filepath="foo/bar")
-        self.assertRaises(TraitError, self.custom_traits, filepath="/foo/bar")
+        """Test if the `traits.AbsFile` trait works correctly."""
+        self.traits.filepath = op.abspath(__file__)
+        self.assertRaises(TraitError, self.setter, "filepath",
+                          op.basename(__file__))
+        self.assertRaises(TraitError, self.setter, "filepath", "foo/bar")
+        self.assertRaises(TraitError, self.setter, "filepath", "/foo/bar")
 
     def test_natural_number_trait(self):
-        """Test if the `custom_traits.NaturalNumber` trait works correctly."""
-        self.custom_traits(number=1)
-        self.assertRaises(TraitError, self.custom_traits, number=0)
-        self.assertRaises(TraitError, self.custom_traits, number=-1)
+        """Test if the `traits.NaturalNumber` trait works correctly."""
+        self.traits.number = 1
+        self.assertRaises(TraitError, self.setter, "number", 0)
+        self.assertRaises(TraitError, self.setter, "number", -1)
 
     def test_dtypes_dict_trait(self):
-        """Test if the `custom_traits.DTypesDict` trait works correctly."""
-        self.custom_traits(dtype={'foo': int, 'bar': str, 'baz': float})
-        self.assertRaises(TraitError, self.custom_traits, dtype={'foo': 1})
-        self.assertRaises(TraitError, self.custom_traits, dtype={1: float})
+        """Test if the `traits.DTypesDict` trait works correctly."""
+        self.traits.dtype = {'foo': int, 'bar': str, 'baz': float}
+        self.assertRaises(TraitError, self.setter, "dtype", {'foo': 1})
+        self.assertRaises(TraitError, self.setter, "dtype", {1: float})
 
 
 if __name__ == '__main__':

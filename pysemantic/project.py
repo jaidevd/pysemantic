@@ -80,7 +80,7 @@ def remove_project(project_name):
 
 class Project(object):
 
-    def __init__(self, project_name, parser=pd.read_table):
+    def __init__(self, project_name, parser=None):
         """__init__
 
         :param project_name: Name of the project as specified in the pysemantic
@@ -91,6 +91,10 @@ class Project(object):
         self.project_name = project_name
         self.specfile = _get_default_specfile(self.project_name)
         self.validators = {}
+        if parser is not None:
+            self.user_specified_parser = True
+        else:
+            self.user_specified_parser = False
         self.parser = parser
         with open(self.specfile, 'r') as f:
             specifications = yaml.load(f, Loader=yaml.CLoader)
@@ -147,9 +151,13 @@ class Project(object):
         validator = self.validators[dataset_name]
         args = validator.get_parser_args()
         if isinstance(args, dict):
+            self._update_parser(args)
             return self.parser(**args)
         else:
-            dfs = [self.parser(**argset) for argset in args]
+            dfs = []
+            for argset in args:
+                self._update_parser(argset)
+                dfs.append(self.parser(**argset))
             return pd.concat(dfs, axis=0)
 
     def load_datasets(self):
@@ -159,3 +167,11 @@ class Project(object):
         for name in self.validators.iterkeys():
             datasets[name] = self.load_dataset(name)
         return datasets
+
+    def _update_parser(self, argdict):
+        if not self.user_specified_parser:
+            sep = argdict['sep']
+            if sep == ",":
+                self.parser = pd.read_csv
+            else:
+                self.parser = pd.read_table

@@ -11,8 +11,18 @@ Customized traits for advanced validation
 """
 
 import os.path as op
-from traits.api import Dict, TraitError, BaseInt, File
+from traits.api import Dict, TraitError, BaseInt, File, List
 from traits.trait_handlers import TraitDictObject
+
+
+class ValidTraitList(List):
+    def validate(self, object, name, value):
+        validated_value = super(ValidTraitList, self).validate(object, name,
+                                                               value)
+        for trait_name in validated_value:
+            trait = object.trait(trait_name)
+            trait.validate(object, trait_name, getattr(object, trait_name))
+        return validated_value
 
 
 class AbsFile(File):
