@@ -23,6 +23,14 @@ push_exception_handler(lambda *args: None, reraise_exceptions=True)
 
 class SchemaValidator(HasTraits):
 
+    @classmethod
+    def from_dict(cls, specification):
+        return cls(specification=specification)
+
+    @classmethod
+    def from_specfile(cls, specfile, name):
+        return cls(specfile=specfile, name=name)
+
     def __init__(self, **kwargs):
         """Overwritten to ensure that the `required_args` trait is validated
         when the object is created, not when the trait is accessed."""
@@ -87,8 +95,11 @@ class SchemaValidator(HasTraits):
     _ncols = Property(Int, depends_on=['specification'])
 
     # Public interface
+
     def get_parser_args(self):
         return self.parser_args
+
+    to_dict = get_parser_args
 
     def set_parser_args(self, specs, write_to_file=False):
         self.parser_args = specs

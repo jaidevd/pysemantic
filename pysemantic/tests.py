@@ -362,17 +362,17 @@ class TestSchemaValidator(BaseTestCase):
                                "test_dictionary.yaml")
         with open(cls.specfile, "r") as f:
             cls._basespecs = yaml.load(f, Loader=yaml.CLoader)
-        cls.basespecs = deepcopy(cls._basespecs)
+        cls.specs = deepcopy(cls._basespecs)
 
         # fix the paths in basespecs if they aren't absolute
-        for name, dataspec in cls.basespecs.iteritems():
+        for name, dataspec in cls.specs.iteritems():
             if not op.isabs(dataspec['path']):
                 dataspec['path'] = op.join(op.abspath(op.dirname(__file__)),
                                            dataspec['path'])
         # The updated values also need to be dumped into the yaml file, because
         # some functionality of the validator depends on parsing it.
         with open(cls.specfile, "w") as f:
-            yaml.dump(cls.basespecs, f, Dumper=yaml.CDumper,
+            yaml.dump(cls.specs, f, Dumper=yaml.CDumper,
                       default_flow_style=False)
 
         cls.ideal_activity_parser_args = _get_person_activity_args()
@@ -383,6 +383,42 @@ class TestSchemaValidator(BaseTestCase):
         with open(cls.specfile, "w") as f:
             yaml.dump(cls._basespecs, f, Dumper=yaml.CDumper,
                       default_flow_style=False)
+
+    def setUp(self):
+        # FIXME: This should not be necessary, but without it, a couple of
+        # tests strangely fail. I think one or both of the following two tests
+        # are messing up the base specifications.
+        self.basespecs = deepcopy(self.specs)
+
+    def test_from_dict(self):
+        """Test if the SchemaValidator.from_dict constructor works."""
+        validator = SchemaValidator.from_dict(self.basespecs['iris'])
+        self.assertKwargsEqual(validator.get_parser_args(),
+                               self.ideal_iris_parser_args)
+        validator = SchemaValidator.from_dict(self.basespecs[
+                                                            'person_activity'])
+        self.assertKwargsEqual(validator.get_parser_args(),
+                               self.ideal_activity_parser_args)
+
+    def test_from_specfile(self):
+        """Test if the SchemaValidator.from_specfile constructor works."""
+        validator = SchemaValidator.from_specfile(self.specfile, "iris")
+        self.assertKwargsEqual(validator.get_parser_args(),
+                               self.ideal_iris_parser_args)
+        validator = SchemaValidator.from_specfile(self.specfile,
+                                                  "person_activity")
+        self.assertKwargsEqual(validator.get_parser_args(),
+                               self.ideal_activity_parser_args)
+
+    def test_to_dict(self):
+        """Test if the SchemaValidator.to_dict method works."""
+        validator = SchemaValidator(specification=self.basespecs['iris'])
+        self.assertKwargsEqual(validator.to_dict(),
+                               self.ideal_iris_parser_args)
+        validator = SchemaValidator(specification=self.basespecs[
+                                                            'person_activity'])
+        self.assertKwargsEqual(validator.to_dict(),
+                               self.ideal_activity_parser_args)
 
     def test_required_args(self):
         """Test if the required arguments for the validator are working
