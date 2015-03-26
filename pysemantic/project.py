@@ -159,7 +159,3 @@ class Project(object):
         for name in self.validators.iterkeys():
             datasets[name] = self.load_dataset(name)
         return datasets
-
-
-if __name__ == '__main__':
-    specfile = _get_default_specfile("valuefirst")

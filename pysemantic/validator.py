@@ -198,14 +198,3 @@ class SchemaValidator(HasTraits):
                 data = yaml.load(f, Loader=yaml.CLoader).get(self.name, {})
             return data
         return {}
-
-
-if __name__ == '__main__':
-    import pandas as pd
-    specfile = "dictionary.yaml"
-    with open(specfile, "r") as f:
-        data = yaml.load(f, Loader=yaml.CLoader)
-    datasets = {}
-    for k, v in data.iteritems():
-        val = SchemaValidator(specification=v, name=k)
-        datasets[k] = pd.read_table(**val.get_parser_args())
