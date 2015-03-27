@@ -11,14 +11,70 @@ Traited Data validator for `pandas.DataFrame` objects
 """
 
 from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
-                        Bool, Either, push_exception_handler, cached_property)
+                        Bool, Either, push_exception_handler, cached_property,
+                        Array, Instance, Callable)
 from custom_traits import DTypesDict, NaturalNumber, AbsFile, ValidTraitList
+import pandas as pd
+import numpy as np
 import yaml
 import datetime
 import copy
 import os.path as op
 
 push_exception_handler(lambda *args: None, reraise_exceptions=True)
+
+
+class SeriesValidator(HasTraits):
+
+    # the series in question
+    data = Instance(pd.Series)
+
+    # Rules of validation
+    rules = Dict
+
+    # Whether to drop NAs from the series.
+    is_drop_na = Property(Bool, depends_on=['rules'])
+
+    # Whether to drop duplicates from the series.
+    is_drop_duplicates = Property(Bool, depends_on=['rules'])
+
+    # Unique values encountered in the series
+    unique_values = Property(Array, depends_on=['rules'])
+
+    # List of converters to be applied to the series. All converters are
+    # assumed to be callables, which take the series as input and return a
+    # seris.
+    converters = Property(List(Callable), depends_on=['rules'])
+
+    def clean(self):
+        if self.is_drop_duplicates:
+            self.data.drop_duplicates(inplace=True)
+        if self.is_drop_na:
+            self.data.dropna(inplace=True)
+        if not np.all(self.data.unique() == self.unique_values):
+            for value in self.data.unique():
+                if value not in self.unique_values:
+                    self.data = self.data[self.data != value]
+        if len(self.converters) > 0:
+            for converter in self.converters:
+                self.data = converter(self.data)
+        return self.data
+
+    @cached_property
+    def _get_unique_values(self):
+        return self.rules.get("unique_values", self.data.unique())
+
+    @cached_property
+    def _get_converters(self):
+        return self.rules.get("converters", [])
+
+    @cached_property
+    def _get_is_drop_na(self):
+        return self.rules.get("drop_na", True)
+
+    @cached_property
+    def _get_is_drop_duplicates(self):
+        return self.rules.get("drop_duplicates", True)
 
 
 class SchemaValidator(HasTraits):

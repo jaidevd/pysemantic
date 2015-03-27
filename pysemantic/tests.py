@@ -22,7 +22,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 from ConfigParser import RawConfigParser, NoSectionError
-from validator import SchemaValidator
+from validator import SchemaValidator, SeriesValidator
 import project as pr
 from traits.api import HasTraits, TraitError, Str, Type, List, Either
 from custom_traits import AbsFile, NaturalNumber, DTypesDict, ValidTraitList
@@ -60,6 +60,87 @@ class BaseTestCase(unittest.TestCase):
         for col in df1:
             self.assertTrue(np.all(df1[col].values == df2[col].values))
             self.assertEqual(df1[col].dtype, df2[col].dtype)
+
+
+def _dummy_converter(series):
+    return pd.Series([0 if "v" in i else 1 for i in series])
+
+
+class TestSeriesValidator(BaseTestCase):
+    """Tests for the SeriesValidator class."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.dataframe = pd.read_csv(op.join(op.abspath(op.dirname(__file__)),
+                                            "testdata", "iris.csv"))
+        rules = {'unique_values': ['setosa', 'virginica', 'versicolor'],
+                 'drop_duplicates': False, 'drop_na': False}
+        cls.rules = rules
+
+    def setUp(self):
+        self.testData = self.dataframe['Species'].copy()
+
+    def test_unique_values(self):
+        """Check if the series validator correctly checks for the unique
+        values in the series."""
+        validator = SeriesValidator(data=self.testData, rules=self.rules)
+        cleaned = validator.clean()
+        self.assertItemsEqual(cleaned.unique(),
+                              self.dataframe['Species'].unique())
+
+    def test_bad_unique_values(self):
+        """Check if the series validator drops values not specified in the
+        rules."""
+        # Add some bogus values
+        noise = np.random.choice(['lily', 'petunia'], size=(50,))
+        testData = np.hstack((self.testData.values, noise))
+        np.random.shuffle(testData)
+        testData = pd.Series(testData)
+
+        validator = SeriesValidator(data=testData, rules=self.rules)
+        cleaned = validator.clean()
+        self.assertItemsEqual(cleaned.unique(),
+                              self.dataframe['Species'].unique())
+
+    def test_converter(self):
+        """Test if the SeriesValidator properly applies converters."""
+        self.rules['converters'] = [_dummy_converter]
+        try:
+            validator = SeriesValidator(data=self.testData, rules=self.rules)
+            cleaned = validator.clean()
+            cleaned = cleaned.astype(bool)
+            filtered = self.testData[cleaned]
+            self.assertEqual(filtered.nunique(), 1)
+            self.assertItemsEqual(filtered.unique(), ['setosa'])
+        finally:
+            del self.rules['converters']
+
+    def test_drop_duplicates(self):
+        """Check if the SeriesValidator drops duplicates in the series."""
+        self.rules['drop_duplicates'] = True
+        try:
+            x = self.testData.unique().tolist()
+            validator = SeriesValidator(data=self.testData, rules=self.rules)
+            cleaned = validator.clean()
+            self.assertEqual(cleaned.shape[0], 3)
+            self.assertItemsEqual(cleaned.tolist(), x)
+        finally:
+            self.rules['drop_duplicates'] = False
+
+    def test_drop_na(self):
+        """Check if the SeriesValidator drops NAs in the series."""
+        self.rules['drop_na'] = True
+        try:
+            un = np.random.choice(self.testData.unique().tolist() + [np.nan],
+                                  size=(100,))
+            un = pd.Series(un)
+            validator = SeriesValidator(data=un, rules=self.rules)
+            cleaned = validator.clean()
+            self.assertEqual(cleaned.nunique(), self.testData.nunique())
+            self.assertItemsEqual(cleaned.unique().tolist(),
+                                  self.testData.unique().tolist())
+        finally:
+            self.rules['drop_na'] = False
 
 
 class TestProject(BaseTestCase):
