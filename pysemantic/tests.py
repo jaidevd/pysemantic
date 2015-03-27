@@ -61,6 +61,11 @@ class BaseTestCase(unittest.TestCase):
             self.assertTrue(np.all(df1[col].values == df2[col].values))
             self.assertEqual(df1[col].dtype, df2[col].dtype)
 
+    def assertSeriesEqual(self, s1, s2):
+        self.assertEqual(s1.shape, s2.shape)
+        self.assertTrue(np.all(s1.values == s2.values))
+        self.assertTrue(np.all(s1.index == s2.index))
+
 
 def _dummy_converter(series):
     return pd.Series([0 if "v" in i else 1 for i in series])
@@ -73,74 +78,122 @@ class TestSeriesValidator(BaseTestCase):
     def setUpClass(cls):
         cls.dataframe = pd.read_csv(op.join(op.abspath(op.dirname(__file__)),
                                             "testdata", "iris.csv"))
-        rules = {'unique_values': ['setosa', 'virginica', 'versicolor'],
-                 'drop_duplicates': False, 'drop_na': False}
-        cls.rules = rules
+        species_rules = {'unique_values': ['setosa', 'virginica',
+                                           'versicolor'],
+                         'drop_duplicates': False, 'drop_na': False}
+        cls.species_rules = species_rules
+        sepal_length_rules = {'drop_duplicates': False}
+        cls.sepal_length_rules = sepal_length_rules
 
     def setUp(self):
-        self.testData = self.dataframe['Species'].copy()
+        self.species = self.dataframe['Species'].copy()
+        self.sepal_length = self.dataframe['Sepal Length'].copy()
 
     def test_unique_values(self):
         """Check if the series validator correctly checks for the unique
         values in the series."""
-        validator = SeriesValidator(data=self.testData, rules=self.rules)
+        validator = SeriesValidator(data=self.species,
+                                    rules=self.species_rules)
         cleaned = validator.clean()
         self.assertItemsEqual(cleaned.unique(),
                               self.dataframe['Species'].unique())
 
     def test_bad_unique_values(self):
         """Check if the series validator drops values not specified in the
-        rules."""
+        species_rules."""
         # Add some bogus values
         noise = np.random.choice(['lily', 'petunia'], size=(50,))
-        testData = np.hstack((self.testData.values, noise))
-        np.random.shuffle(testData)
-        testData = pd.Series(testData)
+        species = np.hstack((self.species.values, noise))
+        np.random.shuffle(species)
+        species = pd.Series(species)
 
-        validator = SeriesValidator(data=testData, rules=self.rules)
+        validator = SeriesValidator(data=species, rules=self.species_rules)
         cleaned = validator.clean()
         self.assertItemsEqual(cleaned.unique(),
                               self.dataframe['Species'].unique())
 
     def test_converter(self):
         """Test if the SeriesValidator properly applies converters."""
-        self.rules['converters'] = [_dummy_converter]
+        self.species_rules['converters'] = [_dummy_converter]
         try:
-            validator = SeriesValidator(data=self.testData, rules=self.rules)
+            validator = SeriesValidator(data=self.species,
+                                        rules=self.species_rules)
             cleaned = validator.clean()
             cleaned = cleaned.astype(bool)
-            filtered = self.testData[cleaned]
+            filtered = self.species[cleaned]
             self.assertEqual(filtered.nunique(), 1)
             self.assertItemsEqual(filtered.unique(), ['setosa'])
         finally:
-            del self.rules['converters']
+            del self.species_rules['converters']
 
     def test_drop_duplicates(self):
         """Check if the SeriesValidator drops duplicates in the series."""
-        self.rules['drop_duplicates'] = True
+        self.species_rules['drop_duplicates'] = True
         try:
-            x = self.testData.unique().tolist()
-            validator = SeriesValidator(data=self.testData, rules=self.rules)
+            x = self.species.unique().tolist()
+            validator = SeriesValidator(data=self.species,
+                                        rules=self.species_rules)
             cleaned = validator.clean()
             self.assertEqual(cleaned.shape[0], 3)
             self.assertItemsEqual(cleaned.tolist(), x)
         finally:
-            self.rules['drop_duplicates'] = False
+            self.species_rules['drop_duplicates'] = False
 
     def test_drop_na(self):
         """Check if the SeriesValidator drops NAs in the series."""
-        self.rules['drop_na'] = True
+        self.species_rules['drop_na'] = True
         try:
-            un = np.random.choice(self.testData.unique().tolist() + [np.nan],
+            un = np.random.choice(self.species.unique().tolist() + [np.nan],
                                   size=(100,))
             un = pd.Series(un)
-            validator = SeriesValidator(data=un, rules=self.rules)
+            validator = SeriesValidator(data=un,
+                                        rules=self.species_rules)
             cleaned = validator.clean()
-            self.assertEqual(cleaned.nunique(), self.testData.nunique())
+            self.assertEqual(cleaned.nunique(), self.species.nunique())
             self.assertItemsEqual(cleaned.unique().tolist(),
-                                  self.testData.unique().tolist())
+                                  self.species.unique().tolist())
         finally:
-            self.rules['drop_na'] = False
+            self.species_rules['drop_na'] = False
+
+    def test_numerical_series(self):
+        """Test if the SeriesValidator works on a numerical series."""
+        validator = SeriesValidator(data=self.sepal_length,
+                                    rules=self.sepal_length_rules)
+        cleaned = validator.clean()
+        self.assertSeriesEqual(cleaned, self.dataframe['Sepal Length'])
+
+    def test_min_max_rules(self):
+        self.sepal_length_rules['min'] = 5.0
+        self.sepal_length_rules['max'] = 7.0
+        try:
+            validator = SeriesValidator(data=self.sepal_length,
+                                       rules=self.sepal_length_rules)
+            cleaned = validator.clean()
+            self.assertLessEqual(cleaned.max(), 7.0)
+            self.assertGreaterEqual(cleaned.min(), 5.0)
+        finally:
+            del self.sepal_length_rules['max']
+            del self.sepal_length_rules['min']
+
+    def test_regex_filter(self):
+        """Test if the SeriesValidator does filtering based on the regular
+        expression provided."""
+        self.species_rules['regex'] = r'\b[a-z]+\b'
+        try:
+            validator = SeriesValidator(data=self.species,
+                                        rules=self.species_rules)
+            cleaned = validator.clean()
+            self.assertSeriesEqual(cleaned, self.dataframe['Species'])
+
+            self.species = self.dataframe['Species'].copy()
+            self.species = self.species.apply(lambda x: x.replace("e", "1"))
+            validator = SeriesValidator(data=self.species,
+                                        rules=self.species_rules)
+            cleaned = validator.clean()
+            self.assertItemsEqual(cleaned.shape, (50,))
+            self.assertItemsEqual(cleaned.unique().tolist(), ['virginica'])
+        finally:
+            del self.species_rules['regex']
 
 
 class TestProject(BaseTestCase):

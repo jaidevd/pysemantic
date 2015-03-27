@@ -12,12 +12,13 @@ Traited Data validator for `pandas.DataFrame` objects
 
 from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
                         Bool, Either, push_exception_handler, cached_property,
-                        Array, Instance, Callable)
+                        Array, Instance, Callable, Float)
 from custom_traits import DTypesDict, NaturalNumber, AbsFile, ValidTraitList
 import pandas as pd
 import numpy as np
 import yaml
 import datetime
+import re
 import copy
 import os.path as op
 
@@ -43,21 +44,47 @@ class SeriesValidator(HasTraits):
 
     # List of converters to be applied to the series. All converters are
     # assumed to be callables, which take the series as input and return a
-    # seris.
+    # series.
     converters = Property(List(Callable), depends_on=['rules'])
+
+    # Minimum value permitted in the series
+    minimum = Property(Float, depends_on=['rules'])
+
+    # Maximum value permitted in the series
+    maximum = Property(Float, depends_on=['rules'])
+
+    # Regular expression match for series containing strings
+    regex = Property(Str, depends_on=['rules'])
 
     def clean(self):
         if self.is_drop_duplicates:
             self.data.drop_duplicates(inplace=True)
+
         if self.is_drop_na:
             self.data.dropna(inplace=True)
+
         if not np.all(self.data.unique() == self.unique_values):
             for value in self.data.unique():
                 if value not in self.unique_values:
                     self.data = self.data[self.data != value]
+
         if len(self.converters) > 0:
             for converter in self.converters:
                 self.data = converter(self.data)
+
+        if self.data.dtype in (int, float, datetime.date):
+            if self.minimum != -np.inf:
+                self.data = self.data[self.data >= self.minimum]
+            if self.maximum != np.inf:
+                self.data = self.data[self.data <= self.maximum]
+
+        if self.regex:
+            if self.data.dtype is np.dtype('O'):
+                # filter by regex
+                re_filter = lambda x: re.search(self.regex, x)
+                re_matches = self.data.apply(re_filter)
+                self.data = self.data[pd.notnull(re_matches)]
+
         return self.data
 
     @cached_property
@@ -75,6 +102,18 @@ class SeriesValidator(HasTraits):
     @cached_property
     def _get_is_drop_duplicates(self):
         return self.rules.get("drop_duplicates", True)
+
+    @cached_property
+    def _get_minimum(self):
+        return self.rules.get("min", -np.inf)
+
+    @cached_property
+    def _get_maximum(self):
+        return self.rules.get("max", np.inf)
+
+    @cached_property
+    def _get_regex(self):
+        return self.rules.get("regex", "")
 
 
 class SchemaValidator(HasTraits):
