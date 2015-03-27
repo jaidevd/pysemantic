@@ -15,6 +15,9 @@ import yaml
 import os.path as op
 import os
 import datetime
+import subprocess
+import tempfile
+import shutil
 from copy import deepcopy
 import numpy as np
 import pandas as pd
@@ -291,6 +294,54 @@ class TestProject(BaseTestCase):
                 else:
                     self.assertEqual(loaded[colname].dtype,
                                      self.data_specs[name]['dtypes'][colname])
+
+
+class TestCLI(BaseTestCase):
+    """Test the pysemantic CLI."""
+
+    @classmethod
+    def setUpClass(cls):
+        # Copy the test config file to the current directory and add some dummy
+        # project entries
+        cls.config_file_path = op.join(os.getcwd(), "test.conf")
+        parser = RawConfigParser()
+        parser.read(TEST_CONFIG_FILE_PATH)
+        dummy_config_data = [("pysemantic", "testdata/test_dictionary.yaml"),
+                             ("dummy_project_1", "/tmp/foo.yaml"),
+                             ("dummy_project_2", "/tmp/bar.yaml")]
+        for spec in dummy_config_data[1:]:
+            parser.add_section(spec[0])
+            parser.set(spec[0], "specfile", spec[1])
+        with open(cls.config_file_path, "w") as f:
+            parser.write(f)
+        cls.dummy_config_data = dummy_config_data
+        # Move the original config file out of the way temporarily.
+        org_config_file = pr._locate_config_file()
+        cls.tempdir = tempfile.mkdtemp()
+        newpath = op.join(cls.tempdir, op.basename(org_config_file))
+        shutil.copy(org_config_file, newpath)
+        os.unlink(org_config_file)
+        cls.org_config_file = org_config_file
+        cls.newpath = newpath
+
+        pr.CONF_FILE_NAME = "test.conf"
+
+    @classmethod
+    def tearDownClass(cls):
+        os.unlink(cls.config_file_path)
+        shutil.copy(cls.newpath, cls.org_config_file)
+        shutil.rmtree(cls.tempdir)
+
+    def test_list_projects(self):
+        """Test if the `list` subcommand of the CLI works properly."""
+        testenv = os.environ
+        testenv['PYSEMANTIC_CONFIG'] = "test.conf"
+        cmd = ['semantic', 'list']
+        output = subprocess.check_output(cmd, env=testenv).splitlines()
+        for i, config in enumerate(self.dummy_config_data):
+            ideal = "Project {0} with specfile at {1}".format(*config)
+            actual = output[i]
+            self.assertEqual(ideal, actual)
 
 
 class TestConfig(BaseTestCase):

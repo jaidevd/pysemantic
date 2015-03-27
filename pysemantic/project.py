@@ -18,7 +18,16 @@ from validator import SchemaValidator
 import yaml
 import pandas as pd
 
-CONF_FILE_NAME = "pysemantic.conf"
+CONF_FILE_NAME = os.environ.get("PYSEMANTIC_CONFIG", "pysemantic.conf")
+
+
+def _locate_config_file():
+    """_locate_config_file: locates the configuration file used by semantic."""
+    paths = [op.join(os.getcwd(), CONF_FILE_NAME),
+             op.join(op.expanduser('~'), CONF_FILE_NAME)]
+    for path in paths:
+        if op.exists(path):
+            return path
 
 
 def _get_default_specfile(project_name):
@@ -30,13 +39,10 @@ def _get_default_specfile(project_name):
 
     :param project_name: Name of the project for which to get the spcfile.
     """
-    paths = [op.join(os.getcwd(), CONF_FILE_NAME),
-             op.join(op.expanduser('~'), CONF_FILE_NAME)]
-    for path in paths:
-        if op.exists(path):
-            parser = RawConfigParser()
-            parser.read(path)
-            return parser.get(project_name, 'specfile')
+    path = _locate_config_file()
+    parser = RawConfigParser()
+    parser.read(path)
+    return parser.get(project_name, 'specfile')
 
 
 def add_project(project_name, specfile):
@@ -45,17 +51,24 @@ def add_project(project_name, specfile):
     :param project_name: Name of the project
     :param specfile: path to the data dictionary used by the project.
     """
-    paths = [op.join(os.getcwd(), CONF_FILE_NAME),
-             op.join(op.expanduser('~'), CONF_FILE_NAME)]
-    for path in paths:
-        if op.exists(path):
-            parser = RawConfigParser()
-            parser.read(path)
-            break
+    path = _locate_config_file()
+    parser = RawConfigParser()
+    parser.read(path)
     parser.add_section(project_name)
     parser.set(project_name, "specfile", specfile)
     with open(path, "w") as f:
         parser.write(f)
+
+
+def view_projects():
+    """View a list of all projects currently registered with pysemantic."""
+    path = _locate_config_file()
+    parser = RawConfigParser()
+    parser.read(path)
+    for section in parser.sections():
+        project_name = section
+        specfile = parser.get(section, "specfile")
+        print "Project {0} with specfile at {1}".format(project_name, specfile)
 
 
 def remove_project(project_name):
@@ -64,13 +77,9 @@ def remove_project(project_name):
     :param project_name: Name of the project to remove.
     Returns true if the project existed.
     """
-    paths = [op.join(os.getcwd(), CONF_FILE_NAME),
-             op.join(op.expanduser('~'), CONF_FILE_NAME)]
-    for path in paths:
-        if op.exists(path):
-            parser = RawConfigParser()
-            parser.read(path)
-            break
+    path = _locate_config_file()
+    parser = RawConfigParser()
+    parser.read(path)
     result = parser.remove_section(project_name)
     if result:
         with open(path, "w") as f:

@@ -7,5 +7,8 @@ setup(
     version='0.0.1',
     author='Jaidev Deshpande',
     author_email='jaidev@dataculture.in',
-    packages=['pysemantic']
+    entry_points={
+        'console_scripts': ['semantic = pysemantic.cli:main'],
+               },
+    packages=['pysemantic'],
 )
