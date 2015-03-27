@@ -60,14 +60,24 @@ def add_project(project_name, specfile):
         parser.write(f)
 
 
-def view_projects():
-    """View a list of all projects currently registered with pysemantic."""
+def get_projects():
+    """Get the list of projects currently registered with pysemantic as a
+    list."""
     path = _locate_config_file()
     parser = RawConfigParser()
     parser.read(path)
+    projects = []
     for section in parser.sections():
         project_name = section
         specfile = parser.get(section, "specfile")
+        projects.append((project_name, specfile))
+    return projects
+
+
+def view_projects():
+    """View a list of all projects currently registered with pysemantic."""
+    projects = get_projects()
+    for project_name, specfile in projects:
         print "Project {0} with specfile at {1}".format(project_name, specfile)
 
 
@@ -127,7 +137,7 @@ class Project(object):
             specs[name] = validator.get_parser_args()
         return specs
 
-    def view_dataset_specs(self, dataset_name=None):
+    def view_dataset_specs(self, dataset_name):
         """Pretty print the specifications for a dataset.
 
         :param dataset_name: Name of the dataset

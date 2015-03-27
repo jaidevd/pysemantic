@@ -332,16 +332,40 @@ class TestCLI(BaseTestCase):
         shutil.copy(cls.newpath, cls.org_config_file)
         shutil.rmtree(cls.tempdir)
 
+    def setUp(self):
+        self.testenv = os.environ
+        self.testenv['PYSEMANTIC_CONFIG'] = "test.conf"
+
     def test_list_projects(self):
         """Test if the `list` subcommand of the CLI works properly."""
-        testenv = os.environ
-        testenv['PYSEMANTIC_CONFIG'] = "test.conf"
         cmd = ['semantic', 'list']
-        output = subprocess.check_output(cmd, env=testenv).splitlines()
+        output = subprocess.check_output(cmd, env=self.testenv).splitlines()
         for i, config in enumerate(self.dummy_config_data):
             ideal = "Project {0} with specfile at {1}".format(*config)
             actual = output[i]
             self.assertEqual(ideal, actual)
+
+    def test_add(self):
+        """Test if the `add` subcommand can add projects to the config file."""
+        cmd = ['semantic', 'add', 'dummy_added_project', '/tmp/dummy.yaml']
+        subprocess.check_call(cmd, env=self.testenv)
+        projects = pr.get_projects()
+        self.assertIn(("dummy_added_project", "/tmp/dummy.yaml"), projects)
+
+    def test_remove(self):
+        """Test if the `remove` subcommand can remove projects from the config
+        file."""
+        cmd = ['semantic', 'remove', 'dummy_project_2']
+        subprocess.check_call(cmd, env=self.testenv)
+        projects = pr.get_projects()
+        proj_names = [p[0] for p in projects]
+        self.assertNotIn("dummy_project_2", proj_names)
+
+    def test_remove_nonexistent_project(self):
+        """Check if attempting to remove a nonexistent project fails."""
+        cmd = ['semantic', 'remove', 'foobar']
+        output = subprocess.check_output(cmd, env=self.testenv)
+        self.assertEqual(output.strip(), "Removing the project failed.")
 
 
 class TestConfig(BaseTestCase):
