@@ -14,7 +14,7 @@ import os.path as op
 import os
 import pprint
 from ConfigParser import RawConfigParser
-from validator import SchemaValidator
+from validator import SchemaValidator, DataFrameValidator
 import yaml
 import pandas as pd
 
@@ -117,10 +117,12 @@ class Project(object):
         self.parser = parser
         with open(self.specfile, 'r') as f:
             specifications = yaml.load(f, Loader=yaml.CLoader)
+        self.column_rules = {}
         for name, specs in specifications.iteritems():
             self.validators[name] = SchemaValidator(specification=specs,
                                                     specfile=self.specfile,
                                                     name=name)
+            self.column_rules[name] = specs.get('column_rules')
 
     def get_dataset_specs(self, dataset_name):
         """Returns the specifications for the specified dataset in the project.
@@ -168,15 +170,22 @@ class Project(object):
         :param dataset_name: Name of the dataset
         """
         validator = self.validators[dataset_name]
+        column_rules = self.column_rules[dataset_name]
         args = validator.get_parser_args()
         if isinstance(args, dict):
             self._update_parser(args)
-            return self.parser(**args)
+            df = self.parser(**args)
+            df_validator = DataFrameValidator(data=df,
+                                              column_rules=column_rules)
+            return df_validator.clean()
         else:
             dfs = []
             for argset in args:
                 self._update_parser(argset)
-                dfs.append(self.parser(**argset))
+                _df = self.parser(**argset)
+                df_validator = DataFrameValidator(data=_df,
+                                                  column_rules=column_rules)
+                dfs.append(df_validator.clean())
             return pd.concat(dfs, axis=0)
 
     def load_datasets(self):
