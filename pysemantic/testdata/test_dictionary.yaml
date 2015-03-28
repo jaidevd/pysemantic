@@ -15,7 +15,7 @@ iris:
     Species:
       drop_duplicates: false
       drop_na: false
-      regex: \b[a-z]+\b
+      regex: '\b[a-z]+\b'
       unique_values:
       - setosa
       - versicolor
@@ -34,11 +34,15 @@ person_activity:
   column_rules:
     activity:
       drop_duplicates: false
-      regex: ([\w|\s]+)+
-    sequence: regex = [A-Z]\d{2}
+      regex: '([\w|\s]+)+'
+    date:
+      drop_duplicates: false
+    sequence_name:
+      drop_duplicates: false
+      regex: '[A-Z]\d{2}'
     tag:
       drop_duplicates: false
-      regex: \d{3}-\d{3}-\d{3}-\d{3}
+      regex: '\d{3}-\d{3}-\d{3}-\d{3}'
     x:
       drop_duplicates: false
     y:
