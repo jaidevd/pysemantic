@@ -1,4 +1,25 @@
 iris:
+  column_rules:
+    Petal Length:
+      drop_duplicates: false
+      minimum: 0.0
+    Petal Width:
+      drop_duplicates: false
+      minimum: 0.0
+    Sepal Length:
+      drop_duplicates: false
+      minimum: 0.0
+    Sepal Width:
+      drop_duplicates: false
+      minimum: 0.0
+    Species:
+      drop_duplicates: false
+      drop_na: false
+      regex: \b[a-z]+\b
+      unique_values:
+      - setosa
+      - versicolor
+      - virginica
   delimiter: ','
   dtypes:
     Petal Length: &id001 !!python/name:__builtin__.float 
@@ -10,6 +31,20 @@ iris:
   nrows: 150
   path: testdata/iris.csv
 person_activity:
+  column_rules:
+    activity:
+      drop_duplicates: false
+      regex: ([\w|\s]+)+
+    sequence: regex = [A-Z]\d{2}
+    tag:
+      drop_duplicates: false
+      regex: \d{3}-\d{3}-\d{3}-\d{3}
+    x:
+      drop_duplicates: false
+    y:
+      drop_duplicates: false
+    z:
+      drop_duplicates: false
   delimiter: "\t"
   dtypes:
     activity: *id002
