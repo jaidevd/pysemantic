@@ -25,6 +25,23 @@ import os.path as op
 push_exception_handler(lambda *args: None, reraise_exceptions=True)
 
 
+class DataFrameValidator(HasTraits):
+
+    # The dataframe in question
+    data = Instance(pd.DataFrame)
+
+    # the column rules to be enforced
+    column_rules = Dict
+
+    def clean(self):
+        for col in self.data:
+            series = self.data[col]
+            rules = self.column_rules[col]
+            validator = SeriesValidator(data=series, rules=rules)
+            self.data[col] = validator.clean()
+        return self.data
+
+
 class SeriesValidator(HasTraits):
 
     # the series in question

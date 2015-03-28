@@ -22,7 +22,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 from ConfigParser import RawConfigParser, NoSectionError
-from validator import SchemaValidator, SeriesValidator
+from validator import SchemaValidator, SeriesValidator, DataFrameValidator
 import project as pr
 from traits.api import HasTraits, TraitError, Str, Type, List, Either
 from custom_traits import AbsFile, NaturalNumber, DTypesDict, ValidTraitList
@@ -194,6 +194,44 @@ class TestSeriesValidator(BaseTestCase):
             self.assertItemsEqual(cleaned.unique().tolist(), ['virginica'])
         finally:
             del self.species_rules['regex']
+
+
+class TestDataFrameValidator(BaseTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.maxDiff = None
+        with open(TEST_DATA_DICT, 'r') as f:
+            basespecs = yaml.load(f, Loader=yaml.CLoader)
+        # Fix the paths in basespecs
+        for name, specs in basespecs.iteritems():
+            rlpth = specs['path']
+            specs['path'] = op.join(op.abspath(op.dirname(__file__)),
+                                    rlpth)
+        cls._basespecs = basespecs
+
+        iris_validator = SchemaValidator(specification=cls._basespecs['iris'])
+        pa_validator = SchemaValidator(
+                               specification=cls._basespecs['person_activity'])
+        iris_df = pd.read_csv(**iris_validator.get_parser_args())
+        pa_df = pd.read_csv(**pa_validator.get_parser_args())
+        cls.iris_df = iris_df
+        cls.pa_df = pa_df
+
+    def setUp(self):
+        self.basespecs = deepcopy(self._basespecs)
+
+    def test_column_rules(self):
+        """Test if the DataFrame validator reads and enforces the column rules
+        properly."""
+        df_val = DataFrameValidator(data=self.iris_df.copy(),
+                           column_rules=self.basespecs['iris']['column_rules'])
+        cleaned = df_val.clean()
+        self.assertDataFrameEqual(cleaned, self.iris_df)
+        df_val = DataFrameValidator(data=self.pa_df.copy(),
+                column_rules=self.basespecs['person_activity']['column_rules'])
+        cleaned = df_val.clean()
+        self.assertDataFrameEqual(cleaned, self.pa_df)
 
 
 class TestProject(BaseTestCase):
