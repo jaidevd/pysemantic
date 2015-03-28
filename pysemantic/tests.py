@@ -354,6 +354,29 @@ class TestProject(BaseTestCase):
         self.expected_specs = expected
         self.project = pr.Project(project_name="pysemantic")
 
+    def test_load_dataset_missing_nrows(self):
+        """Test if the project loads datasets properly if the nrows parameter
+        is not provided in the schema."""
+        # Modify the schema to remove the nrows
+        with open(TEST_DATA_DICT, "r") as f:
+            org_specs = yaml.load(f, Loader=yaml.CLoader)
+        new_specs = deepcopy(org_specs)
+        for dataset_specs in new_specs.itervalues():
+            del dataset_specs['nrows']
+        with open(TEST_DATA_DICT, "w") as f:
+            yaml.dump(new_specs, f, Dumper=yaml.CDumper)
+        try:
+            _pr = pr.Project("pysemantic")
+            df = pd.read_csv(**self.expected_specs['iris'])
+            loaded = _pr.load_dataset("iris")
+            self.assertDataFrameEqual(df, loaded)
+            df = pd.read_table(**self.expected_specs['person_activity'])
+            loaded = _pr.load_dataset("person_activity")
+            self.assertDataFrameEqual(loaded, df)
+        finally:
+            with open(TEST_DATA_DICT, "w") as f:
+                yaml.dump(org_specs, f, Dumper=yaml.CDumper)
+
     def test_set_schema_fpath(self):
         """Test if programmatically setting a schema file to an existing
         project works."""

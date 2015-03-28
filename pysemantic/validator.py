@@ -287,7 +287,8 @@ class SchemaValidator(HasTraits):
             return arglist
         else:
             args.update({'filepath_or_buffer': self._filepath})
-            args.update({'nrows': self._nrows})
+            if "nrows" in self.specification:
+                args.update({'nrows': self._nrows})
             return args
 
     def _set_parser_args(self, specs):
