@@ -15,6 +15,7 @@ import os
 import pprint
 from ConfigParser import RawConfigParser
 from validator import SchemaValidator, DataFrameValidator
+from errors import MissingProject
 import yaml
 import pandas as pd
 
@@ -58,6 +59,27 @@ def add_project(project_name, specfile):
     parser.set(project_name, "specfile", specfile)
     with open(path, "w") as f:
         parser.write(f)
+
+
+def set_schema_fpath(project_name, schema_fpath):
+    """ Set the schema path for a given project.
+
+    :param project_name: Name of the project
+    :param schema_fpath: path to the yaml file to be used as the schema for the
+    project.
+    """
+    path = _locate_config_file()
+    parser = RawConfigParser()
+    parser.read(path)
+    if project_name in parser.sections():
+        if not parser.remove_option(project_name, "specfile"):
+            raise MissingProject
+        else:
+            parser.set(project_name, "specfile", schema_fpath)
+            with open(path, "w") as f:
+                parser.write(f)
+            return True
+    raise MissingProject
 
 
 def get_projects():
@@ -118,11 +140,13 @@ class Project(object):
         with open(self.specfile, 'r') as f:
             specifications = yaml.load(f, Loader=yaml.CLoader)
         self.column_rules = {}
+        self.df_rules = {}
         for name, specs in specifications.iteritems():
             self.validators[name] = SchemaValidator(specification=specs,
                                                     specfile=self.specfile,
                                                     name=name)
             self.column_rules[name] = specs.get('column_rules')
+            self.df_rules[name] = specs.get('dataframe_rules', {})
 
     def get_dataset_specs(self, dataset_name):
         """Returns the specifications for the specified dataset in the project.
@@ -171,12 +195,13 @@ class Project(object):
         """
         validator = self.validators[dataset_name]
         column_rules = self.column_rules[dataset_name]
+        df_rules = self.df_rules.get(dataset_name, {})
         args = validator.get_parser_args()
         if isinstance(args, dict):
             self._update_parser(args)
             df = self.parser(**args)
-            df_validator = DataFrameValidator(data=df,
-                                              column_rules=column_rules)
+            df_validator = DataFrameValidator(data=df, rules=df_rules,
+                                             column_rules=column_rules)
             return df_validator.clean()
         else:
             dfs = []

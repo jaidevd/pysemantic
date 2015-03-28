@@ -12,6 +12,7 @@ Usage:
     semantic list
     semantic add PROJECT_NAME PROJECT_SPECFILE
     semantic remove PROJECT_NAME
+    semantic set-schema PROJECT_NAME SCHEMA_FPATH
 
 Options:
     -h --help	Show this screen
@@ -19,6 +20,7 @@ Options:
 
 from docopt import docopt
 import project as pr
+from errors import MissingProject
 
 
 def cli(arguments):
@@ -36,6 +38,15 @@ def cli(arguments):
         proj_name = arguments.get("PROJECT_NAME")
         if not pr.remove_project(proj_name):
             print "Removing the project failed."
+    elif arguments.get("set-schema", False):
+        try:
+            pr.set_schema_fpath(arguments.get("PROJECT_NAME"),
+                                arguments.get("SCHEMA_FPATH"))
+        except MissingProject:
+            msg = """Project {} not found in the configuration. Please use
+            $ semantic add
+            to register the project.""".format(arguments.get("PROJECT_NAME"))
+            print msg
 
 
 def main():

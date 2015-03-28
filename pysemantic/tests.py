@@ -24,6 +24,7 @@ import pandas as pd
 from ConfigParser import RawConfigParser, NoSectionError
 from validator import SchemaValidator, SeriesValidator, DataFrameValidator
 import project as pr
+from errors import MissingProject
 from traits.api import HasTraits, TraitError, Str, Type, List, Either
 from custom_traits import AbsFile, NaturalNumber, DTypesDict, ValidTraitList
 
@@ -227,11 +228,20 @@ class TestDataFrameValidator(BaseTestCase):
         df_val = DataFrameValidator(data=self.iris_df.copy(),
                            column_rules=self.basespecs['iris']['column_rules'])
         cleaned = df_val.clean()
-        self.assertDataFrameEqual(cleaned, self.iris_df)
+        self.assertDataFrameEqual(cleaned, self.iris_df.drop_duplicates())
         df_val = DataFrameValidator(data=self.pa_df.copy(),
                 column_rules=self.basespecs['person_activity']['column_rules'])
         cleaned = df_val.clean()
-        self.assertDataFrameEqual(cleaned, self.pa_df)
+        self.assertDataFrameEqual(cleaned, self.pa_df.drop_duplicates())
+
+    def test_drop_duplicates(self):
+        """Test if the DataFrameValidator is dropping duplicates properly."""
+        col_rules = self.basespecs['iris'].get('column_rules')
+        df = self.iris_df.copy()
+        _df = pd.concat((df, df))
+        validator = DataFrameValidator(data=_df, column_rules=col_rules)
+        cleaned = validator.clean()
+        self.assertDataFrameEqual(cleaned, df.drop_duplicates())
 
 
 class TestProject(BaseTestCase):
@@ -290,6 +300,16 @@ class TestProject(BaseTestCase):
             with open(TEST_DATA_DICT, "w") as f:
                 testData = yaml.dump(testData, f, Dumper=yaml.CDumper,
                                      default_flow_style=False)
+
+            # Change the config files back
+            parser = RawConfigParser()
+            parser.read(cls.test_conf_file)
+            parser.remove_option("pysemantic", "specfile")
+            parser.set("pysemantic", "specfile",
+                       op.join("testdata", "test_dictionary.yaml"))
+            with open(TEST_CONFIG_FILE_PATH, 'w') as f:
+                parser.write(f)
+
         finally:
             os.unlink(cls.test_conf_file)
             os.unlink(cls.copied_iris_path)
@@ -333,6 +353,25 @@ class TestProject(BaseTestCase):
                     'multi_iris': multi_iris_specs}
         self.expected_specs = expected
         self.project = pr.Project(project_name="pysemantic")
+
+    def test_set_schema_fpath(self):
+        """Test if programmatically setting a schema file to an existing
+        project works."""
+        old_schempath = pr._get_default_specfile("pysemantic")
+        try:
+            self.assertTrue(pr.set_schema_fpath("pysemantic", "/foo/bar"))
+            self.assertEqual(pr._get_default_specfile("pysemantic"),
+                             "/foo/bar")
+            self.assertRaises(MissingProject, pr.set_schema_fpath,
+                              "foobar", "/foo/bar")
+        finally:
+            conf_path = pr._locate_config_file()
+            parser = RawConfigParser()
+            parser.read(conf_path)
+            parser.remove_option("pysemantic", "specfile")
+            parser.set("pysemantic", "specfile", old_schempath)
+            with open(TEST_CONFIG_FILE_PATH, "w") as f:
+                parser.write(f)
 
     def test_get_project_specs(self):
         """Check if the project manager produces all specifications correctly.
@@ -428,21 +467,9 @@ class TestProject(BaseTestCase):
         self.assertDataFrameEqual(loaded['person_activity'], df)
         dfs = [pd.read_csv(**args) for args in
                self.expected_specs['multi_iris']]
+        dfs = [x.drop_duplicates() for x in dfs]
         df = pd.concat(dfs)
         self.assertDataFrameEqual(loaded['multi_iris'], df)
-
-    def test_dataset_shape(self):
-        """
-        Test if the project object can load the dataset properly.
-        """
-        loaded = self.project.load_dataset("iris")
-        spec_shape = (self.data_specs['iris']['nrows'],
-                      self.data_specs['iris']['ncols'])
-        self.assertItemsEqual(loaded.shape, spec_shape)
-        loaded = self.project.load_dataset("person_activity")
-        spec_shape = (self.data_specs['person_activity']['nrows'],
-                      self.data_specs['person_activity']['ncols'])
-        self.assertItemsEqual(loaded.shape, spec_shape)
 
     def test_dataset_colnames(self):
         """Check if the column names read by the loader are correct."""
@@ -538,6 +565,23 @@ class TestCLI(BaseTestCase):
         cmd = ['semantic', 'remove', 'foobar']
         output = subprocess.check_output(cmd, env=self.testenv)
         self.assertEqual(output.strip(), "Removing the project failed.")
+
+    def test_set_schema(self):
+        """Test if the set-schema subcommand works."""
+        cmd = ['semantic', 'set-schema', 'dummy_project_1', '/tmp/baz.yaml']
+        subprocess.check_call(cmd, env=self.testenv)
+        self.assertEqual(pr._get_default_specfile('dummy_project_1'),
+                         '/tmp/baz.yaml')
+
+    def test_set_schema_nonexistent_project(self):
+        """Test if the set-schema prints proper warnings when trying to set
+        schema file for nonexistent project."""
+        cmd = ['semantic', 'set-schema', 'dummy_project_3', '/foo']
+        output = subprocess.check_output(cmd, env=self.testenv)
+        msg = """Project {} not found in the configuration. Please use
+            $ semantic add
+            to register the project.""".format("dummy_project_3")
+        self.assertEqual(output.strip(), msg)
 
 
 class TestConfig(BaseTestCase):

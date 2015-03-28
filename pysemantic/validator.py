@@ -33,12 +33,36 @@ class DataFrameValidator(HasTraits):
     # the column rules to be enforced
     column_rules = Dict
 
+    # rules related to the dataset itself
+    rules = Dict
+
+    # whether to drop duplicates
+    is_drop_duplicates = Property(Bool, depends_on=['rules'])
+
+    # whether to drop NAs
+    is_drop_na = Property(Bool, depends_on=['rules'])
+
+    def _rules_default(self):
+        return {}
+
+    @cached_property
+    def _get_is_drop_na(self):
+        return self.rules.get("drop_na", True)
+
+    @cached_property
+    def _get_is_drop_duplicates(self):
+        return self.rules.get("drop_duplicates", True)
+
     def clean(self):
         for col in self.data:
             series = self.data[col]
             rules = self.column_rules[col]
             validator = SeriesValidator(data=series, rules=rules)
             self.data[col] = validator.clean()
+        if self.is_drop_na:
+            self.data.dropna(inplace=True)
+        if self.is_drop_duplicates:
+            self.data.drop_duplicates(inplace=True)
         return self.data
 
 

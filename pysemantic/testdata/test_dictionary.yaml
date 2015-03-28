@@ -20,6 +20,8 @@ iris:
       - setosa
       - versicolor
       - virginica
+  dataframe_rules:
+    drop_duplicates: false
   delimiter: ','
   dtypes:
     Petal Length: &id001 !!python/name:__builtin__.float 
@@ -49,6 +51,8 @@ person_activity:
       drop_duplicates: false
     z:
       drop_duplicates: false
+  dataframe_rules:
+    drop_duplicates: false
   delimiter: "\t"
   dtypes:
     activity: *id002
