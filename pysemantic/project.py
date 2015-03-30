@@ -18,6 +18,7 @@ from validator import SchemaValidator, DataFrameValidator
 from errors import MissingProject
 import yaml
 import pandas as pd
+import numpy as np
 
 CONF_FILE_NAME = os.environ.get("PYSEMANTIC_CONFIG", "pysemantic.conf")
 
@@ -145,7 +146,7 @@ class Project(object):
             self.validators[name] = SchemaValidator(specification=specs,
                                                     specfile=self.specfile,
                                                     name=name)
-            self.column_rules[name] = specs.get('column_rules')
+            self.column_rules[name] = specs.get('column_rules', {})
             self.df_rules[name] = specs.get('dataframe_rules', {})
 
     def get_dataset_specs(self, dataset_name):
@@ -194,12 +195,11 @@ class Project(object):
         :param dataset_name: Name of the dataset
         """
         validator = self.validators[dataset_name]
-        column_rules = self.column_rules[dataset_name]
+        column_rules = self.column_rules.get(dataset_name, {})
         df_rules = self.df_rules.get(dataset_name, {})
         args = validator.get_parser_args()
         if isinstance(args, dict):
-            self._update_parser(args)
-            df = self.parser(**args)
+            df = self._load(args)
             df_validator = DataFrameValidator(data=df, rules=df_rules,
                                              column_rules=column_rules)
             return df_validator.clean()
@@ -228,3 +228,38 @@ class Project(object):
                 self.parser = pd.read_csv
             else:
                 self.parser = pd.read_table
+
+    def _load(self, parser_args):
+        self._update_parser(parser_args)
+        try:
+            return self.parser(**parser_args)
+        except Exception as e:
+            if e.message == "Integer column has NA values":
+                bad_rows = self._detect_bad_row(parser_args)
+                if len(bad_rows) > 0:
+                    newtypelist = [(colname, float) for colname in bad_rows]
+                    self._update_dtypes(parser_args['dtype'], newtypelist)
+            return self.parser(**parser_args)
+
+    def _update_dtypes(self, dtypes, typelist):
+        """_update_dtypes Update the dtypes parameter of the parser arguments.
+
+        :param dtypes: The original column types
+        :param typelist: List of tuples [(column_name, new_dtype), ...]
+        """
+        for colname, coltype in typelist:
+            dtypes[colname] = coltype
+
+    def _detect_bad_row(self, parser_args):
+        dtypes = parser_args.get("dtype")
+        usecols = parser_args.get("usecols")
+        int_cols = [col for col in usecols if dtypes.get(col) is int]
+        fpath = parser_args['filepath_or_buffer']
+        sep = parser_args['sep']
+        nrows = parser_args.get('nrows')
+        df = self.parser(fpath, sep=sep, usecols=int_cols, nrows=nrows)
+        bad_rows = []
+        for col in df:
+            if np.any(pd.isnull(df[col])):
+                bad_rows.append(col)
+        return bad_rows

@@ -354,6 +354,13 @@ class TestProject(BaseTestCase):
         self.expected_specs = expected
         self.project = pr.Project(project_name="pysemantic")
 
+    def test_load_dataset_with_na_int_col(self):
+        """Test if the project loads a dataset properly, if it has NAs in a
+        column designated to have the integer type."""
+        # ideally, the row should be converted to type float, to accommodate
+        # the nan
+        self.fail("not implemented")
+
     def test_load_dataset_missing_nrows(self):
         """Test if the project loads datasets properly if the nrows parameter
         is not provided in the schema."""

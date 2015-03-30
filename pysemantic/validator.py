@@ -54,15 +54,15 @@ class DataFrameValidator(HasTraits):
         return self.rules.get("drop_duplicates", True)
 
     def clean(self):
-        for col in self.data:
-            series = self.data[col]
-            rules = self.column_rules[col]
-            validator = SeriesValidator(data=series, rules=rules)
-            self.data[col] = validator.clean()
         if self.is_drop_na:
             self.data.dropna(inplace=True)
         if self.is_drop_duplicates:
             self.data.drop_duplicates(inplace=True)
+        for col in self.data:
+            series = self.data[col]
+            rules = self.column_rules.get(col, {})
+            validator = SeriesValidator(data=series, rules=rules)
+            self.data[col] = validator.clean()
         return self.data
 
 
@@ -138,11 +138,11 @@ class SeriesValidator(HasTraits):
 
     @cached_property
     def _get_is_drop_na(self):
-        return self.rules.get("drop_na", True)
+        return self.rules.get("drop_na", False)
 
     @cached_property
     def _get_is_drop_duplicates(self):
-        return self.rules.get("drop_duplicates", True)
+        return self.rules.get("drop_duplicates", False)
 
     @cached_property
     def _get_minimum(self):
@@ -307,9 +307,9 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get__ncols(self):
-        return self.specification.get('ncols', 0)
+        return self.specification.get('ncols', 1)
 
-#    @cached_property
+    @cached_property
     def _get__dtypes(self):
         return self.specification.get('dtypes', {})
 
