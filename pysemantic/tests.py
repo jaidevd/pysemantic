@@ -17,6 +17,8 @@ import os
 import datetime
 import subprocess
 import shutil
+import tempfile
+import warnings
 from copy import deepcopy
 import numpy as np
 import pandas as pd
@@ -352,6 +354,33 @@ class TestProject(BaseTestCase):
                     'multi_iris': multi_iris_specs}
         self.expected_specs = expected
         self.project = pr.Project(project_name="pysemantic")
+
+    def test_load_dataset_wrong_dtypes_in_spec(self):
+        """Test if the loader can safely load columns that have a wrongly
+        specified data type in the schema."""
+        # Make a file with two columns, both specified as integers in the
+        # dtypes, but one has random string types.
+        x = np.random.randint(0, 10, size=(100, 2))
+        df = pd.DataFrame(x, columns=['a', 'b'])
+        tempdir = tempfile.mkdtemp()
+        outfile = op.join(tempdir, "testdata.csv")
+        _ix = np.random.randint(0, 100, size=(5,))
+        df['b'][_ix] = "aa"
+        df.to_csv(outfile, index=False)
+        specs = dict(delimiter=',', dtypes={'a': int, 'b': int}, path=outfile)
+        specfile = op.join(tempdir, "dict.yaml")
+        with open(specfile, "w") as f:
+            yaml.dump({'testdata': specs}, f, Dumper=yaml.CDumper)
+        pr.add_project("wrong_dtype", specfile)
+        try:
+            _pr = pr.Project("wrong_dtype")
+            with warnings.catch_warnings(record=True) as catcher:
+                df = _pr.load_dataset("testdata")
+                assert len(catcher) == 1
+                assert issubclass(catcher[-1].category, UserWarning)
+        finally:
+            pr.remove_project("wrong_dtype")
+            shutil.rmtree(tempdir)
 
     def test_load_dataset_with_na_int_col(self):
         """Test if the project loads a dataset properly, if it has NAs in a
@@ -924,7 +953,7 @@ class TestCustomTraits(unittest.TestCase):
                                                      'dtype'])
 
     def test_natural_number_either_list_trait(self):
-        """Test of the NaturalNumber trait works within Either and List self.traits.
+        """Test of the NaturalNumber trait works within Either and List traits
         """
         self.traits.numberlist = 1
         self.traits.numberlist = [1, 2]

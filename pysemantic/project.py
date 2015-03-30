@@ -19,6 +19,8 @@ from errors import MissingProject, MissingConfigError
 import yaml
 import pandas as pd
 import numpy as np
+import warnings
+import textwrap
 
 CONF_FILE_NAME = os.environ.get("PYSEMANTIC_CONFIG", "pysemantic.conf")
 
@@ -235,9 +237,15 @@ class Project(object):
         self._update_parser(parser_args)
         try:
             return self.parser(**parser_args)
+        except AttributeError as e:
+            if e.message == "'NoneType' object has no attribute 'dtype'":
+                bad_rows = self._detect_mismatched_dtype_row(int, parser_args)
+                for col in bad_rows:
+                    del parser_args['dtype'][col]
+                return self.parser(**parser_args)
         except Exception as e:
             if e.message == "Integer column has NA values":
-                bad_rows = self._detect_bad_row(parser_args)
+                bad_rows = self._detect_row_with_na(parser_args)
                 if len(bad_rows) > 0:
                     newtypelist = [(colname, float) for colname in bad_rows]
                     self._update_dtypes(parser_args['dtype'], newtypelist)
@@ -252,7 +260,7 @@ class Project(object):
         for colname, coltype in typelist:
             dtypes[colname] = coltype
 
-    def _detect_bad_row(self, parser_args):
+    def _detect_row_with_na(self, parser_args):
         dtypes = parser_args.get("dtype")
         usecols = parser_args.get("usecols")
         int_cols = [col for col in usecols if dtypes.get(col) is int]
@@ -265,3 +273,31 @@ class Project(object):
             if np.any(pd.isnull(df[col])):
                 bad_rows.append(col)
         return bad_rows
+
+    def _detect_mismatched_dtype_row(self, specified_dtype, parser_args):
+        """Check the dataframe for rows that have a badly specified dtype.
+
+        :param specfified_dtype: The datatype specified in the schema
+        """
+        to_read = []
+        dtypes = parser_args.get("dtype")
+        for key, value in dtypes.iteritems():
+            if value is specified_dtype:
+                to_read.append(key)
+        fpath = parser_args['filepath_or_buffer']
+        sep = parser_args['sep']
+        nrows = parser_args.get('nrows')
+        df = self.parser(fpath, sep=sep, usecols=to_read, nrows=nrows)
+        bad_cols = []
+        for col in df:
+            try:
+                df[col] = df[col].astype(specified_dtype)
+            except ValueError:
+                bad_cols.append(col)
+                msg = textwrap.dedent("""\
+                The specified dtype for the column '{0}' ({1}) seems to be
+                incorrect. This has been ignored for now.
+                Consider fixing this by editing the schema.""".format(col,
+                                                              specified_dtype))
+                warnings.warn(msg, UserWarning)
+        return bad_cols
