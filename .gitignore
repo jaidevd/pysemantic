@@ -63,6 +63,7 @@ data/
 # Ignore the config files.
 *.conf
 !pysemantic/testdata/*.conf
+!pysemantic/*.conf
 
 # Vim swap files
 *.swp

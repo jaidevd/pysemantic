@@ -21,6 +21,7 @@ Options:
 from docopt import docopt
 import project as pr
 from errors import MissingProject
+import os.path as op
 
 
 def cli(arguments):
@@ -33,15 +34,18 @@ def cli(arguments):
     elif arguments.get("add", False):
         proj_name = arguments.get("PROJECT_NAME")
         proj_spec = arguments.get("PROJECT_SPECFILE")
+        proj_spec = op.abspath(proj_spec)
         pr.add_project(proj_name, proj_spec)
     elif arguments.get("remove", False):
         proj_name = arguments.get("PROJECT_NAME")
         if not pr.remove_project(proj_name):
-            print "Removing the project failed."
+            print "Removing the project {0} failed.".format(proj_name)
     elif arguments.get("set-schema", False):
         try:
-            pr.set_schema_fpath(arguments.get("PROJECT_NAME"),
-                                arguments.get("SCHEMA_FPATH"))
+            proj_name = arguments.get("PROJECT_NAME")
+            proj_spec = arguments.get("SCHEMA_FPATH")
+            proj_spec = op.abspath(proj_spec)
+            pr.set_schema_fpath(proj_name, proj_spec)
         except MissingProject:
             msg = """Project {} not found in the configuration. Please use
             $ semantic add

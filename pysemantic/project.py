@@ -15,7 +15,7 @@ import os
 import pprint
 from ConfigParser import RawConfigParser
 from validator import SchemaValidator, DataFrameValidator
-from errors import MissingProject
+from errors import MissingProject, MissingConfigError
 import yaml
 import pandas as pd
 import numpy as np
@@ -30,6 +30,8 @@ def _locate_config_file():
     for path in paths:
         if op.exists(path):
             return path
+    raise MissingConfigError("No pysemantic configuration file was fount at"
+                             " {0} or {1}".format(*paths))
 
 
 def _get_default_specfile(project_name):

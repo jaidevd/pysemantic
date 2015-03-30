@@ -16,7 +16,6 @@ import os.path as op
 import os
 import datetime
 import subprocess
-import tempfile
 import shutil
 from copy import deepcopy
 import numpy as np
@@ -530,77 +529,66 @@ class TestCLI(BaseTestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Copy the test config file to the current directory and add some dummy
-        # project entries
-        cls.config_file_path = op.join(os.getcwd(), "test.conf")
-        parser = RawConfigParser()
-        parser.read(TEST_CONFIG_FILE_PATH)
-        dummy_config_data = [("pysemantic", "testdata/test_dictionary.yaml"),
-                             ("dummy_project_1", "/tmp/foo.yaml"),
-                             ("dummy_project_2", "/tmp/bar.yaml")]
-        for spec in dummy_config_data[1:]:
-            parser.add_section(spec[0])
-            parser.set(spec[0], "specfile", spec[1])
-        with open(cls.config_file_path, "w") as f:
-            parser.write(f)
-        cls.dummy_config_data = dummy_config_data
-        # Move the original config file out of the way temporarily.
-        org_config_file = pr._locate_config_file()
-        cls.tempdir = tempfile.mkdtemp()
-        newpath = op.join(cls.tempdir, op.basename(org_config_file))
-        shutil.copy(org_config_file, newpath)
-        os.unlink(org_config_file)
-        cls.org_config_file = org_config_file
-        cls.newpath = newpath
-
+        os.environ['PYSEMANTIC_CONFIG'] = "test.conf"
         pr.CONF_FILE_NAME = "test.conf"
+        cls.testenv = os.environ
+        cls.test_config_path = op.join(os.getcwd(), "test.conf")
+        shutil.copy(TEST_CONFIG_FILE_PATH, cls.test_config_path)
 
     @classmethod
     def tearDownClass(cls):
-        os.unlink(cls.config_file_path)
-        shutil.copy(cls.newpath, cls.org_config_file)
-        shutil.rmtree(cls.tempdir)
+        os.unlink(cls.test_config_path)
 
     def setUp(self):
-        self.testenv = os.environ
-        self.testenv['PYSEMANTIC_CONFIG'] = "test.conf"
+        pr.add_project("dummy_project", "/foo/bar.yaml")
+
+    def tearDown(self):
+        pr.remove_project("dummy_project")
 
     def test_list_projects(self):
         """Test if the `list` subcommand of the CLI works properly."""
         cmd = ['semantic', 'list']
         output = subprocess.check_output(cmd, env=self.testenv).splitlines()
-        for i, config in enumerate(self.dummy_config_data):
+        dummy_data = [("pysemantic", "testdata/test_dictionary.yaml"),
+                      ("dummy_project", "/foo/bar.yaml")]
+        for i, config in enumerate(dummy_data):
             ideal = "Project {0} with specfile at {1}".format(*config)
-            actual = output[i]
-            self.assertEqual(ideal, actual)
+            self.assertEqual(ideal, output[i])
 
     def test_add(self):
         """Test if the `add` subcommand can add projects to the config file."""
-        cmd = ['semantic', 'add', 'dummy_added_project', '/tmp/dummy.yaml']
-        subprocess.check_call(cmd, env=self.testenv)
-        projects = pr.get_projects()
-        self.assertIn(("dummy_added_project", "/tmp/dummy.yaml"), projects)
+        try:
+            cmd = ['semantic', 'add', 'dummy_added_project', '/tmp/dummy.yaml']
+            subprocess.check_call(cmd, env=self.testenv)
+            projects = pr.get_projects()
+            self.assertIn(("dummy_added_project", "/tmp/dummy.yaml"), projects)
+        finally:
+            pr.remove_project("dummy_added_project")
 
     def test_remove(self):
         """Test if the `remove` subcommand can remove projects from the config
         file."""
-        cmd = ['semantic', 'remove', 'dummy_project_2']
-        subprocess.check_call(cmd, env=self.testenv)
-        projects = pr.get_projects()
-        proj_names = [p[0] for p in projects]
-        self.assertNotIn("dummy_project_2", proj_names)
+        pr.add_project("dummy_project_2", "/foo/baz.yaml")
+        try:
+            cmd = ['semantic', 'remove', 'dummy_project_2']
+            subprocess.check_call(cmd, env=self.testenv)
+            projects = pr.get_projects()
+            proj_names = [p[0] for p in projects]
+            self.assertNotIn("dummy_project_2", proj_names)
+        finally:
+            pr.remove_project("dummy_project_2")
 
     def test_remove_nonexistent_project(self):
         """Check if attempting to remove a nonexistent project fails."""
         cmd = ['semantic', 'remove', 'foobar']
         output = subprocess.check_output(cmd, env=self.testenv)
-        self.assertEqual(output.strip(), "Removing the project failed.")
+        self.assertEqual(output.strip(), "Removing the project foobar failed.")
 
     def test_set_schema(self):
         """Test if the set-schema subcommand works."""
-        cmd = ['semantic', 'set-schema', 'dummy_project_1', '/tmp/baz.yaml']
+        cmd = ['semantic', 'set-schema', 'dummy_project', '/tmp/baz.yaml']
         subprocess.check_call(cmd, env=self.testenv)
-        self.assertEqual(pr._get_default_specfile('dummy_project_1'),
+        self.assertEqual(pr._get_default_specfile('dummy_project'),
                          '/tmp/baz.yaml')
 
     def test_set_schema_nonexistent_project(self):
@@ -613,6 +601,22 @@ class TestCLI(BaseTestCase):
             to register the project.""".format("dummy_project_3")
         self.assertEqual(output.strip(), msg)
 
+    def test_relative_path(self):
+        """Check if the set-schema and add subcommands convert relative paths
+        from the cmdline to absolute paths in the config file."""
+        try:
+            cmd = ['semantic', 'set-schema', 'dummy_project', './foo.yaml']
+            subprocess.check_call(cmd, env=self.testenv)
+            self.assertTrue(op.isabs(pr._get_default_specfile(
+                                                             'dummy_project')))
+            pr.remove_project("dummy_project")
+            cmd = ['semantic', 'add', 'dummy_project', './foo.yaml']
+            subprocess.check_call(cmd, env=self.testenv)
+            self.assertTrue(op.isabs(pr._get_default_specfile(
+                                                             'dummy_project')))
+        finally:
+            pr.remove_project("dummy_project_1")
+
 
 class TestConfig(BaseTestCase):
     """
@@ -621,7 +625,7 @@ class TestConfig(BaseTestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Fix the relative paths in the config file.
+        # Fix the relative paths in the conig file.
         parser = RawConfigParser()
         parser.read(TEST_CONFIG_FILE_PATH)
         cls.old_fpath = parser.get("pysemantic", "specfile")
