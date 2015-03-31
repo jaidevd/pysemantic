@@ -8,5 +8,5 @@ install:
   - "pip install coveralls"
 # command to run tests
 script: nosetests --with-coverage --cover-package=pysemantic
-after_sucess:
+after_success:
   coveralls
