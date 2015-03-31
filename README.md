@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/motherbox/pysemantic.svg?branch=master)](https://travis-ci.org/motherbox/pysemantic)
-[![Coverage Status](https://coveralls.io/repos/motherbox/pysemantic/badge.svg)](https://coveralls.io/r/motherbox/pysemantic)
+[![Coverage Status](https://coveralls.io/repos/motherbox/pysemantic/badge.svg?branch=master)](https://coveralls.io/r/motherbox/pysemantic?branch=master)
 
 # pysemantic
 A traits based data validation module for pandas data structures.
