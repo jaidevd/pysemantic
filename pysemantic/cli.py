@@ -13,9 +13,14 @@ Usage:
     semantic add PROJECT_NAME PROJECT_SPECFILE
     semantic remove PROJECT_NAME
     semantic set-schema PROJECT_NAME SCHEMA_FPATH
+    semantic set-specs PROJECT_NAME --dataset=<dname> [--path=<pth>] [--dlm=<sep>]
 
 Options:
-    -h --help	Show this screen
+    -h --help	        Show this screen
+    --dataset=<dname>   Name of the dataset to modify
+    --path=<pth>        Path to a dataset
+    --dlm=<sep>         Declare the delimiter for a dataset
+
 """
 
 from docopt import docopt
@@ -51,6 +56,15 @@ def cli(arguments):
             $ semantic add
             to register the project.""".format(arguments.get("PROJECT_NAME"))
             print msg
+    elif arguments.get("set-specs", False):
+        proj_name = arguments.get("PROJECT_NAME")
+        dataset_name = arguments.get("--dataset")
+        newspecs = {}
+        if arguments.get("--path", False):
+            newspecs['path'] = arguments.get("--path")
+        if arguments.get("--dlm", False):
+            newspecs['delimiter'] = arguments.get("--dlm")
+        pr.set_schema_specs(proj_name, dataset_name, **newspecs)
 
 
 def main():

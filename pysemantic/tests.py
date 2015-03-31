@@ -355,6 +355,11 @@ class TestProject(BaseTestCase):
         self.expected_specs = expected
         self.project = pr.Project(project_name="pysemantic")
 
+    def test_get_schema_spec(self):
+        """test the module level function to get schema specifications"""
+        specs = pr.get_schema_specs("pysemantic")
+        self.assertKwargsEqual(specs, self.data_specs)
+
     def test_load_dataset_wrong_dtypes_in_spec(self):
         """Test if the loader can safely load columns that have a wrongly
         specified data type in the schema."""
@@ -381,13 +386,6 @@ class TestProject(BaseTestCase):
         finally:
             pr.remove_project("wrong_dtype")
             shutil.rmtree(tempdir)
-
-    def test_load_dataset_with_na_int_col(self):
-        """Test if the project loads a dataset properly, if it has NAs in a
-        column designated to have the integer type."""
-        # ideally, the row should be converted to type float, to accommodate
-        # the nan
-        self.fail("not implemented")
 
     def test_load_dataset_missing_nrows(self):
         """Test if the project loads datasets properly if the nrows parameter
@@ -563,10 +561,34 @@ class TestCLI(BaseTestCase):
         cls.testenv = os.environ
         cls.test_config_path = op.join(os.getcwd(), "test.conf")
         shutil.copy(TEST_CONFIG_FILE_PATH, cls.test_config_path)
+        # Change the relative paths in the config file to absolute paths
+        parser = RawConfigParser()
+        parser.read(cls.test_config_path)
+        for section in parser.sections():
+            schema_path = parser.get(section, "specfile")
+            parser.remove_option(section, "specfile")
+            parser.set(section, "specfile",
+                       op.join(op.abspath(op.dirname(__file__)), schema_path))
+        with open(cls.test_config_path, "w") as f:
+            parser.write(f)
+        # change the relative paths in the test dictionary to absolute paths
+        with open(TEST_DATA_DICT, "r") as f:
+            cls.org_specs = yaml.load(f, Loader=yaml.CLoader)
+        new_specs = deepcopy(cls.org_specs)
+        for dataset_name, specs in new_specs.iteritems():
+            path = specs['path']
+            specs['path'] = op.join(op.abspath(op.dirname(__file__)), path)
+        # Rewrite this to the file
+        with open(TEST_DATA_DICT, "w") as f:
+            yaml.dump(new_specs, f, Dumper=yaml.CDumper)
 
     @classmethod
     def tearDownClass(cls):
         os.unlink(cls.test_config_path)
+        # Rewrite the original specs back to the config dir
+        with open(TEST_DATA_DICT, "w") as f:
+            yaml.dump(cls.org_specs, f, Dumper=yaml.CDumper,
+                      default_flow_style=False)
 
     def setUp(self):
         pr.add_project("dummy_project", "/foo/bar.yaml")
@@ -574,11 +596,26 @@ class TestCLI(BaseTestCase):
     def tearDown(self):
         pr.remove_project("dummy_project")
 
+    def test_set_specification(self):
+        """Test if the set-specs subcommand of the CLI worls properly."""
+        org_specs = pr.get_schema_specs("pysemantic")
+        cmd = ['semantic', 'set-specs', 'pysemantic', '--dataset', 'iris',
+               '--dlm', '|']
+        try:
+            subprocess.check_call(cmd, env=self.testenv)
+            new_specs = pr.get_schema_specs("pysemantic", "iris")
+            self.assertEqual(new_specs['delimiter'], '|')
+        finally:
+            for dataset_name, specs in org_specs.iteritems():
+                pr.set_schema_specs("pysemantic", dataset_name, **specs)
+
     def test_list_projects(self):
         """Test if the `list` subcommand of the CLI works properly."""
         cmd = ['semantic', 'list']
         output = subprocess.check_output(cmd, env=self.testenv).splitlines()
-        dummy_data = [("pysemantic", "testdata/test_dictionary.yaml"),
+        path = op.join(op.abspath(op.dirname(__file__)),
+                       "testdata/test_dictionary.yaml")
+        dummy_data = [("pysemantic", path),
                       ("dummy_project", "/foo/bar.yaml")]
         for i, config in enumerate(dummy_data):
             ideal = "Project {0} with specfile at {1}".format(*config)

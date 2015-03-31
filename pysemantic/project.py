@@ -101,6 +101,37 @@ def get_projects():
     return projects
 
 
+def get_schema_specs(project_name, dataset_name=None):
+    """get_schema_specs
+
+    :param project_name: Name of project
+    :param dataset_name: name of the dataset for which to get the schema. If
+    None(default), schema for all datasets is returned.
+    """
+    schema_file = _get_default_specfile(project_name)
+    with open(schema_file, "r") as f:
+        specs = yaml.load(f, Loader=yaml.CLoader)
+    if dataset_name is not None:
+        return specs[dataset_name]
+    return specs
+
+
+def set_schema_specs(project_name, dataset_name, **kwargs):
+    """set_schema_specs
+
+    :param project_name:
+    :param dataset_name:
+    :param **kwargs:
+    """
+    schema_file = _get_default_specfile(project_name)
+    with open(schema_file, "r") as f:
+        specs = yaml.load(f, Loader=yaml.CLoader)
+    for key, value in kwargs.iteritems():
+        specs[dataset_name][key] = value
+    with open(schema_file, "w") as f:
+        yaml.dump(specs, f, Dumper=yaml.CDumper, default_flow_style=False)
+
+
 def view_projects():
     """View a list of all projects currently registered with pysemantic."""
     projects = get_projects()
