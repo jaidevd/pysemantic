@@ -66,6 +66,36 @@ def add_project(project_name, specfile):
         parser.write(f)
 
 
+def add_dataset(project_name, dataset_name, dataset_specs):
+    """add_dataset Add a dataset to a project
+
+    :param project_name: Name of the project to which the dataset is to be
+    added.
+    :param dataset_name: Name of the dataset to be added.
+    :param dataset_specs: Specifications of the dataset.
+    """
+    data_dict = _get_default_specfile(project_name)
+    with open(data_dict, "r") as f:
+        spec = yaml.load(f, Loader=yaml.CLoader)
+    spec[dataset_name] = dataset_specs
+    with open(data_dict, "w") as f:
+        yaml.dump(spec, f, Dumper=yaml.CDumper, default_flow_style=False)
+
+
+def remove_dataset(project_name, dataset_name):
+    """remove_dataset Removes a dataset from a project
+
+    :param project_name: Name of the project
+    :param dataset_name: Name of the dataset to remove
+    """
+    data_dict = _get_default_specfile(project_name)
+    with open(data_dict, "r") as f:
+        spec = yaml.load(f, Loader=yaml.CLoader)
+    del spec[dataset_name]
+    with open(data_dict, "w") as f:
+        yaml.dump(spec, f, Dumper=yaml.CDumper, default_flow_style=False)
+
+
 def set_schema_fpath(project_name, schema_fpath):
     """ Set the schema path for a given project.
 
@@ -184,6 +214,10 @@ class Project(object):
             self.column_rules[name] = specs.get('column_rules', {})
             self.df_rules[name] = specs.get('dataframe_rules', {})
 
+    @property
+    def datasets(self):
+        return self.validators.keys()
+
     def get_dataset_specs(self, dataset_name):
         """Returns the specifications for the specified dataset in the project.
 
@@ -268,6 +302,28 @@ class Project(object):
         self._update_parser(parser_args)
         try:
             return self.parser(**parser_args)
+        except ValueError as e:
+            if e.message.startswith("Falling back to the 'python' engine"):
+                del parser_args['dtype']
+                msg = textwrap.dedent("""\
+                        Dtypes are not supported regex delimiters. Ignoring the
+                        dtypes in the schema. Consider fixing this by editing
+                        the schema for better performance.
+                        """)
+                warnings.warn(msg, UserWarning)
+                return self.parser(**parser_args)
+            elif e.message.startswith("cannot safely convert"):
+                bad_col = int(e.message.split(' ')[-1])
+                bad_col = parser_args['dtype'].keys()[bad_col]
+                specified_dtype = parser_args['dtype'][bad_col]
+                del parser_args['dtype'][bad_col]
+                msg = textwrap.dedent("""\
+                The specified dtype for the column '{0}' ({1}) seems to be
+                incorrect. This has been ignored for now.
+                Consider fixing this by editing the schema.""".format(bad_col,
+                                                              specified_dtype))
+                warnings.warn(msg, UserWarning)
+                return self.parser(**parser_args)
         except AttributeError as e:
             if e.message == "'NoneType' object has no attribute 'dtype'":
                 bad_rows = self._detect_mismatched_dtype_row(int, parser_args)

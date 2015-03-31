@@ -22,6 +22,7 @@ import warnings
 from copy import deepcopy
 import numpy as np
 import pandas as pd
+from pandas.io.parsers import ParserWarning
 from ConfigParser import RawConfigParser, NoSectionError
 from validator import SchemaValidator, SeriesValidator, DataFrameValidator
 import project as pr
@@ -33,6 +34,34 @@ TEST_CONFIG_FILE_PATH = op.join(op.abspath(op.dirname(__file__)), "testdata",
                                 "test.conf")
 TEST_DATA_DICT = op.join(op.abspath(op.dirname(__file__)), "testdata",
                          "test_dictionary.yaml")
+
+
+def _path_fixer(filepath, root=None):
+    """_path_fixer Change all the relative paths in `filepath` to absolute
+    ones.
+
+    :param filepath: File to be changed
+    :param root: Root path with which the relative paths are prefixed. If None
+    (default), the directory with this file is the root.
+    """
+    if root is None:
+        root = op.join(op.abspath(op.dirname(__file__)))
+    if filepath.endswith((".yaml", ".yml")):
+        with open(filepath, "r") as f:
+            data = yaml.load(f, Loader=yaml.CLoader)
+        for specs in data.itervalues():
+            specs['path'] = op.join(root, specs['path'])
+        with open(filepath, "w") as f:
+            data = yaml.dump(f, Dumper=yaml.CDumper)
+    elif filepath.endswith(".conf"):
+        parser = RawConfigParser()
+        parser.read(filepath)
+        for section in parser.sections():
+            path = parser.get(section, "specfile")
+            parser.remove_option(section, "specfile")
+            parser.set(section, "specfile", op.join(root, path))
+        with open(filepath, "w") as f:
+            parser.write(f)
 
 
 class BaseTestCase(unittest.TestCase):
@@ -355,6 +384,61 @@ class TestProject(BaseTestCase):
         self.expected_specs = expected
         self.project = pr.Project(project_name="pysemantic")
 
+    def test_add_dataset(self):
+        """Test if adding datasets programmatically works fine."""
+        tempdir = tempfile.mkdtemp()
+        outpath = op.join(tempdir, "foo.csv")
+        df = pd.DataFrame(np.random.random((10, 10)))
+        df.to_csv(outpath, index=False)
+        specs = dict(path=outpath, delimiter=',', ncols=10, nrows=10)
+        try:
+            pr.add_dataset("pysemantic", "sample_dataset", specs)
+            parsed_specs = pr.get_schema_specs("pysemantic", "sample_dataset")
+            self.assertKwargsEqual(specs, parsed_specs)
+        finally:
+            shutil.rmtree(tempdir)
+            with open(TEST_DATA_DICT, "r") as f:
+                test_specs = yaml.load(f, Loader=yaml.CLoader)
+            del test_specs['sample_dataset']
+            with open(TEST_DATA_DICT, "w") as f:
+                yaml.dump(test_specs, f, Dumper=yaml.CDumper,
+                          default_flow_style=False)
+
+    def test_remove_dataset(self):
+        """Test if programmatically removing a dataset works."""
+        with open(TEST_DATA_DICT, "r") as f:
+            specs = yaml.load(f, Loader=yaml.CLoader)
+        try:
+            pr.remove_dataset("pysemantic", "iris")
+            self.assertRaises(KeyError, pr.get_schema_specs, "pysemantic",
+                              "iris")
+        finally:
+            with open(TEST_DATA_DICT, "w") as f:
+                yaml.dump(specs, f, Dumper=yaml.CDumper,
+                          default_flow_style=False)
+
+    def test_regex_separator(self):
+        """Test if the project properly loads a dataset when it encounters
+        regex separators."""
+        tempdir = tempfile.mkdtemp()
+        outfile = op.join(tempdir, "sample.txt")
+        data = ["col1"] + map(str, range(10))
+        with open(outfile, "w") as f:
+            f.write("\n".join(data))
+        specs = dict(path=outfile, delimiter=r'\n', dtypes={'col1': int})
+        pr.add_dataset("pysemantic", "sample_dataset", specs)
+        try:
+            _pr = pr.Project("pysemantic")
+            with warnings.catch_warnings(record=True) as catcher:
+                df = _pr.load_dataset("sample_dataset")
+                assert len(catcher) == 2
+                assert issubclass(catcher[1].category, ParserWarning)
+            data.remove("col1")
+            self.assertItemsEqual(map(int, data), df['col1'].tolist())
+        finally:
+            pr.remove_dataset("pysemantic", "sample_dataset")
+            shutil.rmtree(tempdir)
+
     def test_get_schema_spec(self):
         """test the module level function to get schema specifications"""
         specs = pr.get_schema_specs("pysemantic")
@@ -630,6 +714,27 @@ class TestCLI(BaseTestCase):
             self.assertIn(("dummy_added_project", "/tmp/dummy.yaml"), projects)
         finally:
             pr.remove_project("dummy_added_project")
+
+    def test_add_dataset(self):
+        """Test if the add-dataset subcommand adds datasets to projects
+        correctly"""
+        tempdir = tempfile.mkdtemp()
+        outfile = op.join(tempdir, "testdata.csv")
+        df = pd.DataFrame(np.random.random((10, 2)), columns=['a', 'b'])
+        df.to_csv(outfile, index=False)
+        cmd = ("semantic add-dataset testdata --project pysemantic --path {}"
+               " --dlm ,")
+        cmd = cmd.format(outfile).split(" ")
+        try:
+            subprocess.check_call(cmd, env=self.testenv)
+            _pr = pr.Project("pysemantic")
+            self.assertIn("testdata", _pr.datasets)
+            specs = dict(path=outfile, delimiter=',')
+            actual = pr.get_schema_specs("pysemantic", "testdata")
+            self.assertKwargsEqual(specs, actual)
+        finally:
+            pr.remove_dataset("pysemantic", "testdata")
+            shutil.rmtree(tempdir)
 
     def test_remove(self):
         """Test if the `remove` subcommand can remove projects from the config
