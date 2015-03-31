@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/motherbox/pysemantic.svg?branch=master)](https://travis-ci.org/motherbox/pysemantic)
+
 # pysemantic
 A traits based data validation module for pandas data structures.
 
