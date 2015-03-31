@@ -10,17 +10,19 @@
 Traited Data validator for `pandas.DataFrame` objects
 """
 
-from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
-                        Bool, Either, push_exception_handler, cached_property,
-                        Array, Instance, Callable, Float)
-from custom_traits import DTypesDict, NaturalNumber, AbsFile, ValidTraitList
-import pandas as pd
-import numpy as np
-import yaml
 import datetime
 import re
 import copy
 import os.path as op
+
+import pandas as pd
+import numpy as np
+import yaml
+from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
+                        Bool, Either, push_exception_handler, cached_property,
+                        Array, Instance, Callable, Float)
+
+from custom_traits import DTypesDict, NaturalNumber, AbsFile, ValidTraitList
 
 push_exception_handler(lambda *args: None, reraise_exceptions=True)
 

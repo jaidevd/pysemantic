@@ -11,6 +11,7 @@ Customized traits for advanced validation
 """
 
 import os.path as op
+
 from traits.api import Dict, TraitError, BaseInt, File, List
 from traits.trait_handlers import TraitDictObject
 

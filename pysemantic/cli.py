@@ -25,10 +25,12 @@ Options:
 
 """
 
+import os.path as op
+
 from docopt import docopt
+
 import project as pr
 from errors import MissingProject
-import os.path as op
 
 
 def cli(arguments):

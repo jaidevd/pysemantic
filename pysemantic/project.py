@@ -10,17 +10,19 @@
 The Project class
 """
 
-import os.path as op
 import os
+import warnings
+import textwrap
 import pprint
 from ConfigParser import RawConfigParser
-from validator import SchemaValidator, DataFrameValidator
-from errors import MissingProject, MissingConfigError
+import os.path as op
+
 import yaml
 import pandas as pd
 import numpy as np
-import warnings
-import textwrap
+
+from validator import SchemaValidator, DataFrameValidator
+from errors import MissingProject, MissingConfigError
 
 CONF_FILE_NAME = os.environ.get("PYSEMANTIC_CONFIG", "pysemantic.conf")
 

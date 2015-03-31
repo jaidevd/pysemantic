@@ -10,24 +10,26 @@
 Tests
 """
 
-import unittest
-import yaml
-import os.path as op
 import os
+import unittest
 import datetime
-import subprocess
-import shutil
 import tempfile
 import warnings
+import shutil
+import subprocess
+import os.path as op
 from copy import deepcopy
+from ConfigParser import RawConfigParser, NoSectionError
+
+import yaml
 import numpy as np
 import pandas as pd
 from pandas.io.parsers import ParserWarning
-from ConfigParser import RawConfigParser, NoSectionError
+from traits.api import HasTraits, TraitError, Str, Type, List, Either
+
 from validator import SchemaValidator, SeriesValidator, DataFrameValidator
 import project as pr
 from errors import MissingProject
-from traits.api import HasTraits, TraitError, Str, Type, List, Either
 from custom_traits import AbsFile, NaturalNumber, DTypesDict, ValidTraitList
 
 TEST_CONFIG_FILE_PATH = op.join(op.abspath(op.dirname(__file__)), "testdata",
