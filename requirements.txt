@@ -2,3 +2,5 @@ pyyaml
 traits
 pandas
 docopt
+coverage
+coveralls
