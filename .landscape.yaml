@@ -9,9 +9,12 @@ pylint:
     - no-self-use
     - too-many-instance-attributes
     - invalid-name
+    - missing-docstring
+    - star-args
 pep8:
   disable:
     - E731
     - E126
     - E128
     - E115
+    - N802

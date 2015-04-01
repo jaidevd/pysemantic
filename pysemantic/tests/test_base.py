@@ -54,6 +54,7 @@ def _path_fixer(filepath, root=None):
 
 
 class BaseTestCase(unittest.TestCase):
+
     """Base test class, introduces commonly required methods."""
 
     def assertKwargsEqual(self, dict1, dict2):
@@ -92,8 +93,7 @@ class BaseTestCase(unittest.TestCase):
 
 
 def _dummy_converter(series):
-    """Used as a dummy converter for testing application of converters to
-    series objects."""
+    """Dummy function for testing converters on series objects."""
     return pd.Series([0 if "v" in i else 1 for i in series])
 
 
@@ -234,8 +234,7 @@ class TestConfig(BaseTestCase):
                 self.testParser.set(section, item[0], item[1])
 
     def test_loader_default_location(self):
-        """Check if the config loader looks for the files in the correct
-        places."""
+        """Test if the config looks for the files in the correct places."""
         # Put the test config file in the current and home directories, with
         # some modifications.
         cwd_file = op.join(os.getcwd(), "test.conf")

@@ -57,9 +57,7 @@ class DataFrameValidator(HasTraits):
         return self.rules.get("drop_duplicates", True)
 
     def clean(self):
-        """Enforce all dataframe rules from the schema and return the converted
-        dataframe.
-        """
+        """Return the converted dataframe after enforcing all rules."""
         if self.is_drop_na:
             self.data.dropna(inplace=True)
         if self.is_drop_duplicates:
@@ -116,24 +114,20 @@ class SeriesValidator(HasTraits):
             self.data.dropna(inplace=True)
 
     def apply_converters(self):
-        """Apply the converter functions on the series"""
+        """Apply the converter functions on the series."""
         if len(self.converters) > 0:
             for converter in self.converters:
                 self.data = converter(self.data)
 
     def apply_uniques(self):
-        """Remove all values not included in the `uniques` values specified in
-        the schema.
-        """
+        """Remove all values not included in the `uniques`."""
         if not np.all(self.data.unique() == self.unique_values):
             for value in self.data.unique():
                 if value not in self.unique_values:
                     self.data = self.data[self.data != value]
 
     def apply_minmax_rules(self):
-        """Restrict the values of the series to the minimum and maximum as
-        specified in the schema.
-        """
+        """Restrict the series to the minimum and maximum from the schema."""
         if self.data.dtype in (int, float, datetime.date):
             if self.minimum != -np.inf:
                 self.data = self.data[self.data >= self.minimum]
@@ -150,9 +144,7 @@ class SeriesValidator(HasTraits):
                 self.data = self.data[pd.notnull(re_matches)]
 
     def clean(self):
-        """Enforce all dataframe rules from the schema and return the converted
-        series.
-        """
+        """Return the converted dataframe after enforcing all rules."""
         self.do_drop_duplicates()
         self.do_drop_na()
         self.apply_uniques()
@@ -196,15 +188,25 @@ class SchemaValidator(HasTraits):
 
     @classmethod
     def from_dict(cls, specification):
+        """Get a validator from a schema dictionary.
+
+        :param specification: Dictionary containing schema specifications.
+        """
         return cls(specification=specification)
 
     @classmethod
     def from_specfile(cls, specfile, name):
+        """Get a validator from a schema file.
+
+        :param specfile: Path to the schema file.
+        :param name: Name of the project to create the validator for.
+        """
         return cls(specfile=specfile, name=name)
 
     def __init__(self, **kwargs):
         """Overwritten to ensure that the `required_args` trait is validated
-        when the object is created, not when the trait is accessed."""
+        when the object is created, not when the trait is accessed.
+        """
         super(SchemaValidator, self).__init__(**kwargs)
         self.required_args = ['filepath', 'delimiter']
 
@@ -278,10 +280,10 @@ class SchemaValidator(HasTraits):
         self.parser_args = specs
         if write_to_file:
             with open(self.specfile, "r") as f:
-                allSpecs = yaml.load(f, Loader=yaml.CLoader)
-            allSpecs[self.name] = specs
+                allspecs = yaml.load(f, Loader=yaml.CLoader)
+            allspecs[self.name] = specs
             with open(self.specfile, "w") as f:
-                yaml.dump(allSpecs, f, Dumper=yaml.CDumper)
+                yaml.dump(allspecs, f, Dumper=yaml.CDumper)
         return True
 
     # Property getters and setters
@@ -359,33 +361,18 @@ class SchemaValidator(HasTraits):
         return self.specification.get("path")
 
     def __dtypes_items_changed(self):
-        """ Required because Dict traits that are properties don't seem
-        to do proper validation.
-        """
         self.dtypes = self._dtypes
 
     def __filepath_changed(self):
-        """ Required because File traits that are properties don't seem
-        to do proper validation.
-        """
         self.filepath = self._filepath
 
     def __delimiter_changed(self):
-        """ Required because Str traits that are properties don't seem
-        to do proper validation.
-        """
         self.delimiter = self._delimiter
 
     def __nrows_changed(self):
-        """ Required because Int traits that are properties don't seem
-        to do proper validation.
-        """
         self.nrows = self._nrows
 
     def __ncols_changed(self):
-        """ Required because Int traits that are properties don't seem
-        to do proper validation.
-        """
         self.ncols = self._ncols
 
     # Trait initializers

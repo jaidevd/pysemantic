@@ -186,12 +186,10 @@ def remove_project(project_name):
 
 class Project(object):
 
-    """The Project class, which is the entry point for most things in this
-    module.
-    """
+    """The Project class, the entry point for most things in this module."""
 
     def __init__(self, project_name, parser=None):
-        """__init__
+        """The Project class.
 
         :param project_name: Name of the project as specified in the pysemantic
         configuration file.

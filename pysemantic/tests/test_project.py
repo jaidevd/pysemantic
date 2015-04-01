@@ -202,15 +202,6 @@ class TestProjectClass(BaseProjectTestCase):
             self.assertKwargsEqual(self.project.get_dataset_specs(name),
                                    self.expected_specs[name])
 
-    def test_parser(self):
-        """Check if the dataset assigns the correct parser to the loader."""
-        iris_specs = self.project.get_dataset_specs("iris")
-        self.project._update_parser(iris_specs)
-        self.assertEqual(self.project.parser, pd.read_csv)
-        person_specs = self.project.get_dataset_specs("person_activity")
-        self.project._update_parser(person_specs)
-        self.assertEqual(self.project.parser, pd.read_table)
-
     def test_get_multifile_dataset_specs(self):
         """Test if the multifile dataset specifications are valid."""
         outargs = self.project.get_dataset_specs("multi_iris")

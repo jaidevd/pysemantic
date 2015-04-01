@@ -108,9 +108,7 @@ class TestCLI(BaseTestCase):
             pr.remove_project("dummy_added_project")
 
     def test_add_dataset(self):
-        """Test if the add-dataset subcommand adds datasets to projects
-        correctly.
-        """
+        """Test if the add-dataset subcommand adds datasets to projects."""
         tempdir = tempfile.mkdtemp()
         outfile = op.join(tempdir, "testdata.csv")
         dframe = pd.DataFrame(np.random.random((10, 2)), columns=['a', 'b'])
@@ -130,9 +128,7 @@ class TestCLI(BaseTestCase):
             shutil.rmtree(tempdir)
 
     def test_remove(self):
-        """Test if the `remove` subcommand can remove projects from the config
-        file.
-        """
+        """Test if the remove subcommand can remove projects."""
         pr.add_project("dummy_project_2", "/foo/baz.yaml")
         try:
             cmd = ['semantic', 'remove', 'dummy_project_2']
