@@ -81,7 +81,7 @@ class TestProjectModule(BaseProjectTestCase):
             self.assertRaises(MissingProject, pr.set_schema_fpath,
                               "foobar", "/foo/bar")
         finally:
-            conf_path = pr._locate_config_file()
+            conf_path = pr.locate_config_file()
             parser = RawConfigParser()
             parser.read(conf_path)
             parser.remove_option("pysemantic", "specfile")

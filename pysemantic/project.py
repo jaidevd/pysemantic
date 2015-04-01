@@ -25,7 +25,7 @@ from pysemantic.errors import MissingProject, MissingConfigError
 CONF_FILE_NAME = os.environ.get("PYSEMANTIC_CONFIG", "pysemantic.conf")
 
 
-def _locate_config_file():
+def locate_config_file():
     """Locates the configuration file used by semantic."""
     paths = [op.join(os.getcwd(), CONF_FILE_NAME),
              op.join(op.expanduser('~'), CONF_FILE_NAME)]
@@ -43,7 +43,7 @@ def get_default_specfile(project_name):
 
     :param project_name: Name of the project for which to get the spcfile.
     """
-    path = _locate_config_file()
+    path = locate_config_file()
     parser = RawConfigParser()
     parser.read(path)
     return parser.get(project_name, 'specfile')
@@ -55,7 +55,7 @@ def add_project(project_name, specfile):
     :param project_name: Name of the project
     :param specfile: path to the data dictionary used by the project.
     """
-    path = _locate_config_file()
+    path = locate_config_file()
     parser = RawConfigParser()
     parser.read(path)
     parser.add_section(project_name)
@@ -101,7 +101,7 @@ def set_schema_fpath(project_name, schema_fpath):
     :param schema_fpath: path to the yaml file to be used as the schema for the
     project.
     """
-    path = _locate_config_file()
+    path = locate_config_file()
     parser = RawConfigParser()
     parser.read(path)
     if project_name in parser.sections():
@@ -119,7 +119,7 @@ def get_projects():
     """Get the list of projects currently registered with pysemantic as a
     list.
     """
-    path = _locate_config_file()
+    path = locate_config_file()
     parser = RawConfigParser()
     parser.read(path)
     projects = []
@@ -174,7 +174,7 @@ def remove_project(project_name):
     :param project_name: Name of the project to remove.
     Returns true if the project existed.
     """
-    path = _locate_config_file()
+    path = locate_config_file()
     parser = RawConfigParser()
     parser.read(path)
     result = parser.remove_section(project_name)

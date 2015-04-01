@@ -277,19 +277,11 @@ class SchemaValidator(HasTraits):
         """Magic method required by Property traits."""
         self.parser_args = specs
         if write_to_file:
-            try:
-                with open(self.specfile, "r") as f:
-                    allSpecs = yaml.load(f, Loader=yaml.CLoader)
-                allSpecs[self.name] = specs
-                with open(self.specfile, "w") as f:
-                    yaml.dump(allSpecs, f, Dumper=yaml.CDumper)
-                return True
-            except Exception as e:
-                import warnings
-                msg = ("Writing specification to file failed with the "
-                       "following error - {0}.".format(e))
-                warnings.warn(msg, RuntimeWarning, stacklevel=3)
-                return False
+            with open(self.specfile, "r") as f:
+                allSpecs = yaml.load(f, Loader=yaml.CLoader)
+            allSpecs[self.name] = specs
+            with open(self.specfile, "w") as f:
+                yaml.dump(allSpecs, f, Dumper=yaml.CDumper)
         return True
 
     # Property getters and setters
