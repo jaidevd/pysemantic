@@ -6,9 +6,7 @@
 #
 # Distributed under terms of the MIT license.
 
-"""
-The Project class
-"""
+"""The Project class."""
 
 import os
 import warnings
@@ -21,14 +19,14 @@ import yaml
 import pandas as pd
 import numpy as np
 
-from validator import SchemaValidator, DataFrameValidator
-from errors import MissingProject, MissingConfigError
+from pysemantic.validator import SchemaValidator, DataFrameValidator
+from pysemantic.errors import MissingProject, MissingConfigError
 
 CONF_FILE_NAME = os.environ.get("PYSEMANTIC_CONFIG", "pysemantic.conf")
 
 
 def _locate_config_file():
-    """_locate_config_file: locates the configuration file used by semantic."""
+    """Locates the configuration file used by semantic."""
     paths = [op.join(os.getcwd(), CONF_FILE_NAME),
              op.join(op.expanduser('~'), CONF_FILE_NAME)]
     for path in paths:
@@ -39,9 +37,7 @@ def _locate_config_file():
 
 
 def _get_default_specfile(project_name):
-    """_get_default_data_dictionary
-
-    Returns the specifications file used by the given project. The
+    """Returns the specifications file used by the given project. The
     configuration file is searched for first in the current directory and then
     in the home directory.
 
@@ -54,7 +50,7 @@ def _get_default_specfile(project_name):
 
 
 def add_project(project_name, specfile):
-    """ Add a project to the global configuration file.
+    """Add a project to the global configuration file.
 
     :param project_name: Name of the project
     :param specfile: path to the data dictionary used by the project.
@@ -69,7 +65,7 @@ def add_project(project_name, specfile):
 
 
 def add_dataset(project_name, dataset_name, dataset_specs):
-    """add_dataset Add a dataset to a project
+    """Add a dataset to a project.
 
     :param project_name: Name of the project to which the dataset is to be
     added.
@@ -85,7 +81,7 @@ def add_dataset(project_name, dataset_name, dataset_specs):
 
 
 def remove_dataset(project_name, dataset_name):
-    """remove_dataset Removes a dataset from a project
+    """Removes a dataset from a project.
 
     :param project_name: Name of the project
     :param dataset_name: Name of the dataset to remove
@@ -99,7 +95,7 @@ def remove_dataset(project_name, dataset_name):
 
 
 def set_schema_fpath(project_name, schema_fpath):
-    """ Set the schema path for a given project.
+    """Set the schema path for a given project.
 
     :param project_name: Name of the project
     :param schema_fpath: path to the yaml file to be used as the schema for the
@@ -121,7 +117,8 @@ def set_schema_fpath(project_name, schema_fpath):
 
 def get_projects():
     """Get the list of projects currently registered with pysemantic as a
-    list."""
+    list.
+    """
     path = _locate_config_file()
     parser = RawConfigParser()
     parser.read(path)
@@ -134,7 +131,7 @@ def get_projects():
 
 
 def get_schema_specs(project_name, dataset_name=None):
-    """get_schema_specs
+    """Get the specifications of a dataset as specified in the schema.
 
     :param project_name: Name of project
     :param dataset_name: name of the dataset for which to get the schema. If
@@ -149,11 +146,11 @@ def get_schema_specs(project_name, dataset_name=None):
 
 
 def set_schema_specs(project_name, dataset_name, **kwargs):
-    """set_schema_specs
+    """Set the schema specifications for a dataset.
 
-    :param project_name:
-    :param dataset_name:
-    :param **kwargs:
+    :param project_name: Name of the project containing the dataset.
+    :param dataset_name: Name of the dataset of which the schema is being set.
+    :param **kwargs: Schema fields that are dumped into the schema files.
     """
     schema_file = _get_default_specfile(project_name)
     with open(schema_file, "r") as f:
@@ -188,6 +185,10 @@ def remove_project(project_name):
 
 
 class Project(object):
+
+    """The Project class, which is the entry point for most things in this
+    module.
+    """
 
     def __init__(self, project_name, parser=None):
         """__init__
@@ -229,7 +230,8 @@ class Project(object):
 
     def get_project_specs(self):
         """Returns a dictionary containing the schema for all datasets listed
-        under this project."""
+        under this project.
+        """
         specs = {}
         for name, validator in self.validators.iteritems():
             specs[name] = validator.get_parser_args()
@@ -286,13 +288,18 @@ class Project(object):
 
     def load_datasets(self):
         """Loads and returns all datasets listed in the data dictionary for the
-        project."""
+        project.
+        """
         datasets = {}
         for name in self.validators.iterkeys():
             datasets[name] = self.load_dataset(name)
         return datasets
 
     def _update_parser(self, argdict):
+        """Update the pandas parser based on the delimiter.
+
+        :param argdict: Dictionary containing parser arguments.
+        """
         if not self.user_specified_parser:
             sep = argdict['sep']
             if sep == ",":
@@ -301,6 +308,10 @@ class Project(object):
                 self.parser = pd.read_table
 
     def _load(self, parser_args):
+        """The actual loader function that does the heavy lifting.
+
+        :param parser_args: Dictionary containing parser arguments.
+        """
         self._update_parser(parser_args)
         try:
             return self.parser(**parser_args)
@@ -341,7 +352,7 @@ class Project(object):
             return self.parser(**parser_args)
 
     def _update_dtypes(self, dtypes, typelist):
-        """_update_dtypes Update the dtypes parameter of the parser arguments.
+        """Update the dtypes parameter of the parser arguments.
 
         :param dtypes: The original column types
         :param typelist: List of tuples [(column_name, new_dtype), ...]
@@ -350,6 +361,11 @@ class Project(object):
             dtypes[colname] = coltype
 
     def _detect_row_with_na(self, parser_args):
+        """Return the list of columns in the dataframe, for which the data type
+        has been marked as integer, but which contain NAs.
+
+        :param parser_args: Dictionary containing parser arguments.
+        """
         dtypes = parser_args.get("dtype")
         usecols = parser_args.get("usecols")
         int_cols = [col for col in usecols if dtypes.get(col) is int]
@@ -367,6 +383,7 @@ class Project(object):
         """Check the dataframe for rows that have a badly specified dtype.
 
         :param specfified_dtype: The datatype specified in the schema
+        :param parser_args: Dictionary containing parser arguments.
         """
         to_read = []
         dtypes = parser_args.get("dtype")

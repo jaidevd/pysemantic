@@ -6,9 +6,7 @@
 #
 # Distributed under terms of the MIT license.
 
-"""
-Traited Data validator for `pandas.DataFrame` objects
-"""
+"""Traited Data validator for `pandas.DataFrame` objects."""
 
 import datetime
 import re
@@ -22,12 +20,15 @@ from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
                         Bool, Either, push_exception_handler, cached_property,
                         Array, Instance, Callable, Float)
 
-from custom_traits import DTypesDict, NaturalNumber, AbsFile, ValidTraitList
+from pysemantic.custom_traits import (DTypesDict, NaturalNumber, AbsFile,
+                                      ValidTraitList)
 
 push_exception_handler(lambda *args: None, reraise_exceptions=True)
 
 
 class DataFrameValidator(HasTraits):
+
+    """A validator class for `pandas.DataFrame` objects."""
 
     # The dataframe in question
     data = Instance(pd.DataFrame)
@@ -56,6 +57,9 @@ class DataFrameValidator(HasTraits):
         return self.rules.get("drop_duplicates", True)
 
     def clean(self):
+        """Enforce all dataframe rules from the schema and return the converted
+        dataframe.
+        """
         if self.is_drop_na:
             self.data.dropna(inplace=True)
         if self.is_drop_duplicates:
@@ -69,6 +73,8 @@ class DataFrameValidator(HasTraits):
 
 
 class SeriesValidator(HasTraits):
+
+    """A validator class for `pandas.Series` objects."""
 
     # the series in question
     data = Instance(pd.Series)
@@ -99,28 +105,43 @@ class SeriesValidator(HasTraits):
     # Regular expression match for series containing strings
     regex = Property(Str, depends_on=['rules'])
 
-    def clean(self):
+    def do_drop_duplicates(self):
+        """Drop duplicates from the series if required."""
         if self.is_drop_duplicates:
             self.data.drop_duplicates(inplace=True)
 
+    def do_drop_na(self):
+        """Drop NAs from the series if required."""
         if self.is_drop_na:
             self.data.dropna(inplace=True)
 
+    def apply_converters(self):
+        """Apply the converter functions on the series"""
+        if len(self.converters) > 0:
+            for converter in self.converters:
+                self.data = converter(self.data)
+
+    def apply_uniques(self):
+        """Remove all values not included in the `uniques` values specified in
+        the schema.
+        """
         if not np.all(self.data.unique() == self.unique_values):
             for value in self.data.unique():
                 if value not in self.unique_values:
                     self.data = self.data[self.data != value]
 
-        if len(self.converters) > 0:
-            for converter in self.converters:
-                self.data = converter(self.data)
-
+    def apply_minmax_rules(self):
+        """Restrict the values of the series to the minimum and maximum as
+        specified in the schema.
+        """
         if self.data.dtype in (int, float, datetime.date):
             if self.minimum != -np.inf:
                 self.data = self.data[self.data >= self.minimum]
             if self.maximum != np.inf:
                 self.data = self.data[self.data <= self.maximum]
 
+    def apply_regex(self):
+        """Apply a regex filter on strings in the series."""
         if self.regex:
             if self.data.dtype is np.dtype('O'):
                 # filter by regex
@@ -128,6 +149,16 @@ class SeriesValidator(HasTraits):
                 re_matches = self.data.apply(re_filter)
                 self.data = self.data[pd.notnull(re_matches)]
 
+    def clean(self):
+        """Enforce all dataframe rules from the schema and return the converted
+        series.
+        """
+        self.do_drop_duplicates()
+        self.do_drop_na()
+        self.apply_uniques()
+        self.apply_converters()
+        self.apply_minmax_rules()
+        self.apply_regex()
         return self.data
 
     @cached_property
@@ -160,6 +191,8 @@ class SeriesValidator(HasTraits):
 
 
 class SchemaValidator(HasTraits):
+
+    """A validator class for schema in the data dictionary."""
 
     @classmethod
     def from_dict(cls, specification):
@@ -235,11 +268,13 @@ class SchemaValidator(HasTraits):
     # Public interface
 
     def get_parser_args(self):
+        """Return parser args as required by pandas parsers."""
         return self.parser_args
 
     to_dict = get_parser_args
 
     def set_parser_args(self, specs, write_to_file=False):
+        """Magic method required by Property traits."""
         self.parser_args = specs
         if write_to_file:
             try:
@@ -333,27 +368,32 @@ class SchemaValidator(HasTraits):
 
     def __dtypes_items_changed(self):
         """ Required because Dict traits that are properties don't seem
-        to do proper validation."""
+        to do proper validation.
+        """
         self.dtypes = self._dtypes
 
     def __filepath_changed(self):
         """ Required because File traits that are properties don't seem
-        to do proper validation."""
+        to do proper validation.
+        """
         self.filepath = self._filepath
 
     def __delimiter_changed(self):
         """ Required because Str traits that are properties don't seem
-        to do proper validation."""
+        to do proper validation.
+        """
         self.delimiter = self._delimiter
 
     def __nrows_changed(self):
         """ Required because Int traits that are properties don't seem
-        to do proper validation."""
+        to do proper validation.
+        """
         self.nrows = self._nrows
 
     def __ncols_changed(self):
         """ Required because Int traits that are properties don't seem
-        to do proper validation."""
+        to do proper validation.
+        """
         self.ncols = self._ncols
 
     # Trait initializers

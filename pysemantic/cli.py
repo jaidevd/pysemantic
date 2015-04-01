@@ -29,12 +29,12 @@ import os.path as op
 
 from docopt import docopt
 
-import project as pr
-from errors import MissingProject
+from pysemantic import project as pr
+from pysemantic.errors import MissingProject
 
 
 def cli(arguments):
-    """cli - The main CLI argument parser
+    """cli - The main CLI argument parser.
 
     :param arguments: command line arguments
     """

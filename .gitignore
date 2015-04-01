@@ -59,6 +59,7 @@ data/
 # No need to commit the data dictionary
 *.yaml
 !pysemantic/testdata/*.yaml
+!.*.yaml
 
 # Ignore the config files.
 *.conf

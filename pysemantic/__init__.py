@@ -6,14 +6,12 @@
 #
 # Distributed under terms of the MIT license.
 
-"""
 
-"""
-
-from project import Project
+from pysemantic.project import Project
 
 
 def test():
+    """Interactive loader for tests."""
     import unittest
     unittest.main(module='pysemantic.tests', exit=False)
 

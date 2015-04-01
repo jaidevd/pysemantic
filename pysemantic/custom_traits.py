@@ -6,9 +6,7 @@
 #
 # Distributed under terms of the MIT license.
 
-"""
-Customized traits for advanced validation
-"""
+"""Customized traits for advanced validation."""
 
 import os.path as op
 
@@ -17,45 +15,53 @@ from traits.trait_handlers import TraitDictObject
 
 
 class ValidTraitList(List):
-    def validate(self, object, name, value):
-        validated_value = super(ValidTraitList, self).validate(object, name,
+
+    """A List trait whose every element should be valid trait."""
+
+    def validate(self, obj, name, value):
+        validated_value = super(ValidTraitList, self).validate(obj, name,
                                                                value)
         for trait_name in validated_value:
-            trait = object.trait(trait_name)
-            trait.validate(object, trait_name, getattr(object, trait_name))
+            trait = obj.trait(trait_name)
+            trait.validate(obj, trait_name, getattr(obj, trait_name))
         return validated_value
 
 
 class AbsFile(File):
-    """ A File trait whose value must be an absolute path, to an existing
-    file."""
 
-    def validate(self, object, name, value):
-        validated_value = super(AbsFile, self).validate(object, name, value)
+    """A File trait whose value must be an absolute path, to an existing
+    file.
+    """
+
+    def validate(self, obj, name, value):
+        validated_value = super(AbsFile, self).validate(obj, name, value)
         if op.isabs(validated_value) and op.isfile(value):
             return validated_value
 
-        self.error(object, name, value)
+        self.error(obj, name, value)
 
 
 class NaturalNumber(BaseInt):
-    """ An integer trait whose value is a natural number."""
+
+    """An integer trait whose value is a natural number."""
 
     default_value = 1
 
-    def error(self, object, name, value):
+    def error(self, obj, name, value):
         msg = "The {0} trait of a data dictionary has to be a".format(name) + \
               " value greater than zero"
         raise TraitError(args=(msg,))
 
-    def validate(self, object, name, value):
-        value = super(NaturalNumber, self).validate(object, name, value)
+    def validate(self, obj, name, value):
+        value = super(NaturalNumber, self).validate(obj, name, value)
         if value > 0:
             return value
-        self.error(object, name, value)
+        self.error(obj, name, value)
 
 
 class DTypeTraitDictObject(TraitDictObject):
+
+    """Subclassed from the parent to aid the validation of DTypesDicts."""
 
     def _validate_dic(self, dic):
         """ Subclassed from parent to print a more precise TraitError"""
@@ -64,16 +70,16 @@ class DTypeTraitDictObject(TraitDictObject):
 
         key_validate = self.trait.key_trait.handler.validate
         if key_validate is None:
-            key_validate = lambda object, name, key: key
+            key_validate = lambda obj, name, key: key
 
         value_validate = self.trait.value_trait.handler.validate
         if value_validate is None:
-            value_validate = lambda object, name, value: value
+            value_validate = lambda obj, name, value: value
 
-        object = self.object()
+        obj = self.object()
         for key, value in dic.iteritems():
             try:
-                key = key_validate(object, name, key)
+                key = key_validate(obj, name, key)
             except TraitError, excp:
                 msg = "The name of each column in the dataset should be" + \
                       " written in the dictionary as a string."
@@ -81,7 +87,7 @@ class DTypeTraitDictObject(TraitDictObject):
                 raise excp
 
             try:
-                value = value_validate(object, name, value)
+                value = value_validate(obj, name, value)
             except TraitError, excp:
                 msg = "The data type of each column in the dataset should " + \
                       "specified as a valid Python type."
@@ -94,15 +100,17 @@ class DTypeTraitDictObject(TraitDictObject):
 
 
 class DTypesDict(Dict):
+
     """ A trait whose keys are strings, and values are Type traits. Ideally
     this is the kind of dictionary that is passed as the `dtypes` argument in
-    `pandas.read_table`."""
+    `pandas.read_table`.
+    """
 
-    def validate(self, object, name, value):
+    def validate(self, obj, name, value):
         """ Subclassed from the parent to return a `DTypeTraitDictObject`
         instead of `traits.trait_handlers.TraitDictObhject`. """
         if isinstance(value, dict):
-            if object is None:
+            if obj is None:
                 return value
-            return DTypeTraitDictObject(self, object, name, value)
-        self.error(object, name, value)
+            return DTypeTraitDictObject(self, obj, name, value)
+        self.error(obj, name, value)

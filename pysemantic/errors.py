@@ -6,14 +6,14 @@
 #
 # Distributed under terms of the MIT license.
 
-"""
-Errors
-"""
+"""Errors."""
 
 
 class MissingProject(Exception):
+
     """Error raised when project is not found."""
 
 
 class MissingConfigError(Exception):
+
     """Error raised when the pysemantic configuration file is not found."""
