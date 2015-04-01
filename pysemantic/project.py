@@ -36,7 +36,7 @@ def _locate_config_file():
                              " {0} or {1}".format(*paths))
 
 
-def _get_default_specfile(project_name):
+def get_default_specfile(project_name):
     """Returns the specifications file used by the given project. The
     configuration file is searched for first in the current directory and then
     in the home directory.
@@ -72,7 +72,7 @@ def add_dataset(project_name, dataset_name, dataset_specs):
     :param dataset_name: Name of the dataset to be added.
     :param dataset_specs: Specifications of the dataset.
     """
-    data_dict = _get_default_specfile(project_name)
+    data_dict = get_default_specfile(project_name)
     with open(data_dict, "r") as f:
         spec = yaml.load(f, Loader=yaml.CLoader)
     spec[dataset_name] = dataset_specs
@@ -86,7 +86,7 @@ def remove_dataset(project_name, dataset_name):
     :param project_name: Name of the project
     :param dataset_name: Name of the dataset to remove
     """
-    data_dict = _get_default_specfile(project_name)
+    data_dict = get_default_specfile(project_name)
     with open(data_dict, "r") as f:
         spec = yaml.load(f, Loader=yaml.CLoader)
     del spec[dataset_name]
@@ -137,7 +137,7 @@ def get_schema_specs(project_name, dataset_name=None):
     :param dataset_name: name of the dataset for which to get the schema. If
     None(default), schema for all datasets is returned.
     """
-    schema_file = _get_default_specfile(project_name)
+    schema_file = get_default_specfile(project_name)
     with open(schema_file, "r") as f:
         specs = yaml.load(f, Loader=yaml.CLoader)
     if dataset_name is not None:
@@ -152,7 +152,7 @@ def set_schema_specs(project_name, dataset_name, **kwargs):
     :param dataset_name: Name of the dataset of which the schema is being set.
     :param **kwargs: Schema fields that are dumped into the schema files.
     """
-    schema_file = _get_default_specfile(project_name)
+    schema_file = get_default_specfile(project_name)
     with open(schema_file, "r") as f:
         specs = yaml.load(f, Loader=yaml.CLoader)
     for key, value in kwargs.iteritems():
@@ -199,7 +199,7 @@ class Project(object):
         default is `pandas.read_table`.
         """
         self.project_name = project_name
-        self.specfile = _get_default_specfile(self.project_name)
+        self.specfile = get_default_specfile(self.project_name)
         self.validators = {}
         if parser is not None:
             self.user_specified_parser = True
@@ -343,13 +343,7 @@ class Project(object):
                 for col in bad_rows:
                     del parser_args['dtype'][col]
                 return self.parser(**parser_args)
-        except Exception as e:
-            if e.message == "Integer column has NA values":
-                bad_rows = self._detect_row_with_na(parser_args)
-                if len(bad_rows) > 0:
-                    newtypelist = [(colname, float) for colname in bad_rows]
-                    self._update_dtypes(parser_args['dtype'], newtypelist)
-            return self.parser(**parser_args)
+        return self.parser(**parser_args)
 
     def _update_dtypes(self, dtypes, typelist):
         """Update the dtypes parameter of the parser arguments.

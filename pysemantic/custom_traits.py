@@ -48,7 +48,7 @@ class NaturalNumber(BaseInt):
     default_value = 1
 
     def error(self, obj, name, value):
-        msg = "The {0} trait of a data dictionary has to be a".format(name) + \
+        msg = "The {0} trait of a {1} has to be a".format(name, obj) + \
               " value greater than zero"
         raise TraitError(args=(msg,))
 
