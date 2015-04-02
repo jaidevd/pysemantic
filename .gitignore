@@ -68,3 +68,6 @@ data/
 
 # Vim swap files
 *.swp
+
+# ipynb checkpoints
+docs/examples/.ipynb_checkpoints/
