@@ -36,7 +36,9 @@ from pysemantic.errors import MissingProject
 def cli(arguments):
     """cli - The main CLI argument parser.
 
-    :param arguments: command line arguments
+    :param arguments: command line arguments, as parsed by docopt
+    :type arguments: dict
+    :return: None
     """
     if arguments.get("list", False):
         pr.view_projects()

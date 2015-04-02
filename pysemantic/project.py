@@ -26,7 +26,11 @@ CONF_FILE_NAME = os.environ.get("PYSEMANTIC_CONFIG", "pysemantic.conf")
 
 
 def locate_config_file():
-    """Locates the configuration file used by semantic."""
+    """Locates the configuration file used by semantic.
+
+    :return: Path of the pysemantic config file.
+    :rtype: str
+    """
     paths = [op.join(os.getcwd(), CONF_FILE_NAME),
              op.join(op.expanduser('~'), CONF_FILE_NAME)]
     for path in paths:
@@ -42,6 +46,9 @@ def get_default_specfile(project_name):
     in the home directory.
 
     :param project_name: Name of the project for which to get the spcfile.
+    :type project_name: str
+    :return: Path to the data dictionary of the project.
+    :rtype: str
     """
     path = locate_config_file()
     parser = RawConfigParser()
@@ -54,6 +61,9 @@ def add_project(project_name, specfile):
 
     :param project_name: Name of the project
     :param specfile: path to the data dictionary used by the project.
+    :type project_name: str
+    :type specfile: str
+    :return: None
     """
     path = locate_config_file()
     parser = RawConfigParser()
@@ -71,6 +81,10 @@ def add_dataset(project_name, dataset_name, dataset_specs):
     added.
     :param dataset_name: Name of the dataset to be added.
     :param dataset_specs: Specifications of the dataset.
+    :type project_name: str
+    :type dataset_name: str
+    :type dataset_specs: dict
+    :return: None
     """
     data_dict = get_default_specfile(project_name)
     with open(data_dict, "r") as f:
@@ -85,6 +99,9 @@ def remove_dataset(project_name, dataset_name):
 
     :param project_name: Name of the project
     :param dataset_name: Name of the dataset to remove
+    :type project_name: str
+    :type dataset_name: str
+    :return: None
     """
     data_dict = get_default_specfile(project_name)
     with open(data_dict, "r") as f:
@@ -100,6 +117,9 @@ def set_schema_fpath(project_name, schema_fpath):
     :param project_name: Name of the project
     :param schema_fpath: path to the yaml file to be used as the schema for the
     project.
+    :type project_name: str
+    :type schema_fpath: str
+    :return: True, if setting the schema path was successful.
     """
     path = locate_config_file()
     parser = RawConfigParser()
@@ -118,6 +138,10 @@ def set_schema_fpath(project_name, schema_fpath):
 def get_projects():
     """Get the list of projects currently registered with pysemantic as a
     list.
+
+    :return: List of tuples, such that each tuple is (project_name,
+    location_of_specfile)
+    :rtype: list
     """
     path = locate_config_file()
     parser = RawConfigParser()
@@ -136,6 +160,10 @@ def get_schema_specs(project_name, dataset_name=None):
     :param project_name: Name of project
     :param dataset_name: name of the dataset for which to get the schema. If
     None(default), schema for all datasets is returned.
+    :type project_name: str
+    :type dataset_name: str
+    :return: schema for dataset
+    :rtype: dict
     """
     schema_file = get_default_specfile(project_name)
     with open(schema_file, "r") as f:
@@ -151,6 +179,9 @@ def set_schema_specs(project_name, dataset_name, **kwargs):
     :param project_name: Name of the project containing the dataset.
     :param dataset_name: Name of the dataset of which the schema is being set.
     :param **kwargs: Schema fields that are dumped into the schema files.
+    :type project_name: str
+    :type dataset_name: str
+    :return: None
     """
     schema_file = get_default_specfile(project_name)
     with open(schema_file, "r") as f:
@@ -172,7 +203,9 @@ def remove_project(project_name):
     """Remove a project from the global configuration file.
 
     :param project_name: Name of the project to remove.
-    Returns true if the project existed.
+    :type project_name: str
+    :return: True if the project existed
+    :rtype: bool
     """
     path = locate_config_file()
     parser = RawConfigParser()
@@ -223,12 +256,17 @@ class Project(object):
         """Returns the specifications for the specified dataset in the project.
 
         :param dataset_name: Name of the dataset
+        :type dataset_name: str
+        :return: Parser arguments required to import the dataset in pandas.
+        :rtype: dict
         """
         return self.validators[dataset_name].get_parser_args()
 
     def get_project_specs(self):
         """Returns a dictionary containing the schema for all datasets listed
         under this project.
+        :return: Parser arguments for all datasets listed under the project.
+        :rtype: dict
         """
         specs = {}
         for name, validator in self.validators.iteritems():
@@ -239,6 +277,7 @@ class Project(object):
         """Pretty print the specifications for a dataset.
 
         :param dataset_name: Name of the dataset
+        :type dataset_name: str
         """
         specs = self.get_dataset_specs(dataset_name)
         pprint.pprint(specs)
@@ -256,6 +295,10 @@ class Project(object):
         the new specifications. If False (the default), the new specifications
         are used for the respective dataset only for the lifetime of the
         `Project` object.
+        :type dataset_name: str
+        :type specs: dict
+        :type write_to_file: bool
+        :return: None
         """
         validator = self.validators[dataset_name]
         return validator.set_parser_args(specs, write_to_file)
@@ -264,6 +307,9 @@ class Project(object):
         """Load and return the dataset.
 
         :param dataset_name: Name of the dataset
+        :type dataset_name: str
+        :return: A pandas DataFrame containing the dataset.
+        :rtype: pandas.DataFrame
         """
         validator = self.validators[dataset_name]
         column_rules = self.column_rules.get(dataset_name, {})
@@ -285,8 +331,10 @@ class Project(object):
             return pd.concat(dfs, axis=0)
 
     def load_datasets(self):
-        """Loads and returns all datasets listed in the data dictionary for the
-        project.
+        """Loads and returns all datasets.
+
+        :return: dictionary like {dataset_name: dataframe}
+        :rtype: dict
         """
         datasets = {}
         for name in self.validators.iterkeys():
@@ -297,6 +345,7 @@ class Project(object):
         """Update the pandas parser based on the delimiter.
 
         :param argdict: Dictionary containing parser arguments.
+        :return None:
         """
         if not self.user_specified_parser:
             sep = argdict['sep']
