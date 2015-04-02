@@ -32,6 +32,19 @@ class TestProjectModule(BaseProjectTestCase):
 
     """Tests for the project module level functions."""
 
+    def test_get_datasets(self):
+        """Test the get_datasets function returns the correct datasets."""
+        datasets = pr.get_datasets("pysemantic")
+        ideal = ['person_activity', 'multi_iris', 'iris']
+        self.assertItemsEqual(ideal, datasets)
+
+    def test_get_datasets_no_project(self):
+        """Test if the get_datasets function works with no project name."""
+        dataset_names = pr.get_datasets()
+        self.assertTrue("pysemantic" in dataset_names)
+        ideal = ['person_activity', 'multi_iris', 'iris']
+        self.assertItemsEqual(dataset_names['pysemantic'], ideal)
+
     def test_add_dataset(self):
         """Test if adding datasets programmatically works fine."""
         tempdir = tempfile.mkdtemp()

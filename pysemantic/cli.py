@@ -9,7 +9,7 @@
 """semantic
 
 Usage:
-  semantic list
+  semantic list [--project=<PROJECT_NAME>]
   semantic add PROJECT_NAME PROJECT_SPECFILE
   semantic remove PROJECT_NAME
   semantic set-schema PROJECT_NAME SCHEMA_FPATH
@@ -41,7 +41,13 @@ def cli(arguments):
     :return: None
     """
     if arguments.get("list", False):
-        pr.view_projects()
+        if arguments['--project'] is None:
+            pr.view_projects()
+        else:
+            proj_name = arguments.get('--project')
+            dataset_names = pr.get_datasets(proj_name)
+            for name in dataset_names:
+                print name
     elif arguments.get("add", False):
         proj_name = arguments.get("PROJECT_NAME")
         proj_spec = arguments.get("PROJECT_SPECFILE")

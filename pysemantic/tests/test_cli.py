@@ -97,6 +97,14 @@ class TestCLI(BaseTestCase):
             ideal = "Project {0} with specfile at {1}".format(*config)
             self.assertEqual(ideal, output[i])
 
+    def test_list_datasets(self):
+        """Test if the `list` subocmmand works for listing datasets."""
+        command = "semantic list --project pysemantic"
+        cmd = command.split(' ')
+        datasets = pr.get_datasets("pysemantic")
+        output = subprocess.check_output(cmd, env=self.testenv).splitlines()
+        self.assertItemsEqual(datasets, output)
+
     def test_add(self):
         """Test if the `add` subcommand can add projects to the config file."""
         try:

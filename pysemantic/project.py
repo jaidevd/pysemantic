@@ -111,6 +111,27 @@ def remove_dataset(project_name, dataset_name):
         yaml.dump(spec, f, Dumper=yaml.CDumper, default_flow_style=False)
 
 
+def get_datasets(project_name=None):
+    """Get names of all datasets registered under the project `project_name`.
+
+    :param project_name: name of the projects to list the datasets from. If
+    None (default), datasets under all projects are returned.
+    :type project_name: str
+    :return: List of datasets listed under `project_name`, or if `project_name`
+    is None, returns dictionary such that {project_name: [list of projects]}
+    :rtype: dict or list
+    """
+    if project_name is not None:
+        specs = get_schema_specs(project_name)
+        return specs.keys()
+    else:
+        dataset_names = {}
+        projects = get_projects()
+        for project_name, _ in projects:
+            dataset_names[project_name] = get_datasets(project_name)
+        return dataset_names
+
+
 def set_schema_fpath(project_name, schema_fpath):
     """Set the schema path for a given project.
 
