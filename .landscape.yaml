@@ -11,6 +11,8 @@ pylint:
     - invalid-name
     - missing-docstring
     - star-args
+ignore-paths:
+  - docs
 pep8:
   disable:
     - E731
