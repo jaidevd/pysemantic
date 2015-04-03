@@ -11,17 +11,17 @@
 Usage:
   semantic list [--project=<PROJECT_NAME>]
   semantic add PROJECT_NAME PROJECT_SPECFILE
-  semantic remove PROJECT_NAME
+  semantic remove PROJECT_NAME [--dataset=<dname>]
   semantic set-schema PROJECT_NAME SCHEMA_FPATH
   semantic set-specs PROJECT_NAME --dataset=<dname> [--path=<pth>] [--dlm=<sep>]
   semantic add-dataset DATASET_NAME --project=<pname> --path=<pth> --dlm=<sep>
 
 Options:
   -h --help	        Show this screen
-  --dataset=<dname>   Name of the dataset to modify
+  -d --dataset=<dname>   Name of the dataset to modify
   --path=<pth>        Path to a dataset
   --dlm=<sep>         Declare the delimiter for a dataset
-  --project=<pname>   Name of the project to modify
+  -p --project=<pname>   Name of the project to modify
 
 """
 
@@ -55,8 +55,11 @@ def cli(arguments):
         pr.add_project(proj_name, proj_spec)
     elif arguments.get("remove", False):
         proj_name = arguments.get("PROJECT_NAME")
-        if not pr.remove_project(proj_name):
-            print "Removing the project {0} failed.".format(proj_name)
+        if arguments['--dataset'] is None:
+            if not pr.remove_project(proj_name):
+                print "Removing the project {0} failed.".format(proj_name)
+        else:
+            pr.remove_dataset(proj_name, arguments['--dataset'])
     elif arguments.get("set-schema", False):
         try:
             proj_name = arguments.get("PROJECT_NAME")

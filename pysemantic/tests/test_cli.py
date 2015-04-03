@@ -135,6 +135,27 @@ class TestCLI(BaseTestCase):
             pr.remove_dataset("pysemantic", "testdata")
             shutil.rmtree(tempdir)
 
+    def test_remove_dataset(self):
+        """Test if removing datasets works from the command line."""
+        # Add a temporary dataset and try to remove it.
+        tempdir = tempfile.mkdtemp()
+        outfile = op.join(tempdir, "testdata.csv")
+        dframe = pd.DataFrame(np.random.random((10, 2)), columns=['a', 'b'])
+        dframe.to_csv(outfile, index=False)
+        specs = dict(path=outfile, delimiter=',')
+        pr.add_dataset("pysemantic", "testdata", specs)
+        try:
+            command = "semantic remove pysemantic --dataset testdata"
+            cmd = command.split(' ')
+            subprocess.check_call(cmd, env=self.testenv)
+            datasets = pr.get_datasets("pysemantic")
+            self.assertNotIn("testdata", datasets)
+        finally:
+            datasets = pr.get_datasets("pysemantic")
+            if "testdata" in datasets:
+                pr.remove_dataset("pysemantic", "testdata")
+            shutil.rmtree(tempdir)
+
     def test_remove(self):
         """Test if the remove subcommand can remove projects."""
         pr.add_project("dummy_project_2", "/foo/baz.yaml")
