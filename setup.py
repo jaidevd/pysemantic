@@ -1,4 +1,12 @@
-from setuptools import setup
+from setuptools import setup, find_packages
+import os.path as op
+
+CONF_PATH = op.join(op.expanduser("~"), "pysemantic.conf")
+if not op.exists(CONF_PATH):
+    with open(CONF_PATH, "w") as fid:
+        fid.write("# Config file added by the pysemantic setup script.")
+        fid.write("\n")
+    print "Config file added at {}".format(CONF_PATH)
 
 NAME = "pysemantic"
 
@@ -10,5 +18,5 @@ setup(
     entry_points={
         'console_scripts': ['semantic = pysemantic.cli:main'],
                },
-    packages=['pysemantic'],
+    packages=find_packages(),
 )
