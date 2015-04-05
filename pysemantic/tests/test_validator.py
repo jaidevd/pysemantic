@@ -252,6 +252,17 @@ class TestSeriesValidator(BaseTestCase):
         self.assertItemsEqual(cleaned.unique(),
                               self.dataframe['Species'].unique())
 
+    def test_excluded_values(self):
+        """Test if the validator drops excluded values."""
+        self.species_rules['exclude'] = ['setosa']
+        validator = SeriesValidator(data=self.species,
+                                    rules=self.species_rules)
+        try:
+            cleaned = validator.clean()
+            self.assertNotIn("setosa", cleaned.unique().tolist())
+        finally:
+            del self.species_rules['exclude']
+
     def test_bad_unique_values(self):
         """Test if the validator drops values not specified in the schema."""
         # Add some bogus values
@@ -399,6 +410,15 @@ class TestDataFrameValidator(BaseTestCase):
         validator = DataFrameValidator(data=_data, column_rules=col_rules)
         cleaned = validator.clean()
         self.assertDataFrameEqual(cleaned, data.drop_duplicates())
+
+    def test_column_exclude_rules(self):
+        """Test if the validator drops values excluded from columns."""
+        col_rules = deepcopy(self.basespecs['iris']['column_rules'])
+        col_rules['Species']['exclude'] = ['virginica', 'versicolor']
+        dframe_val = DataFrameValidator(data=self.iris_dframe.copy(),
+                                        column_rules=col_rules)
+        cleaned_species = dframe_val.clean()['Species']
+        self.assertItemsEqual(cleaned_species.unique().tolist(), ['setosa'])
 
 
 if __name__ == '__main__':

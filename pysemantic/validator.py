@@ -67,6 +67,7 @@ class DataFrameValidator(HasTraits):
             rules = self.column_rules.get(col, {})
             validator = SeriesValidator(data=series, rules=rules)
             self.data[col] = validator.clean()
+            self.data.dropna(inplace=True)
         return self.data
 
 
@@ -88,6 +89,9 @@ class SeriesValidator(HasTraits):
 
     # Unique values encountered in the series
     unique_values = Property(Array, depends_on=['rules'])
+
+    # List of values to exclude
+    exclude_values = Property(List, depends_on=['rules'])
 
     # List of converters to be applied to the series. All converters are
     # assumed to be callables, which take the series as input and return a
@@ -126,6 +130,11 @@ class SeriesValidator(HasTraits):
                 if value not in self.unique_values:
                     self.data = self.data[self.data != value]
 
+    def drop_excluded(self):
+        """Remove all values specified in `exclude_values`."""
+        for value in self.exclude_values:
+            self.data.drop(self.data.index[self.data == value], inplace=True)
+
     def apply_minmax_rules(self):
         """Restrict the series to the minimum and maximum from the schema."""
         if self.data.dtype in (int, float, datetime.date):
@@ -148,10 +157,15 @@ class SeriesValidator(HasTraits):
         self.do_drop_duplicates()
         self.do_drop_na()
         self.apply_uniques()
+        self.drop_excluded()
         self.apply_converters()
         self.apply_minmax_rules()
         self.apply_regex()
         return self.data
+
+    @cached_property
+    def _get_exclude_values(self):
+        return self.rules.get("exclude", [])
 
     @cached_property
     def _get_unique_values(self):
