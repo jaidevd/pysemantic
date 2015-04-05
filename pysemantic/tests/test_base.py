@@ -41,7 +41,8 @@ def _path_fixer(filepath, root=None):
         for specs in data.itervalues():
             specs['path'] = op.join(root, specs['path'])
         with open(filepath, "w") as fileobj:
-            data = yaml.dump(fileobj, Dumper=yaml.CDumper)
+            data = yaml.dump(fileobj, Dumper=yaml.CDumper,
+                             default_flow_style=False)
     elif filepath.endswith(".conf"):
         parser = RawConfigParser()
         parser.read(filepath)

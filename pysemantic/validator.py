@@ -283,7 +283,8 @@ class SchemaValidator(HasTraits):
                 allspecs = yaml.load(f, Loader=yaml.CLoader)
             allspecs[self.name] = specs
             with open(self.specfile, "w") as f:
-                yaml.dump(allspecs, f, Dumper=yaml.CDumper)
+                yaml.dump(allspecs, f, Dumper=yaml.CDumper,
+                          default_flow_style=False)
         return True
 
     # Property getters and setters

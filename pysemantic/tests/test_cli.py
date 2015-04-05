@@ -56,7 +56,8 @@ class TestCLI(BaseTestCase):
             specs['path'] = op.join(op.abspath(op.dirname(__file__)), path)
         # Rewrite this to the file
         with open(TEST_DATA_DICT, "w") as fileobj:
-            yaml.dump(new_specs, fileobj, Dumper=yaml.CDumper)
+            yaml.dump(new_specs, fileobj, Dumper=yaml.CDumper,
+                      default_flow_style=False)
 
     @classmethod
     def tearDownClass(cls):

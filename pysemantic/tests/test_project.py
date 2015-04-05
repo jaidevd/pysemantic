@@ -121,6 +121,36 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_update_dataset(self):
+        tempdir = tempfile.mkdtemp()
+        """Test if the update_dataset method works."""
+        _pr = pr.Project("pysemantic")
+        iris = _pr.load_dataset("iris")
+        x = np.random.random((150,))
+        y = np.random.random((150,))
+        iris['x'] = x
+        iris['y'] = y
+        org_cols = iris.columns.tolist()
+        outpath = op.join(tempdir, "iris.csv")
+        with open(TEST_DATA_DICT, "r") as fid:
+            org_specs = yaml.load(fid, Loader=yaml.CLoader)
+        try:
+            _pr.update_dataset("iris", iris, path=outpath, sep='\t')
+            _pr = pr.Project("pysemantic")
+            iris = _pr.load_dataset("iris")
+            self.assertItemsEqual(org_cols, iris.columns.tolist())
+            iris_validator = _pr.validators['iris']
+            updated_args = iris_validator.parser_args
+            self.assertEqual(updated_args['dtype']['x'], float)
+            self.assertEqual(updated_args['dtype']['y'], float)
+            self.assertEqual(updated_args['sep'], '\t')
+            self.assertEqual(updated_args['filepath_or_buffer'], outpath)
+        finally:
+            shutil.rmtree(tempdir)
+            with open(TEST_DATA_DICT, "w") as fid:
+                yaml.dump(org_specs, fid, Dumper=yaml.CDumper,
+                          default_flow_style=False)
+
     def test_regex_separator(self):
         """Test if the project properly loads a dataset when it encounters
         regex separators.
@@ -160,7 +190,8 @@ class TestProjectClass(BaseProjectTestCase):
         specs = dict(delimiter=',', dtypes={'a': int, 'b': int}, path=outfile)
         specfile = op.join(tempdir, "dict.yaml")
         with open(specfile, "w") as fileobj:
-            yaml.dump({'testdata': specs}, fileobj, Dumper=yaml.CDumper)
+            yaml.dump({'testdata': specs}, fileobj, Dumper=yaml.CDumper,
+                      default_flow_style=False)
         pr.add_project("wrong_dtype", specfile)
         try:
             _pr = pr.Project("wrong_dtype")
@@ -183,7 +214,8 @@ class TestProjectClass(BaseProjectTestCase):
         for dataset_specs in new_specs.itervalues():
             del dataset_specs['nrows']
         with open(TEST_DATA_DICT, "w") as fileobj:
-            yaml.dump(new_specs, fileobj, Dumper=yaml.CDumper)
+            yaml.dump(new_specs, fileobj, Dumper=yaml.CDumper,
+                      default_flow_style=False)
         try:
             _pr = pr.Project("pysemantic")
             dframe = pd.read_csv(**self.expected_specs['iris'])
@@ -194,7 +226,8 @@ class TestProjectClass(BaseProjectTestCase):
             self.assertDataFrameEqual(loaded, dframe)
         finally:
             with open(TEST_DATA_DICT, "w") as fileobj:
-                yaml.dump(org_specs, fileobj, Dumper=yaml.CDumper)
+                yaml.dump(org_specs, fileobj, Dumper=yaml.CDumper,
+                          default_flow_style=False)
 
     def test_get_project_specs(self):
         """Test if the project manager gets all specifications correctly."""
@@ -256,7 +289,8 @@ class TestProjectClass(BaseProjectTestCase):
             self.assertKwargsEqual(newspecs['iris'], specs)
         finally:
             with open(TEST_DATA_DICT, "w") as fileobj:
-                yaml.dump(oldspecs, fileobj, Dumper=yaml.CDumper)
+                yaml.dump(oldspecs, fileobj, Dumper=yaml.CDumper,
+                          default_flow_style=False)
 
     def test_load_all(self):
         """Test if loading all datasets in a project works as expected."""

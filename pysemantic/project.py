@@ -324,6 +324,33 @@ class Project(object):
         validator = self.validators[dataset_name]
         return validator.set_parser_args(specs, write_to_file)
 
+    def update_dataset(self, dataset_name, dataframe, path=None, **kwargs):
+        """This is tricky."""
+        org_specs = self.get_dataset_specs(dataset_name)
+        if path is None:
+            path = org_specs['filepath_or_buffer']
+        sep = kwargs.get('sep', org_specs['sep'])
+        index = kwargs.get('index', False)
+        dataframe.to_csv(path, sep=sep, index=index)
+        dtypes = {}
+        for col in dataframe:
+            dtype = dataframe[col].dtype
+            if dtype == np.dtype('O'):
+                dtypes[col] = str
+            elif dtype == np.dtype('float'):
+                dtypes[col] = float
+            elif dtype == np.dtype('int'):
+                dtypes[col] = int
+            else:
+                dtypes[col] = dtype
+        new_specs = {'path': path, 'delimiter': sep, 'dtypes': dtypes}
+        with open(self.specfile, "r") as fid:
+            specs = yaml.load(fid, Loader=yaml.CLoader)
+        specs[dataset_name].update(new_specs)
+        with open(self.specfile, "w") as fid:
+            yaml.dump(specs, fid, Dumper=yaml.CDumper,
+                      default_flow_style=False)
+
     def load_dataset(self, dataset_name):
         """Load and return the dataset.
 
