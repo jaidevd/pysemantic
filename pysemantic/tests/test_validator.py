@@ -252,17 +252,6 @@ class TestSeriesValidator(BaseTestCase):
         self.assertItemsEqual(cleaned.unique(),
                               self.dataframe['Species'].unique())
 
-    def test_excluded_values(self):
-        """Test if the validator drops excluded values."""
-        self.species_rules['exclude'] = ['setosa']
-        validator = SeriesValidator(data=self.species,
-                                    rules=self.species_rules)
-        try:
-            cleaned = validator.clean()
-            self.assertNotIn("setosa", cleaned.unique().tolist())
-        finally:
-            del self.species_rules['exclude']
-
     def test_bad_unique_values(self):
         """Test if the validator drops values not specified in the schema."""
         # Add some bogus values
