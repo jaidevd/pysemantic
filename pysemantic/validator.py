@@ -67,6 +67,10 @@ class DataFrameValidator(HasTraits):
             rules = self.column_rules.get(col, {})
             validator = SeriesValidator(data=series, rules=rules)
             self.data[col] = validator.clean()
+            if len(validator.exclude_values) > 0:
+                for exval in validator.exclude_values:
+                    self.data.drop(self.data.index[self.data[col] == exval],
+                                   inplace=True)
             self.data.dropna(inplace=True)
         return self.data
 
@@ -157,7 +161,6 @@ class SeriesValidator(HasTraits):
         self.do_drop_duplicates()
         self.do_drop_na()
         self.apply_uniques()
-        self.drop_excluded()
         self.apply_converters()
         self.apply_minmax_rules()
         self.apply_regex()

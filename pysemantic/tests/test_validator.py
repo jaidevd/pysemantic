@@ -416,9 +416,11 @@ class TestDataFrameValidator(BaseTestCase):
         col_rules = deepcopy(self.basespecs['iris']['column_rules'])
         col_rules['Species']['exclude'] = ['virginica', 'versicolor']
         dframe_val = DataFrameValidator(data=self.iris_dframe.copy(),
-                                        column_rules=col_rules)
+                                        column_rules=col_rules,
+                                        rules={'drop_duplicates': False})
         cleaned_species = dframe_val.clean()['Species']
         self.assertItemsEqual(cleaned_species.unique().tolist(), ['setosa'])
+        self.assertEqual(cleaned_species.shape[0], 50)
 
 
 if __name__ == '__main__':
