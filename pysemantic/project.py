@@ -21,6 +21,7 @@ import numpy as np
 
 from pysemantic.validator import SchemaValidator, DataFrameValidator
 from pysemantic.errors import MissingProject, MissingConfigError
+from pysemantic.loggers import setup_logging
 
 CONF_FILE_NAME = os.environ.get("PYSEMANTIC_CONFIG", "pysemantic.conf")
 
@@ -250,6 +251,7 @@ class Project(object):
         :param parser: The parser to be used for reading dataset files. The
         default is `pandas.read_table`.
         """
+        setup_logging(project_name)
         self.project_name = project_name
         self.specfile = get_default_specfile(self.project_name)
         self.validators = {}
