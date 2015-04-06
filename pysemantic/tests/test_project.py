@@ -203,6 +203,31 @@ class TestProjectClass(BaseProjectTestCase):
             pr.remove_project("wrong_dtype")
             shutil.rmtree(tempdir)
 
+    def test_integer_col_na_values(self):
+        """Test if the loader can load columns with integers and NAs.
+
+        This is necessary because NaNs cannot be represented by integers."""
+        x = map(str, range(20))
+        x[13] = ""
+        df = pd.DataFrame.from_dict(dict(a=x, b=x))
+        tempdir = tempfile.mkdtemp()
+        outfile = op.join(tempdir, "testdata.csv")
+        df.to_csv(outfile, index=False)
+        specfile = op.join(tempdir, "dict.yaml")
+        specs = dict(delimiter=',', dtypes={'a': int, 'b': int}, path=outfile)
+        with open(specfile, "w") as fileobj:
+            yaml.dump({'testdata': specs}, fileobj, Dumper=yaml.CDumper,
+                      default_flow_style=False)
+        pr.add_project("wrong_dtype", specfile)
+        try:
+            _pr = pr.Project("wrong_dtype")
+            df = _pr.load_dataset("testdata")
+            self.assertEqual(df['a'].dtype, float)
+            self.assertEqual(df['b'].dtype, float)
+        finally:
+            pr.remove_project("wrong_dtype")
+            shutil.rmtree(tempdir)
+
     def test_load_dataset_missing_nrows(self):
         """Test if the project loads datasets properly if the nrows parameter
         is not provided in the schema.

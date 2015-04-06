@@ -438,7 +438,12 @@ class Project(object):
                 for col in bad_rows:
                     del parser_args['dtype'][col]
                 return self.parser(**parser_args)
-        return self.parser(**parser_args)
+        except Exception as e:
+            if e.message == "Integer column has NA values":
+                bad_rows = self._detect_row_with_na(parser_args)
+                new_types = [(col, float) for col in bad_rows]
+                self._update_dtypes(parser_args['dtype'], new_types)
+            return self.parser(**parser_args)
 
     def _update_dtypes(self, dtypes, typelist):
         """Update the dtypes parameter of the parser arguments.
