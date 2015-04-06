@@ -122,8 +122,8 @@ class TestProjectClass(BaseProjectTestCase):
     """Tests for the project class and its methods."""
 
     def test_update_dataset(self):
-        tempdir = tempfile.mkdtemp()
         """Test if the update_dataset method works."""
+        tempdir = tempfile.mkdtemp()
         _pr = pr.Project("pysemantic")
         iris = _pr.load_dataset("iris")
         x = np.random.random((150,))
@@ -145,6 +145,27 @@ class TestProjectClass(BaseProjectTestCase):
             self.assertEqual(updated_args['dtype']['y'], float)
             self.assertEqual(updated_args['sep'], '\t')
             self.assertEqual(updated_args['filepath_or_buffer'], outpath)
+        finally:
+            shutil.rmtree(tempdir)
+            with open(TEST_DATA_DICT, "w") as fid:
+                yaml.dump(org_specs, fid, Dumper=yaml.CDumper,
+                          default_flow_style=False)
+
+    def test_update_dataset_deleted_columns(self):
+        """Test if the update dataset method removes column specifications."""
+        tempdir = tempfile.mkdtemp()
+        _pr = pr.Project("pysemantic")
+        iris = _pr.load_dataset("iris")
+        outpath = op.join(tempdir, "iris.csv")
+        with open(TEST_DATA_DICT, "r") as fid:
+            org_specs = yaml.load(fid, Loader=yaml.CLoader)
+        try:
+            del iris['Species']
+            _pr.update_dataset("iris", iris, path=outpath)
+            pr_reloaded = pr.Project("pysemantic")
+            iris_reloaded = pr_reloaded.load_dataset("iris")
+            self.assertNotIn("Species", iris_reloaded.columns)
+            self.assertNotIn("Species", pr_reloaded.column_rules["iris"])
         finally:
             shutil.rmtree(tempdir)
             with open(TEST_DATA_DICT, "w") as fid:

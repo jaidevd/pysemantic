@@ -346,7 +346,17 @@ class Project(object):
         new_specs = {'path': path, 'delimiter': sep, 'dtypes': dtypes}
         with open(self.specfile, "r") as fid:
             specs = yaml.load(fid, Loader=yaml.CLoader)
-        specs[dataset_name].update(new_specs)
+        dataset_specs = specs[dataset_name]
+        dataset_specs.update(new_specs)
+        if "column_rules" in dataset_specs:
+            col_rules = dataset_specs['column_rules']
+            cols_to_remove = []
+            for colname in col_rules.iterkeys():
+                if colname not in dataframe.columns:
+                    cols_to_remove.append(colname)
+            for colname in cols_to_remove:
+                del col_rules[colname]
+
         with open(self.specfile, "w") as fid:
             yaml.dump(specs, fid, Dumper=yaml.CDumper,
                       default_flow_style=False)
