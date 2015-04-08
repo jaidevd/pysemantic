@@ -12,6 +12,8 @@ import os
 import warnings
 import textwrap
 import pprint
+import logging
+import json
 from ConfigParser import RawConfigParser
 import os.path as op
 
@@ -22,8 +24,10 @@ import numpy as np
 from pysemantic.validator import SchemaValidator, DataFrameValidator
 from pysemantic.errors import MissingProject, MissingConfigError
 from pysemantic.loggers import setup_logging
+from pysemantic.utils import TypeEncoder
 
 CONF_FILE_NAME = os.environ.get("PYSEMANTIC_CONFIG", "pysemantic.conf")
+logger = logging.getLogger(__name__)
 
 
 def locate_config_file():
@@ -36,6 +40,7 @@ def locate_config_file():
              op.join(op.expanduser('~'), CONF_FILE_NAME)]
     for path in paths:
         if op.exists(path):
+            logger.info("Config file found at {0}".format(path))
             return path
     raise MissingConfigError("No pysemantic configuration file was fount at"
                              " {0} or {1}".format(*paths))
@@ -254,6 +259,8 @@ class Project(object):
         setup_logging(project_name)
         self.project_name = project_name
         self.specfile = get_default_specfile(self.project_name)
+        logger.info("Schema for project {0} found at {1}".format(project_name,
+                                                                self.specfile))
         self.validators = {}
         if parser is not None:
             self.user_specified_parser = True
@@ -265,6 +272,8 @@ class Project(object):
         self.column_rules = {}
         self.df_rules = {}
         for name, specs in specifications.iteritems():
+            logger.info("Schema for dataset {0}:".format(name))
+            logger.info(json.dumps(specs, cls=TypeEncoder))
             self.validators[name] = SchemaValidator(specification=specs,
                                                     specfile=self.specfile,
                                                     name=name)
@@ -324,6 +333,9 @@ class Project(object):
         :return: None
         """
         validator = self.validators[dataset_name]
+        logger.info("Attempting to set parser args for dataset {} to:".format(
+                                                                 dataset_name))
+        logger.info(json.dumps(specs, cls=TypeEncoder))
         return validator.set_parser_args(specs, write_to_file)
 
     def update_dataset(self, dataset_name, dataframe, path=None, **kwargs):
@@ -358,7 +370,9 @@ class Project(object):
                     cols_to_remove.append(colname)
             for colname in cols_to_remove:
                 del col_rules[colname]
-
+        logger.info("Attempting to update schema for dataset {0} to:".format(
+                                                                 dataset_name))
+        logger.info(json.dumps(dataset_specs, cls=TypeEncoder))
         with open(self.specfile, "w") as fid:
             yaml.dump(specs, fid, Dumper=yaml.CDumper,
                       default_flow_style=False)
@@ -375,10 +389,19 @@ class Project(object):
         column_rules = self.column_rules.get(dataset_name, {})
         df_rules = self.df_rules.get(dataset_name, {})
         args = validator.get_parser_args()
+        logger.info("Attempting to load dataset {} with args:".format(
+                                                                 dataset_name))
+        logger.info(json.dumps(args, cls=TypeEncoder))
         if isinstance(args, dict):
             df = self._load(args)
+            logger.info("Success!")
             df_validator = DataFrameValidator(data=df, rules=df_rules,
                                              column_rules=column_rules)
+            logger.info("Commence cleaning dataset:")
+            logger.info("DataFrame rules:")
+            logger.info(json.dumps(df_rules, cls=TypeEncoder))
+            logger.info("Column rules:")
+            logger.info(json.dumps(column_rules, cls=TypeEncoder))
             return df_validator.clean()
         else:
             dfs = []
@@ -430,6 +453,8 @@ class Project(object):
                         dtypes in the schema. Consider fixing this by editing
                         the schema for better performance.
                         """)
+                logger.warn(msg)
+                logger.info("Removing the dtype argument")
                 warnings.warn(msg, UserWarning)
                 return self.parser(**parser_args)
             elif e.message.startswith("cannot safely convert"):
@@ -442,6 +467,8 @@ class Project(object):
                 incorrect. This has been ignored for now.
                 Consider fixing this by editing the schema.""".format(bad_col,
                                                               specified_dtype))
+                logger.warn(msg)
+                logger.info("dtype for column {} removed.".format(bad_col))
                 warnings.warn(msg, UserWarning)
                 return self.parser(**parser_args)
         except AttributeError as e:
@@ -449,12 +476,16 @@ class Project(object):
                 bad_rows = self._detect_mismatched_dtype_row(int, parser_args)
                 for col in bad_rows:
                     del parser_args['dtype'][col]
+                logger.warn(msg)
+                logger.info("dtype removed for columns:".format(bad_rows))
                 return self.parser(**parser_args)
         except Exception as e:
             if e.message == "Integer column has NA values":
                 bad_rows = self._detect_row_with_na(parser_args)
                 new_types = [(col, float) for col in bad_rows]
                 self._update_dtypes(parser_args['dtype'], new_types)
+                logger.info("Dtypes for following columns changed:")
+                logger.info(json.dumps(new_types, cls=TypeEncoder))
             return self.parser(**parser_args)
 
     def _update_dtypes(self, dtypes, typelist):

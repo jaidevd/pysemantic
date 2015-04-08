@@ -8,22 +8,26 @@
 
 """Traited Data validator for `pandas.DataFrame` objects."""
 
-import datetime
 import re
 import copy
+import json
+import logging
+import datetime
 import os.path as op
 
-import pandas as pd
-import numpy as np
 import yaml
+import numpy as np
+import pandas as pd
 from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
                         Bool, Either, push_exception_handler, cached_property,
                         Array, Instance, Callable, Float)
 
+from pysemantic.utils import TypeEncoder
 from pysemantic.custom_traits import (DTypesDict, NaturalNumber, AbsFile,
                                       ValidTraitList)
 
 push_exception_handler(lambda *args: None, reraise_exceptions=True)
+logger = logging.getLogger(__name__)
 
 
 class DataFrameValidator(HasTraits):
@@ -59,10 +63,23 @@ class DataFrameValidator(HasTraits):
     def clean(self):
         """Return the converted dataframe after enforcing all rules."""
         if self.is_drop_na:
+            na_bool = pd.isnull(self.data)
+            na_rows = self.data.index[np.any(na_bool, axis=1)].tolist()
+            logger.info("Following rows containing NAs were dropped:")
+            logger.info(json.dumps(na_rows))
+            # FIXME: the computation above could be used instead of `dropna`
             self.data.dropna(inplace=True)
+
         if self.is_drop_duplicates:
+            duplicates = self.data.index[self.data.duplicated()].tolist()
+            logger.info("Following duplicated rows were dropped:")
+            logger.info(json.dumps(duplicates))
+            # FIXME: the computation above could be used instead of
+            # `drop_duplicates`
             self.data.drop_duplicates(inplace=True)
+
         for col in self.data:
+            logger.info("Commence cleaning of column {}".format(col))
             series = self.data[col]
             rules = self.column_rules.get(col, {})
             validator = SeriesValidator(data=series, rules=rules)
@@ -71,7 +88,11 @@ class DataFrameValidator(HasTraits):
                 for exval in validator.exclude_values:
                     self.data.drop(self.data.index[self.data[col] == exval],
                                    inplace=True)
+                logger.info("Excluding following values from col {0}".format(
+                                                                          col))
+                logger.info(json.dumps(validator.exclude_values))
             self.data.dropna(inplace=True)
+
         return self.data
 
 
@@ -114,37 +135,53 @@ class SeriesValidator(HasTraits):
     def do_drop_duplicates(self):
         """Drop duplicates from the series if required."""
         if self.is_drop_duplicates:
+            duplicates = self.data.index[self.data.duplicated()].tolist()
+            logger.info("Following duplicated rows were dropped:")
+            logger.info(json.dumps(duplicates))
             self.data.drop_duplicates(inplace=True)
 
     def do_drop_na(self):
         """Drop NAs from the series if required."""
         if self.is_drop_na:
+            na_bool = pd.isnull(self.data)
+            na_rows = self.data.index[na_bool].tolist()
+            logger.info("Following rows containing NAs were dropped:")
+            logger.info(json.dumps(na_rows))
             self.data.dropna(inplace=True)
 
     def apply_converters(self):
         """Apply the converter functions on the series."""
         if len(self.converters) > 0:
             for converter in self.converters:
+                logger.info("Applying converter {0}".format(converter))
                 self.data = converter(self.data)
 
     def apply_uniques(self):
         """Remove all values not included in the `uniques`."""
         if not np.all(self.data.unique() == self.unique_values):
+            logger.info("Keeping only the following unique values:")
+            logger.info(json.dumps(self.unique_values))
             for value in self.data.unique():
                 if value not in self.unique_values:
                     self.data = self.data[self.data != value]
 
     def drop_excluded(self):
         """Remove all values specified in `exclude_values`."""
-        for value in self.exclude_values:
-            self.data.drop(self.data.index[self.data == value], inplace=True)
+        if len(self.exclude_values) > 0:
+            logger.info("Removing the following excluded values:")
+            logger.info(json.dumps(self.excluded_values))
+            for value in self.exclude_values:
+                self.data.drop(self.data.index[self.data == value],
+                               inplace=True)
 
     def apply_minmax_rules(self):
         """Restrict the series to the minimum and maximum from the schema."""
         if self.data.dtype in (int, float, datetime.date):
             if self.minimum != -np.inf:
+                logger.info("Setting minimum at {0}".format(self.minimum))
                 self.data = self.data[self.data >= self.minimum]
             if self.maximum != np.inf:
+                logger.info("Setting maximum at {0}".format(self.maximum))
                 self.data = self.data[self.data <= self.maximum]
 
     def apply_regex(self):
@@ -152,6 +189,8 @@ class SeriesValidator(HasTraits):
         if self.regex:
             if self.data.dtype is np.dtype('O'):
                 # filter by regex
+                logger.info("Applying regex filter with the following regex:")
+                logger.info(self.regex)
                 re_filter = lambda x: re.search(self.regex, x)
                 re_matches = self.data.apply(re_filter)
                 self.data = self.data[pd.notnull(re_matches)]
@@ -296,12 +335,18 @@ class SchemaValidator(HasTraits):
         """Magic method required by Property traits."""
         self.parser_args = specs
         if write_to_file:
+            logger.info("Following specs for dataset {0}".format(self.name) +
+                        " were written to specfile {0}".format(self.specfile))
             with open(self.specfile, "r") as f:
                 allspecs = yaml.load(f, Loader=yaml.CLoader)
             allspecs[self.name] = specs
             with open(self.specfile, "w") as f:
                 yaml.dump(allspecs, f, Dumper=yaml.CDumper,
                           default_flow_style=False)
+        else:
+            logger.info("Following parser args were set for dataset {}".format(
+                                                                    self.name))
+        logger.info(json.dumps(specs, cls=TypeEncoder))
         return True
 
     # Property getters and setters
