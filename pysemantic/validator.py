@@ -360,8 +360,11 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get_parser_args(self):
-        args = {'sep': self._delimiter,
-                'usecols': self.colnames}
+        args = {}
+        if self._delimiter:
+            args['sep'] = self._delimiter
+        if len(self.colnames) > 0:
+            args['usecols'] = self.colnames
         parse_dates = []
         for k, v in self._dtypes.iteritems():
             if v is datetime.date:

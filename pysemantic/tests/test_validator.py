@@ -64,6 +64,16 @@ class TestSchemaValidator(BaseTestCase):
         # are messing up the base specifications.
         self.basespecs = deepcopy(self.specs)
 
+    def test_pandas_defaults_empty_specs(self):
+        """Test if the validator falls back to pandas defaults for empty specs.
+        """
+        schema = dict(path=op.join(op.abspath(op.dirname(__file__)),
+                                   "testdata", "iris.csv"))
+        validator = SchemaValidator(specification=schema)
+        ideal = pd.read_csv(schema['path'])
+        actual = pd.read_csv(**validator.get_parser_args())
+        self.assertDataFrameEqual(ideal, actual)
+
     def test_from_dict(self):
         """Test if the SchemaValidator.from_dict constructor works."""
         validator = SchemaValidator.from_dict(self.basespecs['iris'])
