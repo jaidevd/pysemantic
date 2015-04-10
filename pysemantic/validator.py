@@ -63,20 +63,16 @@ class DataFrameValidator(HasTraits):
     def clean(self):
         """Return the converted dataframe after enforcing all rules."""
         if self.is_drop_na:
-            na_bool = pd.isnull(self.data)
-            na_rows = self.data.index[np.any(na_bool, axis=1)].tolist()
-            logger.info("Following rows containing NAs were dropped:")
-            logger.info(json.dumps(na_rows))
-            # FIXME: the computation above could be used instead of `dropna`
+            x = self.data.shape[0]
             self.data.dropna(inplace=True)
+            y = self.data.shape[0]
+            logger.info("{0} rows containing NAs were dropped.".format(x - y))
 
         if self.is_drop_duplicates:
-            duplicates = self.data.index[self.data.duplicated()].tolist()
-            logger.info("Following duplicated rows were dropped:")
-            logger.info(json.dumps(duplicates))
-            # FIXME: the computation above could be used instead of
-            # `drop_duplicates`
+            x = self.data.shape[0]
             self.data.drop_duplicates(inplace=True)
+            y = self.data.shape[0]
+            logger.info("{0} duplicate rows were dropped.".format(x - y))
 
         for col in self.data:
             logger.info("Commence cleaning of column {}".format(col))
