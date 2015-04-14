@@ -20,6 +20,13 @@ import pandas as pd
 
 from pysemantic import project as pr
 
+try:
+    from yaml import CLoader as Loader
+    from yaml import CDumper as Dumper
+except ImportError:
+    from yaml import Loader
+    from yaml import Dumper
+
 TEST_CONFIG_FILE_PATH = op.join(op.abspath(op.dirname(__file__)), "testdata",
                                 "test.conf")
 TEST_DATA_DICT = op.join(op.abspath(op.dirname(__file__)), "testdata",
@@ -37,11 +44,11 @@ def _path_fixer(filepath, root=None):
         root = op.join(op.abspath(op.dirname(__file__)))
     if filepath.endswith((".yaml", ".yml")):
         with open(filepath, "r") as fileobj:
-            data = yaml.load(fileobj, Loader=yaml.CLoader)
+            data = yaml.load(fileobj, Loader=Loader)
         for specs in data.itervalues():
             specs['path'] = op.join(root, specs['path'])
         with open(filepath, "w") as fileobj:
-            yaml.dump(data, fileobj, Dumper=yaml.CDumper,
+            yaml.dump(data, fileobj, Dumper=Dumper,
                       default_flow_style=False)
     elif filepath.endswith(".conf"):
         parser = RawConfigParser()
@@ -111,7 +118,7 @@ class BaseProjectTestCase(BaseTestCase):
         cls.maxDiff = None
         # modify the testdata dict to have absolute paths
         with open(TEST_DATA_DICT, "r") as fileobj:
-            test_data = yaml.load(fileobj, Loader=yaml.CLoader)
+            test_data = yaml.load(fileobj, Loader=Loader)
         for _, specs in test_data.iteritems():
             path = op.join(op.abspath(op.dirname(__file__)), specs['path'])
             specs['path'] = path
@@ -128,7 +135,7 @@ class BaseProjectTestCase(BaseTestCase):
         test_data['multi_iris'] = copied_iris_specs
 
         with open(TEST_DATA_DICT, "w") as fileobj:
-            yaml.dump(test_data, fileobj, Dumper=yaml.CDumper,
+            yaml.dump(test_data, fileobj, Dumper=Dumper,
                       default_flow_style=False)
         cls.data_specs = test_data
 
@@ -151,13 +158,13 @@ class BaseProjectTestCase(BaseTestCase):
         try:
             # modify the testdata back
             with open(TEST_DATA_DICT, "r") as fileobj:
-                test_data = yaml.load(fileobj, Loader=yaml.CLoader)
+                test_data = yaml.load(fileobj, Loader=Loader)
             test_data['iris']['path'] = op.join("testdata", "iris.csv")
             test_data['person_activity']['path'] = op.join("testdata",
                                                          "person_activity.tsv")
             del test_data['multi_iris']
             with open(TEST_DATA_DICT, "w") as fileobj:
-                test_data = yaml.dump(test_data, fileobj, Dumper=yaml.CDumper,
+                test_data = yaml.dump(test_data, fileobj, Dumper=Dumper,
                                      default_flow_style=False)
 
             # Change the config files back

@@ -26,6 +26,12 @@ from pysemantic.utils import TypeEncoder
 from pysemantic.custom_traits import (DTypesDict, NaturalNumber, AbsFile,
                                       ValidTraitList)
 
+try:
+    from yaml import CDumper as Dumper
+    from yaml import CLoader as Loader
+except ImportError:
+    from yaml import Dumper, Loader
+
 push_exception_handler(lambda *args: None, reraise_exceptions=True)
 logger = logging.getLogger(__name__)
 
@@ -334,10 +340,10 @@ class SchemaValidator(HasTraits):
             logger.info("Following specs for dataset {0}".format(self.name) +
                         " were written to specfile {0}".format(self.specfile))
             with open(self.specfile, "r") as f:
-                allspecs = yaml.load(f, Loader=yaml.CLoader)
+                allspecs = yaml.load(f, Loader=Loader)
             allspecs[self.name] = specs
             with open(self.specfile, "w") as f:
-                yaml.dump(allspecs, f, Dumper=yaml.CDumper,
+                yaml.dump(allspecs, f, Dumper=Dumper,
                           default_flow_style=False)
         else:
             logger.info("Following parser args were set for dataset {}".format(
@@ -417,7 +423,7 @@ class SchemaValidator(HasTraits):
         if self.specification == {}:
             with open(self.specfile, "r") as f:
                 self.specification = yaml.load(f,
-                                               Loader=yaml.CLoader).get(
+                                               Loader=Loader).get(
                                                                  self.name, {})
 
     def _filepath_default(self):
@@ -443,7 +449,7 @@ class SchemaValidator(HasTraits):
     def _specification_default(self):
         if op.isfile(self.specfile):
             with open(self.specfile, 'r') as f:
-                data = yaml.load(f, Loader=yaml.CLoader).get(self.name, {})
+                data = yaml.load(f, Loader=Loader).get(self.name, {})
             return data
         return {}
 

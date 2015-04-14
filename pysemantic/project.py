@@ -26,6 +26,13 @@ from pysemantic.errors import MissingProject, MissingConfigError
 from pysemantic.loggers import setup_logging
 from pysemantic.utils import TypeEncoder, colnames
 
+try:
+    from yaml import CDumper as Dumper
+    from yaml import CLoader as Loader
+except ImportError:
+    from yaml import Dumper
+    from yaml import Loader
+
 CONF_FILE_NAME = os.environ.get("PYSEMANTIC_CONFIG", "pysemantic.conf")
 logger = logging.getLogger(__name__)
 
@@ -94,10 +101,10 @@ def add_dataset(project_name, dataset_name, dataset_specs):
     """
     data_dict = get_default_specfile(project_name)
     with open(data_dict, "r") as f:
-        spec = yaml.load(f, Loader=yaml.CLoader)
+        spec = yaml.load(f, Loader=Loader)
     spec[dataset_name] = dataset_specs
     with open(data_dict, "w") as f:
-        yaml.dump(spec, f, Dumper=yaml.CDumper, default_flow_style=False)
+        yaml.dump(spec, f, Dumper=Dumper, default_flow_style=False)
 
 
 def remove_dataset(project_name, dataset_name):
@@ -111,10 +118,10 @@ def remove_dataset(project_name, dataset_name):
     """
     data_dict = get_default_specfile(project_name)
     with open(data_dict, "r") as f:
-        spec = yaml.load(f, Loader=yaml.CLoader)
+        spec = yaml.load(f, Loader=Loader)
     del spec[dataset_name]
     with open(data_dict, "w") as f:
-        yaml.dump(spec, f, Dumper=yaml.CDumper, default_flow_style=False)
+        yaml.dump(spec, f, Dumper=Dumper, default_flow_style=False)
 
 
 def get_datasets(project_name=None):
@@ -194,7 +201,7 @@ def get_schema_specs(project_name, dataset_name=None):
     """
     schema_file = get_default_specfile(project_name)
     with open(schema_file, "r") as f:
-        specs = yaml.load(f, Loader=yaml.CLoader)
+        specs = yaml.load(f, Loader=Loader)
     if dataset_name is not None:
         return specs[dataset_name]
     return specs
@@ -212,11 +219,11 @@ def set_schema_specs(project_name, dataset_name, **kwargs):
     """
     schema_file = get_default_specfile(project_name)
     with open(schema_file, "r") as f:
-        specs = yaml.load(f, Loader=yaml.CLoader)
+        specs = yaml.load(f, Loader=Loader)
     for key, value in kwargs.iteritems():
         specs[dataset_name][key] = value
     with open(schema_file, "w") as f:
-        yaml.dump(specs, f, Dumper=yaml.CDumper, default_flow_style=False)
+        yaml.dump(specs, f, Dumper=Dumper, default_flow_style=False)
 
 
 def view_projects():
@@ -268,7 +275,7 @@ class Project(object):
             self.user_specified_parser = False
         self.parser = parser
         with open(self.specfile, 'r') as f:
-            specifications = yaml.load(f, Loader=yaml.CLoader)
+            specifications = yaml.load(f, Loader=Loader)
         self.column_rules = {}
         self.df_rules = {}
         for name, specs in specifications.iteritems():
@@ -284,7 +291,7 @@ class Project(object):
         """Reload the data dictionary and re-populate the schema."""
 
         with open(self.specfile, "r") as f:
-            specifications = yaml.load(f, Loader=yaml.CLoader)
+            specifications = yaml.load(f, Loader=Loader)
         self.validators = {}
         self.column_rules = {}
         self.df_rules = {}
@@ -377,7 +384,7 @@ class Project(object):
                 dtypes[col] = dtype
         new_specs = {'path': path, 'delimiter': sep, 'dtypes': dtypes}
         with open(self.specfile, "r") as fid:
-            specs = yaml.load(fid, Loader=yaml.CLoader)
+            specs = yaml.load(fid, Loader=Loader)
         dataset_specs = specs[dataset_name]
         dataset_specs.update(new_specs)
         if "column_rules" in dataset_specs:
@@ -392,7 +399,7 @@ class Project(object):
                                                                  dataset_name))
         logger.info(json.dumps(dataset_specs, cls=TypeEncoder))
         with open(self.specfile, "w") as fid:
-            yaml.dump(specs, fid, Dumper=yaml.CDumper,
+            yaml.dump(specs, fid, Dumper=Dumper,
                       default_flow_style=False)
 
     def load_dataset(self, dataset_name):

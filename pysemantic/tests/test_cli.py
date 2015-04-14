@@ -25,6 +25,13 @@ from pysemantic.tests.test_base import (BaseTestCase, TEST_CONFIG_FILE_PATH,
                                         TEST_DATA_DICT)
 from pysemantic import project as pr
 
+try:
+    from yaml import CLoader as Loader
+    from yaml import CDumper as Dumper
+except ImportError:
+    from yaml import Loader as Loader
+    from yaml import Dumper as Dumper
+
 
 class TestCLI(BaseTestCase):
 
@@ -49,14 +56,14 @@ class TestCLI(BaseTestCase):
             parser.write(fileobj)
         # change the relative paths in the test dictionary to absolute paths
         with open(TEST_DATA_DICT, "r") as fileobj:
-            cls.org_specs = yaml.load(fileobj, Loader=yaml.CLoader)
+            cls.org_specs = yaml.load(fileobj, Loader=Loader)
         new_specs = deepcopy(cls.org_specs)
         for _, specs in new_specs.iteritems():
             path = specs['path']
             specs['path'] = op.join(op.abspath(op.dirname(__file__)), path)
         # Rewrite this to the file
         with open(TEST_DATA_DICT, "w") as fileobj:
-            yaml.dump(new_specs, fileobj, Dumper=yaml.CDumper,
+            yaml.dump(new_specs, fileobj, Dumper=Dumper,
                       default_flow_style=False)
 
     @classmethod
@@ -64,7 +71,7 @@ class TestCLI(BaseTestCase):
         os.unlink(cls.test_config_path)
         # Rewrite the original specs back to the config dir
         with open(TEST_DATA_DICT, "w") as fileobj:
-            yaml.dump(cls.org_specs, fileobj, Dumper=yaml.CDumper,
+            yaml.dump(cls.org_specs, fileobj, Dumper=Dumper,
                       default_flow_style=False)
 
     def setUp(self):

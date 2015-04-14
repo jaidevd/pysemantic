@@ -27,6 +27,13 @@ from pysemantic.tests.test_base import (BaseProjectTestCase, TEST_DATA_DICT,
                                         TEST_CONFIG_FILE_PATH)
 from pysemantic.errors import MissingProject
 
+try:
+    from yaml import CLoader as Loader
+    from yaml import CDumper as Dumper
+except ImportError:
+    from yaml import Loader
+    from yaml import Dumper
+
 
 class TestProjectModule(BaseProjectTestCase):
 
@@ -59,23 +66,23 @@ class TestProjectModule(BaseProjectTestCase):
         finally:
             shutil.rmtree(tempdir)
             with open(TEST_DATA_DICT, "r") as fileobj:
-                test_specs = yaml.load(fileobj, Loader=yaml.CLoader)
+                test_specs = yaml.load(fileobj, Loader=Loader)
             del test_specs['sample_dataset']
             with open(TEST_DATA_DICT, "w") as fileobj:
-                yaml.dump(test_specs, fileobj, Dumper=yaml.CDumper,
+                yaml.dump(test_specs, fileobj, Dumper=Dumper,
                           default_flow_style=False)
 
     def test_remove_dataset(self):
         """Test if programmatically removing a dataset works."""
         with open(TEST_DATA_DICT, "r") as fileobj:
-            specs = yaml.load(fileobj, Loader=yaml.CLoader)
+            specs = yaml.load(fileobj, Loader=Loader)
         try:
             pr.remove_dataset("pysemantic", "iris")
             self.assertRaises(KeyError, pr.get_schema_specs, "pysemantic",
                               "iris")
         finally:
             with open(TEST_DATA_DICT, "w") as fileobj:
-                yaml.dump(specs, fileobj, Dumper=yaml.CDumper,
+                yaml.dump(specs, fileobj, Dumper=Dumper,
                           default_flow_style=False)
 
     def test_get_schema_spec(self):
@@ -130,10 +137,10 @@ class TestProjectClass(BaseProjectTestCase):
                              columns=map(str, range(5)))
         ideal.to_csv(datapath, index=False)
         with open(TEST_DATA_DICT, "r") as fid:
-            specs = yaml.load(fid, Loader=yaml.CLoader)
+            specs = yaml.load(fid, Loader=Loader)
         specs['fakedata'] = dict(path=datapath)
         with open(TEST_DATA_DICT, "w") as fid:
-            yaml.dump(specs, fid, Dumper=yaml.CDumper)
+            yaml.dump(specs, fid, Dumper=Dumper)
         try:
             project.reload_data_dict()
             actual = project.load_dataset("fakedata")
@@ -142,7 +149,7 @@ class TestProjectClass(BaseProjectTestCase):
             shutil.rmtree(tempdir)
             del specs['fakedata']
             with open(TEST_DATA_DICT, "w") as fid:
-                yaml.dump(specs, fid, Dumper=yaml.CDumper)
+                yaml.dump(specs, fid, Dumper=Dumper)
 
     def test_update_dataset(self):
         """Test if the update_dataset method works."""
@@ -156,7 +163,7 @@ class TestProjectClass(BaseProjectTestCase):
         org_cols = iris.columns.tolist()
         outpath = op.join(tempdir, "iris.csv")
         with open(TEST_DATA_DICT, "r") as fid:
-            org_specs = yaml.load(fid, Loader=yaml.CLoader)
+            org_specs = yaml.load(fid, Loader=Loader)
         try:
             _pr.update_dataset("iris", iris, path=outpath, sep='\t')
             _pr = pr.Project("pysemantic")
@@ -171,7 +178,7 @@ class TestProjectClass(BaseProjectTestCase):
         finally:
             shutil.rmtree(tempdir)
             with open(TEST_DATA_DICT, "w") as fid:
-                yaml.dump(org_specs, fid, Dumper=yaml.CDumper,
+                yaml.dump(org_specs, fid, Dumper=Dumper,
                           default_flow_style=False)
 
     def test_update_dataset_deleted_columns(self):
@@ -181,7 +188,7 @@ class TestProjectClass(BaseProjectTestCase):
         iris = _pr.load_dataset("iris")
         outpath = op.join(tempdir, "iris.csv")
         with open(TEST_DATA_DICT, "r") as fid:
-            org_specs = yaml.load(fid, Loader=yaml.CLoader)
+            org_specs = yaml.load(fid, Loader=Loader)
         try:
             del iris['Species']
             _pr.update_dataset("iris", iris, path=outpath)
@@ -192,7 +199,7 @@ class TestProjectClass(BaseProjectTestCase):
         finally:
             shutil.rmtree(tempdir)
             with open(TEST_DATA_DICT, "w") as fid:
-                yaml.dump(org_specs, fid, Dumper=yaml.CDumper,
+                yaml.dump(org_specs, fid, Dumper=Dumper,
                           default_flow_style=False)
 
     def test_regex_separator(self):
@@ -219,7 +226,7 @@ class TestProjectClass(BaseProjectTestCase):
             shutil.rmtree(tempdir)
 
     def test_load_dataset_wrong_dtypes_in_spec(self):
-        """Test if the loader can safely load columns that have a wrongly
+        """Test if the Loader can safely load columns that have a wrongly
         specified data type in the schema.
         """
         # Make a file with two columns, both specified as integers in the
@@ -234,7 +241,7 @@ class TestProjectClass(BaseProjectTestCase):
         specs = dict(delimiter=',', dtypes={'a': int, 'b': int}, path=outfile)
         specfile = op.join(tempdir, "dict.yaml")
         with open(specfile, "w") as fileobj:
-            yaml.dump({'testdata': specs}, fileobj, Dumper=yaml.CDumper,
+            yaml.dump({'testdata': specs}, fileobj, Dumper=Dumper,
                       default_flow_style=False)
         pr.add_project("wrong_dtype", specfile)
         try:
@@ -248,7 +255,7 @@ class TestProjectClass(BaseProjectTestCase):
             shutil.rmtree(tempdir)
 
     def test_integer_col_na_values(self):
-        """Test if the loader can load columns with integers and NAs.
+        """Test if the Loader can load columns with integers and NAs.
 
         This is necessary because NaNs cannot be represented by integers."""
         x = map(str, range(20))
@@ -260,7 +267,7 @@ class TestProjectClass(BaseProjectTestCase):
         specfile = op.join(tempdir, "dict.yaml")
         specs = dict(delimiter=',', dtypes={'a': int, 'b': int}, path=outfile)
         with open(specfile, "w") as fileobj:
-            yaml.dump({'testdata': specs}, fileobj, Dumper=yaml.CDumper,
+            yaml.dump({'testdata': specs}, fileobj, Dumper=Dumper,
                       default_flow_style=False)
         pr.add_project("wrong_dtype", specfile)
         try:
@@ -278,12 +285,12 @@ class TestProjectClass(BaseProjectTestCase):
         """
         # Modify the schema to remove the nrows
         with open(TEST_DATA_DICT, "r") as fileobj:
-            org_specs = yaml.load(fileobj, Loader=yaml.CLoader)
+            org_specs = yaml.load(fileobj, Loader=Loader)
         new_specs = deepcopy(org_specs)
         for dataset_specs in new_specs.itervalues():
             del dataset_specs['nrows']
         with open(TEST_DATA_DICT, "w") as fileobj:
-            yaml.dump(new_specs, fileobj, Dumper=yaml.CDumper,
+            yaml.dump(new_specs, fileobj, Dumper=Dumper,
                       default_flow_style=False)
         try:
             _pr = pr.Project("pysemantic")
@@ -295,7 +302,7 @@ class TestProjectClass(BaseProjectTestCase):
             self.assertDataFrameEqual(loaded, dframe)
         finally:
             with open(TEST_DATA_DICT, "w") as fileobj:
-                yaml.dump(org_specs, fileobj, Dumper=yaml.CDumper,
+                yaml.dump(org_specs, fileobj, Dumper=Dumper,
                           default_flow_style=False)
 
     def test_get_project_specs(self):
@@ -345,7 +352,7 @@ class TestProjectClass(BaseProjectTestCase):
         properly."""
         try:
             with open(TEST_DATA_DICT, "r") as fileobj:
-                oldspecs = yaml.load(fileobj, Loader=yaml.CLoader)
+                oldspecs = yaml.load(fileobj, Loader=Loader)
             path = op.join(op.abspath(op.dirname(__file__)), "testdata",
                            "iris.csv")
             specs = dict(filepath_or_buffer=path,
@@ -354,11 +361,11 @@ class TestProjectClass(BaseProjectTestCase):
             self.assertTrue(self.project.set_dataset_specs("iris", specs,
                                                            write_to_file=True))
             with open(TEST_DATA_DICT, "r") as fileobj:
-                newspecs = yaml.load(fileobj, Loader=yaml.CLoader)
+                newspecs = yaml.load(fileobj, Loader=Loader)
             self.assertKwargsEqual(newspecs['iris'], specs)
         finally:
             with open(TEST_DATA_DICT, "w") as fileobj:
-                yaml.dump(oldspecs, fileobj, Dumper=yaml.CDumper,
+                yaml.dump(oldspecs, fileobj, Dumper=Dumper,
                           default_flow_style=False)
 
     def test_load_all(self):
@@ -377,7 +384,7 @@ class TestProjectClass(BaseProjectTestCase):
         self.assertDataFrameEqual(loaded['multi_iris'], dframe)
 
     def test_dataset_colnames(self):
-        """Check if the column names read by the loader are correct."""
+        """Check if the column names read by the Loader are correct."""
         for name in ['iris', 'person_activity']:
             loaded = self.project.load_dataset(name)
             columns = loaded.columns.tolist()

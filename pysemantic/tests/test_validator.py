@@ -24,6 +24,13 @@ from pysemantic.tests.test_base import (BaseTestCase, _dummy_converter,
 from pysemantic.validator import (SeriesValidator, SchemaValidator,
                                   DataFrameValidator)
 
+try:
+    from yaml import CLoader as Loader
+    from yaml import CDumper as Dumper
+except ImportError:
+    from yaml import Loader
+    from yaml import Dumper
+
 
 class TestSchemaValidator(BaseTestCase):
 
@@ -35,7 +42,7 @@ class TestSchemaValidator(BaseTestCase):
         cls.specfile = op.join(op.dirname(__file__), "testdata",
                                "test_dictionary.yaml")
         with open(cls.specfile, "r") as fileobj:
-            cls._basespecs = yaml.load(fileobj, Loader=yaml.CLoader)
+            cls._basespecs = yaml.load(fileobj, Loader=Loader)
         cls.specs = deepcopy(cls._basespecs)
 
         # fix the paths in basespecs if they aren't absolute
@@ -46,7 +53,7 @@ class TestSchemaValidator(BaseTestCase):
         # The updated values also need to be dumped into the yaml file, because
         # some functionality of the validator depends on parsing it.
         with open(cls.specfile, "w") as fileobj:
-            yaml.dump(cls.specs, fileobj, Dumper=yaml.CDumper,
+            yaml.dump(cls.specs, fileobj, Dumper=Dumper,
                       default_flow_style=False)
 
         cls.ideal_activity_parser_args = _get_person_activity_args()
@@ -55,7 +62,7 @@ class TestSchemaValidator(BaseTestCase):
     @classmethod
     def tearDownClass(cls):
         with open(cls.specfile, "w") as fileobj:
-            yaml.dump(cls._basespecs, fileobj, Dumper=yaml.CDumper,
+            yaml.dump(cls._basespecs, fileobj, Dumper=Dumper,
                       default_flow_style=False)
 
     def setUp(self):
@@ -369,7 +376,7 @@ class TestDataFrameValidator(BaseTestCase):
     def setUpClass(cls):
         cls.maxDiff = None
         with open(TEST_DATA_DICT, 'r') as fileobj:
-            basespecs = yaml.load(fileobj, Loader=yaml.CLoader)
+            basespecs = yaml.load(fileobj, Loader=Loader)
         # Fix the paths in basespecs
         for _, specs in basespecs.iteritems():
             rlpth = specs['path']
