@@ -280,6 +280,22 @@ class Project(object):
             self.column_rules[name] = specs.get('column_rules', {})
             self.df_rules[name] = specs.get('dataframe_rules', {})
 
+    def reload_datasets(self):
+        with open(self.specfile, "r") as f:
+            specifications = yaml.load(f, Loader=yaml.CLoader)
+        self.validators = {}
+        self.column_rules = {}
+        self.df_rules = {}
+        logger.info("Reloading project information.")
+        for name, specs in specifications.iteritems():
+            logger.info("Schema for dataset {0}:".format(name))
+            logger.info(json.dumps(specs, cls=TypeEncoder))
+            self.validators[name] = SchemaValidator(specification=specs,
+                                                    specfile=self.specfile,
+                                                    name=name)
+            self.column_rules[name] = specs.get('column_rules', {})
+            self.df_rules[name] = specs.get('dataframe_rules', {})
+
     @property
     def datasets(self):
         return self.validators.keys()
@@ -431,7 +447,7 @@ class Project(object):
         :return None:
         """
         if not self.user_specified_parser:
-            sep = argdict['sep']
+            sep = argdict.get('sep', ",")
             if sep == ",":
                 self.parser = pd.read_csv
             else:
