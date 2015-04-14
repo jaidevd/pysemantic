@@ -83,7 +83,11 @@ class BaseTestCase(unittest.TestCase):
         self.assertTrue(np.all(dframe1.index == dframe2.index))
         self.assertTrue(np.all(dframe1.columns == dframe2.columns))
         for col in dframe1:
-            self.assertTrue(np.all(dframe1[col].values == dframe2[col].values))
+            try:
+                self.assertTrue(np.all(dframe1[col] == dframe2[col]))
+            except AssertionError:
+                from IPython.core.debugger import Tracer
+                Tracer()()
             self.assertEqual(dframe1[col].dtype, dframe2[col].dtype)
 
     def assertSeriesEqual(self, s1, s2):
@@ -175,8 +179,6 @@ class BaseProjectTestCase(BaseTestCase):
                                             'Petal Width': float,
                                             'Sepal Length': float,
                                             'Species': str},
-                      'usecols': ['Petal Length', 'Sepal Length',
-                                  'Sepal Width', 'Petal Width', 'Species'],
                       'nrows': 150,
                       'filepath_or_buffer': op.join(
                                               op.abspath(op.dirname(__file__)),
@@ -191,8 +193,6 @@ class BaseProjectTestCase(BaseTestCase):
                                                         'tag': str, 'x': float,
                                                         'y': float, 'z': float,
                                                         },
-                                 'usecols': ['activity', 'sequence_name',
-                                             'tag', 'x', 'y', 'z', 'date'],
                                  'parse_dates': ['date'], 'nrows': 100,
                                  'filepath_or_buffer': op.join(
                                               op.abspath(op.dirname(__file__)),
@@ -269,9 +269,7 @@ def _get_iris_args():
                        'Petal Width': float,
                        'Sepal Length': float,
                        'Sepal Width': float,
-                       'Species': str},
-                usecols=['Petal Length', 'Sepal Length', 'Petal Width',
-                         'Sepal Width', 'Species'])
+                       'Species': str})
 
 
 def _get_person_activity_args():
@@ -284,8 +282,6 @@ def _get_person_activity_args():
                                             'y': float,
                                             'z': float,
                                             'activity': str},
-                usecols=['sequence_name', 'tag', 'date', 'x', 'y', 'z',
-                         'activity'],
                 parse_dates=['date'])
 
 if __name__ == '__main__':

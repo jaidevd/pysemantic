@@ -1,19 +1,14 @@
 iris:
   column_rules:
     Petal Length:
-      drop_duplicates: false
       minimum: 0.0
     Petal Width:
-      drop_duplicates: false
       minimum: 0.0
     Sepal Length:
-      drop_duplicates: false
       minimum: 0.0
     Sepal Width:
-      drop_duplicates: false
       minimum: 0.0
     Species:
-      drop_duplicates: false
       drop_na: false
       regex: \b[a-z]+\b
       unique_values:

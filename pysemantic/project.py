@@ -24,7 +24,7 @@ import numpy as np
 from pysemantic.validator import SchemaValidator, DataFrameValidator
 from pysemantic.errors import MissingProject, MissingConfigError
 from pysemantic.loggers import setup_logging
-from pysemantic.utils import TypeEncoder
+from pysemantic.utils import TypeEncoder, colnames
 
 CONF_FILE_NAME = os.environ.get("PYSEMANTIC_CONFIG", "pysemantic.conf")
 logger = logging.getLogger(__name__)
@@ -280,7 +280,9 @@ class Project(object):
             self.column_rules[name] = specs.get('column_rules', {})
             self.df_rules[name] = specs.get('dataframe_rules', {})
 
-    def reload_datasets(self):
+    def reload_data_dict(self):
+        """Reload the data dictionary and re-populate the schema."""
+
         with open(self.specfile, "r") as f:
             specifications = yaml.load(f, Loader=yaml.CLoader)
         self.validators = {}
@@ -521,6 +523,8 @@ class Project(object):
         """
         dtypes = parser_args.get("dtype")
         usecols = parser_args.get("usecols")
+        if usecols is None:
+            usecols = colnames(parser_args['filepath_or_buffer'])
         int_cols = [col for col in usecols if dtypes.get(col) is int]
         fpath = parser_args['filepath_or_buffer']
         sep = parser_args['sep']

@@ -121,6 +121,29 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_reload_data_dict(self):
+        """Test if the reload_data_dict method works."""
+        project = pr.Project("pysemantic")
+        tempdir = tempfile.mkdtemp()
+        datapath = op.join(tempdir, "data.csv")
+        ideal = pd.DataFrame(np.random.randint(0, 9, size=(10, 5)),
+                             columns=map(str, range(5)))
+        ideal.to_csv(datapath, index=False)
+        with open(TEST_DATA_DICT, "r") as fid:
+            specs = yaml.load(fid, Loader=yaml.CLoader)
+        specs['fakedata'] = dict(path=datapath)
+        with open(TEST_DATA_DICT, "w") as fid:
+            yaml.dump(specs, fid, Dumper=yaml.CDumper)
+        try:
+            project.reload_data_dict()
+            actual = project.load_dataset("fakedata")
+            self.assertDataFrameEqual(ideal, actual)
+        finally:
+            shutil.rmtree(tempdir)
+            del specs['fakedata']
+            with open(TEST_DATA_DICT, "w") as fid:
+                yaml.dump(specs, fid, Dumper=yaml.CDumper)
+
     def test_update_dataset(self):
         """Test if the update_dataset method works."""
         tempdir = tempfile.mkdtemp()

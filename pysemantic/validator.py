@@ -294,7 +294,7 @@ class SchemaValidator(HasTraits):
 
     # Names of the columns in the dataset. This is just a convenience trait,
     # it's value is just a list of the keys of `dtypes`
-    colnames = Property(List, depends_on=['dtypes'])
+    colnames = Property(List, depends_on=['specification'])
 
     # List of required traits
     # FIXME: Arguments required by the schema should't have to be programmed
@@ -387,8 +387,9 @@ class SchemaValidator(HasTraits):
     def _set_parser_args(self, specs):
         self.parser_args.update(specs)
 
+    @cached_property
     def _get_colnames(self):
-        return self._dtypes.keys()
+        return self.specification.get('use_columns', [])
 
     @cached_property
     def _get__filepath(self):
