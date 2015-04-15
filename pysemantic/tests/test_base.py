@@ -90,11 +90,7 @@ class BaseTestCase(unittest.TestCase):
         self.assertTrue(np.all(dframe1.index == dframe2.index))
         self.assertTrue(np.all(dframe1.columns == dframe2.columns))
         for col in dframe1:
-            try:
-                self.assertTrue(np.all(dframe1[col] == dframe2[col]))
-            except AssertionError:
-                from IPython.core.debugger import Tracer
-                Tracer()()
+            self.assertTrue(np.all(dframe1[col] == dframe2[col]))
             self.assertEqual(dframe1[col].dtype, dframe2[col].dtype)
 
     def assertSeriesEqual(self, s1, s2):
