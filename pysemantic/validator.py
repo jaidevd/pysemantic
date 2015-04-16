@@ -13,6 +13,7 @@ import copy
 import json
 import logging
 import datetime
+import warnings
 import os.path as op
 
 import yaml
@@ -22,7 +23,7 @@ from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
                         Bool, Either, push_exception_handler, cached_property,
                         Array, Instance, Callable, Float)
 
-from pysemantic.utils import TypeEncoder
+from pysemantic.utils import TypeEncoder, get_md5_checksum
 from pysemantic.custom_traits import (DTypesDict, NaturalNumber, AbsFile,
                                       ValidTraitList)
 
@@ -302,6 +303,9 @@ class SchemaValidator(HasTraits):
     # it's value is just a list of the keys of `dtypes`
     colnames = Property(List, depends_on=['specification'])
 
+    # md5 checksum of the dataset file
+    md5 = Property(Str, depends_on=['filepath'])
+
     # List of required traits
     # FIXME: Arguments required by the schema should't have to be programmed
     # into the validator class. There must be a way to enforce requirements
@@ -362,6 +366,14 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get_parser_args(self):
+        if self.md5:
+            if self.md5 != get_md5_checksum(self.filepath):
+                msg = \
+                    """The MD5 checksum of the file {} does not match the one
+                     specified in the schema. This may not be the file you are
+                     looking for."""
+                logger.warn(msg.format(self.filepath))
+                warnings.warn(msg.format(self.filepath), UserWarning)
         args = {}
         if self._delimiter:
             args['sep'] = self._delimiter
@@ -392,6 +404,10 @@ class SchemaValidator(HasTraits):
 
     def _set_parser_args(self, specs):
         self.parser_args.update(specs)
+
+    @cached_property
+    def _get_md5(self):
+        return self.specification.get("md5", "")
 
     @cached_property
     def _get_colnames(self):

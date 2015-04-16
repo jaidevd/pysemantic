@@ -7,7 +7,7 @@
 # Distributed under terms of the MIT license.
 
 """
-Misecellaneous bells and whistles
+Misecellaneous bells and whistles.
 """
 
 import json
@@ -43,3 +43,17 @@ def colnames(filename, **kwargs):
         kwargs.pop('nrows')
     import pandas as pd
     return pd.read_csv(filename, nrows=1, **kwargs).columns.tolist()
+
+
+def get_md5_checksum(filepath):
+    """Get the md5 checksum of a file.
+
+    :param filepath: Path to the file of which to calculate the md5 checksum.
+    :type filepath: Str
+    :return: MD5 checksum of the file.
+    :rtype: Str
+    """
+    import hashlib
+    with open(filepath, "rb") as fid:
+        checksum = hashlib.md5(fid.read()).hexdigest()
+    return checksum

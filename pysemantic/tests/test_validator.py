@@ -11,6 +11,9 @@
 import os
 import os.path as op
 import unittest
+import tempfile
+import warnings
+import shutil
 from copy import deepcopy
 
 import numpy as np
@@ -23,6 +26,7 @@ from pysemantic.tests.test_base import (BaseTestCase, _dummy_converter,
                                         _get_person_activity_args)
 from pysemantic.validator import (SeriesValidator, SchemaValidator,
                                   DataFrameValidator)
+from pysemantic.utils import get_md5_checksum
 
 try:
     from yaml import CLoader as Loader
@@ -70,6 +74,25 @@ class TestSchemaValidator(BaseTestCase):
         # tests strangely fail. I think one or both of the following two tests
         # are messing up the base specifications.
         self.basespecs = deepcopy(self.specs)
+
+    def test_md5(self):
+        """Check if the md5 checksum validation works properly."""
+        schema = deepcopy(self.basespecs["iris"])
+        schema['md5'] = get_md5_checksum(schema['path'])
+        SchemaValidator(specification=schema)
+        tempdir = tempfile.mkdtemp()
+        outpath = op.join(tempdir, "bad_iris.csv")
+        iris = pd.read_csv(schema['path'])
+        del iris['Species']
+        iris.to_csv(outpath, index=False)
+        schema['path'] = outpath
+        try:
+            with warnings.catch_warnings(record=True) as catcher:
+                SchemaValidator(specification=schema).get_parser_args()
+                assert len(catcher) == 1
+                assert issubclass(catcher[-1].category, UserWarning)
+        finally:
+            shutil.rmtree(tempdir)
 
     def test_pandas_defaults_empty_specs(self):
         """Test if the validator falls back to pandas defaults for empty specs.
