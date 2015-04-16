@@ -11,6 +11,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   schema_ref
+
 
 
 Indices and tables
