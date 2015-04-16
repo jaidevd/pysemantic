@@ -58,7 +58,7 @@ class TestProjectModule(BaseProjectTestCase):
         outpath = op.join(tempdir, "foo.csv")
         dframe = pd.DataFrame(np.random.random((10, 10)))
         dframe.to_csv(outpath, index=False)
-        specs = dict(path=outpath, delimiter=',', ncols=10, nrows=10)
+        specs = dict(path=outpath, delimiter=',', nrows=10)
         try:
             pr.add_dataset("pysemantic", "sample_dataset", specs)
             parsed_specs = pr.get_schema_specs("pysemantic", "sample_dataset")

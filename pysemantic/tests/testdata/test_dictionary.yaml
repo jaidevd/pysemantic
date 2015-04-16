@@ -24,7 +24,6 @@ iris:
     Sepal Length: *id001
     Sepal Width: *id001
     Species: &id002 !!python/name:__builtin__.str 
-  ncols: 5
   nrows: 150
   path: testdata/iris.csv
 person_activity:
@@ -57,6 +56,5 @@ person_activity:
     x: *id001
     y: *id001
     z: *id001
-  ncols: 7
   nrows: 100
   path: testdata/person_activity.tsv

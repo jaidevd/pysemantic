@@ -292,9 +292,6 @@ class SchemaValidator(HasTraits):
     # number of rows in the dataset
     nrows = Either(NaturalNumber, List(NaturalNumber))
 
-    # number of columns in the dataset
-    ncols = NaturalNumber
-
     # A dictionary whose keys are the names of the columns in the dataset, and
     # the keys are the datatypes of the corresponding columns
     dtypes = DTypesDict(key_trait=Str, value_trait=Type)
@@ -326,8 +323,6 @@ class SchemaValidator(HasTraits):
     _delimiter = Property(Str, depends_on=['specification'])
 
     _nrows = Property(Int, depends_on=['specification'])
-
-    _ncols = Property(Int, depends_on=['specification'])
 
     # Public interface
 
@@ -422,10 +417,6 @@ class SchemaValidator(HasTraits):
         return self.specification.get('nrows', 1)
 
     @cached_property
-    def _get__ncols(self):
-        return self.specification.get('ncols', 1)
-
-    @cached_property
     def _get__dtypes(self):
         return self.specification.get('dtypes', {})
 
@@ -456,9 +447,6 @@ class SchemaValidator(HasTraits):
 
     def __nrows_changed(self):
         self.nrows = self._nrows
-
-    def __ncols_changed(self):
-        self.ncols = self._ncols
 
     # Trait initializers
 
