@@ -11,6 +11,8 @@ pylint:
     - invalid-name
     - missing-docstring
     - star-args
+    - logging-format-interpolation
+    - bad-builtin
 ignore-paths:
   - docs
 pep8:

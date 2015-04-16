@@ -25,6 +25,7 @@ from pysemantic.validator import SchemaValidator, DataFrameValidator
 from pysemantic.errors import MissingProject, MissingConfigError
 from pysemantic.loggers import setup_logging
 from pysemantic.utils import TypeEncoder, colnames
+from pysemantic.exporters import AerospikeExporter
 
 try:
     from yaml import CDumper as Dumper
@@ -286,6 +287,24 @@ class Project(object):
                                                     name=name)
             self.column_rules[name] = specs.get('column_rules', {})
             self.df_rules[name] = specs.get('dataframe_rules', {})
+        self.specifications = specifications
+
+    def export_dataset(self, dataset_name, dataframe=None):
+        """Export a dataset to an exporter defined in the schema.
+
+        :param dataset_name: Name of the dataset to exporter.
+        :param dataframe: Pandas dataframe to export. If None (default), this
+        dataframe is loaded using the `load_dataset` method.
+        :type dataset_name: Str
+        """
+        if dataframe is None:
+            dataframe = self.load_dataset(dataset_name)
+        config = self.specifications[dataset_name]['exporter']
+        if config['kind'] == "aerospike":
+            config['namespace'] = self.project_name
+            config['set'] = dataset_name
+            exporter = AerospikeExporter(config, dataframe)
+            exporter.run()
 
     def reload_data_dict(self):
         """Reload the data dictionary and re-populate the schema."""
@@ -304,6 +323,7 @@ class Project(object):
                                                     name=name)
             self.column_rules[name] = specs.get('column_rules', {})
             self.df_rules[name] = specs.get('dataframe_rules', {})
+        self.specifications = specifications
 
     @property
     def datasets(self):
