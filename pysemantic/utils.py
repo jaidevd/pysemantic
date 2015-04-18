@@ -31,6 +31,16 @@ def colnames(filename, **kwargs):
 
     :param filename: Path to the file to be read
     :param kwargs: Arguments to be passed to the `pandas.read_csv`
+    :type filename: str
+    :rtype: list
+
+    :Example:
+
+    Suppose we want to see the column names of the Fisher iris dataset.
+
+    >>> colnames("/path/to/iris.csv")
+    ['Sepal Length', 'Petal Length', 'Sepal Width', 'Petal Width', 'Species']
+
     """
 
     if 'nrows' in kwargs:
@@ -48,6 +58,10 @@ def get_md5_checksum(filepath):
     :type filepath: Str
     :return: MD5 checksum of the file.
     :rtype: Str
+    :Example:
+    >>> get_md5_checksum('pysemantic/tests/testdata/iris.csv')
+    '9b3ecf3031979169c0ecc5e03cfe20a6'
+
     """
     import hashlib
     with open(filepath, "rb") as fid:

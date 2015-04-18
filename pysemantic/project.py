@@ -43,6 +43,9 @@ def locate_config_file():
 
     :return: Path of the pysemantic config file.
     :rtype: str
+    :Example:
+    >>> locate_config_file()
+    '/home/username/pysemantic.conf'
     """
     paths = [op.join(os.getcwd(), CONF_FILE_NAME),
              op.join(op.expanduser('~'), CONF_FILE_NAME)]
@@ -63,6 +66,9 @@ def get_default_specfile(project_name):
     :type project_name: str
     :return: Path to the data dictionary of the project.
     :rtype: str
+    :Example:
+    >>> get_default_specfile('skynet')
+    '/home/username/projects/skynet/schema.yaml'
     """
     path = locate_config_file()
     parser = RawConfigParser()
@@ -135,6 +141,12 @@ def get_datasets(project_name=None):
             `project_name` is `None`, returns dictionary such that \
             {project_name: [list of projects]}
     :rtype: dict or list
+    :Example:
+    >>> get_datasets('skynet')
+    ['sarah_connor', 'john_connor', 'kyle_reese']
+    >>> get_datasets()
+    {'skynet': ['sarah_connor', 'john_connor', 'kyle_reese'],
+     'south park': ['stan', 'kyle', 'cartman', 'kenny']}
     """
     if project_name is not None:
         specs = get_schema_specs(project_name)
@@ -156,6 +168,9 @@ def set_schema_fpath(project_name, schema_fpath):
     :type project_name: str
     :type schema_fpath: str
     :return: True, if setting the schema path was successful.
+    :Example:
+    >>> set_schema_fpath('skynet', '/path/to/new/schema.yaml')
+    True
     """
     path = locate_config_file()
     parser = RawConfigParser()
@@ -178,6 +193,9 @@ def get_projects():
     :return: List of tuples, such that each tuple is (project_name, \
             location_of_specfile)
     :rtype: list
+    :Example:
+    >>> get_projects()
+    ['skynet', 'south park']
     """
     path = locate_config_file()
     parser = RawConfigParser()
@@ -200,6 +218,15 @@ def get_schema_specs(project_name, dataset_name=None):
     :type dataset_name: str
     :return: schema for dataset
     :rtype: dict
+    :Example:
+    >>> get_schema_specs('skynet')
+    {'sarah connor': {'path': '/path/to/sarah_connor.csv',
+                      'delimiter': ','},
+     'kyle reese': {'path': '/path/to/kyle_reese.tsv',
+                    'delimiter':, '\t'}
+     'john connor': {'path': '/path/to/john_connor.txt',
+                    'delimiter':, ' '}
+     }
     """
     schema_file = get_default_specfile(project_name)
     with open(schema_file, "r") as f:
@@ -218,6 +245,10 @@ def set_schema_specs(project_name, dataset_name, **kwargs):
     :type project_name: str
     :type dataset_name: str
     :return: None
+    :Example:
+    >>> set_schema_specs('skynet', 'kyle reese',
+                         {'path': '/path/to/new/file.csv',
+                          'delimiter': new_delimiter})
     """
     schema_file = get_default_specfile(project_name)
     with open(schema_file, "r") as f:
@@ -229,7 +260,13 @@ def set_schema_specs(project_name, dataset_name, **kwargs):
 
 
 def view_projects():
-    """View a list of all projects currently registered with pysemantic."""
+    """View a list of all projects currently registered with pysemantic.
+
+    :Example:
+    >>> view_projects()
+    Project skynet with specfile at /path/to/skynet.yaml
+    Project south park with specfile at /path/to/south_park.yaml
+    """
     projects = get_projects()
     for project_name, specfile in projects:
         print "Project {0} with specfile at {1}".format(project_name, specfile)
@@ -242,6 +279,13 @@ def remove_project(project_name):
     :type project_name: str
     :return: True if the project existed
     :rtype: bool
+    :Example:
+    >>> view_projects()
+    Project skynet with specfile at /path/to/skynet.yaml
+    Project south park with specfile at /path/to/south_park.yaml
+    >>> remove_project('skynet')
+    >>> view_projects()
+    Project south park with specfile at /path/to/south_park.yaml
     """
     path = locate_config_file()
     parser = RawConfigParser()
@@ -328,6 +372,13 @@ class Project(object):
 
     @property
     def datasets(self):
+        """"List the datasets registered under the parent project.
+
+        :Example:
+        >>> project = Project('skynet')
+        >>> project.datasets
+        ['sarah connor', 'john connor', 'kyle reese']
+        """
         return self.validators.keys()
 
     def get_dataset_specs(self, dataset_name):
@@ -431,6 +482,11 @@ class Project(object):
         :type dataset_name: str
         :return: A pandas DataFrame containing the dataset.
         :rtype: pandas.DataFrame
+        :Example:
+        >>> demo_project = Project('pysemantic_demo')
+        >>> iris = demo_project.load_dataset('iris')
+        >>> type(iris)
+        pandas.core.DataFrame
         """
         validator = self.validators[dataset_name]
         column_rules = self.column_rules.get(dataset_name, {})
