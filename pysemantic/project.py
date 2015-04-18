@@ -44,6 +44,7 @@ def locate_config_file():
     :return: Path of the pysemantic config file.
     :rtype: str
     :Example:
+
     >>> locate_config_file()
     '/home/username/pysemantic.conf'
     """
@@ -67,6 +68,7 @@ def get_default_specfile(project_name):
     :return: Path to the data dictionary of the project.
     :rtype: str
     :Example:
+
     >>> get_default_specfile('skynet')
     '/home/username/projects/skynet/schema.yaml'
     """
@@ -142,6 +144,7 @@ def get_datasets(project_name=None):
             {project_name: [list of projects]}
     :rtype: dict or list
     :Example:
+
     >>> get_datasets('skynet')
     ['sarah_connor', 'john_connor', 'kyle_reese']
     >>> get_datasets()
@@ -169,6 +172,7 @@ def set_schema_fpath(project_name, schema_fpath):
     :type schema_fpath: str
     :return: True, if setting the schema path was successful.
     :Example:
+
     >>> set_schema_fpath('skynet', '/path/to/new/schema.yaml')
     True
     """
@@ -194,6 +198,7 @@ def get_projects():
             location_of_specfile)
     :rtype: list
     :Example:
+
     >>> get_projects()
     ['skynet', 'south park']
     """
@@ -219,6 +224,7 @@ def get_schema_specs(project_name, dataset_name=None):
     :return: schema for dataset
     :rtype: dict
     :Example:
+
     >>> get_schema_specs('skynet')
     {'sarah connor': {'path': '/path/to/sarah_connor.csv',
                       'delimiter': ','},
@@ -246,6 +252,7 @@ def set_schema_specs(project_name, dataset_name, **kwargs):
     :type dataset_name: str
     :return: None
     :Example:
+
     >>> set_schema_specs('skynet', 'kyle reese',
                          {'path': '/path/to/new/file.csv',
                           'delimiter': new_delimiter})
@@ -263,6 +270,7 @@ def view_projects():
     """View a list of all projects currently registered with pysemantic.
 
     :Example:
+
     >>> view_projects()
     Project skynet with specfile at /path/to/skynet.yaml
     Project south park with specfile at /path/to/south_park.yaml
@@ -280,6 +288,7 @@ def remove_project(project_name):
     :return: True if the project existed
     :rtype: bool
     :Example:
+
     >>> view_projects()
     Project skynet with specfile at /path/to/skynet.yaml
     Project south park with specfile at /path/to/south_park.yaml
@@ -375,6 +384,7 @@ class Project(object):
         """"List the datasets registered under the parent project.
 
         :Example:
+
         >>> project = Project('skynet')
         >>> project.datasets
         ['sarah connor', 'john connor', 'kyle reese']
@@ -483,6 +493,7 @@ class Project(object):
         :return: A pandas DataFrame containing the dataset.
         :rtype: pandas.DataFrame
         :Example:
+
         >>> demo_project = Project('pysemantic_demo')
         >>> iris = demo_project.load_dataset('iris')
         >>> type(iris)

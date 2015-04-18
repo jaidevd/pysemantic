@@ -59,6 +59,7 @@ def get_md5_checksum(filepath):
     :return: MD5 checksum of the file.
     :rtype: Str
     :Example:
+
     >>> get_md5_checksum('pysemantic/tests/testdata/iris.csv')
     '9b3ecf3031979169c0ecc5e03cfe20a6'
 
