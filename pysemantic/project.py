@@ -55,9 +55,9 @@ def locate_config_file():
 
 
 def get_default_specfile(project_name):
-    """Returns the specifications file used by the given project. The
-    configuration file is searched for first in the current directory and then
-    in the home directory.
+    """Returns the specifications file used by the given project. The \
+            configuration file is searched for first in the current directory \
+            and then in the home directory.
 
     :param project_name: Name of the project for which to get the spcfile.
     :type project_name: str
@@ -91,8 +91,8 @@ def add_project(project_name, specfile):
 def add_dataset(project_name, dataset_name, dataset_specs):
     """Add a dataset to a project.
 
-    :param project_name: Name of the project to which the dataset is to be
-    added.
+    :param project_name: Name of the project to which the dataset is to be \
+            added.
     :param dataset_name: Name of the dataset to be added.
     :param dataset_specs: Specifications of the dataset.
     :type project_name: str
@@ -128,11 +128,12 @@ def remove_dataset(project_name, dataset_name):
 def get_datasets(project_name=None):
     """Get names of all datasets registered under the project `project_name`.
 
-    :param project_name: name of the projects to list the datasets from. If
-    None (default), datasets under all projects are returned.
+    :param project_name: name of the projects to list the datasets from. If \
+            `None` (default), datasets under all projects are returned.
     :type project_name: str
-    :return: List of datasets listed under `project_name`, or if `project_name`
-    is None, returns dictionary such that {project_name: [list of projects]}
+    :return: List of datasets listed under `project_name`, or if \
+            `project_name` is `None`, returns dictionary such that \
+            {project_name: [list of projects]}
     :rtype: dict or list
     """
     if project_name is not None:
@@ -150,8 +151,8 @@ def set_schema_fpath(project_name, schema_fpath):
     """Set the schema path for a given project.
 
     :param project_name: Name of the project
-    :param schema_fpath: path to the yaml file to be used as the schema for the
-    project.
+    :param schema_fpath: path to the yaml file to be used as the schema for \
+            the project.
     :type project_name: str
     :type schema_fpath: str
     :return: True, if setting the schema path was successful.
@@ -174,8 +175,8 @@ def get_projects():
     """Get the list of projects currently registered with pysemantic as a
     list.
 
-    :return: List of tuples, such that each tuple is (project_name,
-    location_of_specfile)
+    :return: List of tuples, such that each tuple is (project_name, \
+            location_of_specfile)
     :rtype: list
     """
     path = locate_config_file()
@@ -193,8 +194,8 @@ def get_schema_specs(project_name, dataset_name=None):
     """Get the specifications of a dataset as specified in the schema.
 
     :param project_name: Name of project
-    :param dataset_name: name of the dataset for which to get the schema. If
-    None(default), schema for all datasets is returned.
+    :param dataset_name: name of the dataset for which to get the schema. If \
+            None (default), schema for all datasets is returned.
     :type project_name: str
     :type dataset_name: str
     :return: schema for dataset
@@ -213,7 +214,7 @@ def set_schema_specs(project_name, dataset_name, **kwargs):
 
     :param project_name: Name of the project containing the dataset.
     :param dataset_name: Name of the dataset of which the schema is being set.
-    :param **kwargs: Schema fields that are dumped into the schema files.
+    :param kwargs: Schema fields that are dumped into the schema files.
     :type project_name: str
     :type dataset_name: str
     :return: None
@@ -259,10 +260,10 @@ class Project(object):
     def __init__(self, project_name, parser=None):
         """The Project class.
 
-        :param project_name: Name of the project as specified in the pysemantic
-        configuration file.
-        :param parser: The parser to be used for reading dataset files. The
-        default is `pandas.read_table`.
+        :param project_name: Name of the project as specified in the \
+                pysemantic configuration file.
+        :param parser: The parser to be used for reading dataset files. The \
+                default is `pandas.read_table`.
         """
         setup_logging(project_name)
         self.project_name = project_name
@@ -293,8 +294,8 @@ class Project(object):
         """Export a dataset to an exporter defined in the schema.
 
         :param dataset_name: Name of the dataset to exporter.
-        :param dataframe: Pandas dataframe to export. If None (default), this
-        dataframe is loaded using the `load_dataset` method.
+        :param dataframe: Pandas dataframe to export. If None (default), this \
+                dataframe is loaded using the `load_dataset` method.
         :type dataset_name: Str
         """
         if dataframe is None:
@@ -342,6 +343,7 @@ class Project(object):
     def get_project_specs(self):
         """Returns a dictionary containing the schema for all datasets listed
         under this project.
+
         :return: Parser arguments for all datasets listed under the project.
         :rtype: dict
         """
@@ -364,14 +366,14 @@ class Project(object):
         recommended. All specifications for datasets should be handled through
         the data dictionary.
 
-        :param dataset_name: Name of the dataset for which specifications need
-        to be modified.
-        :param specs: A dictionary containing the new specifications for the
-        dataset.
-        :param write_to_file: If true, the data dictionary will be updated to
-        the new specifications. If False (the default), the new specifications
-        are used for the respective dataset only for the lifetime of the
-        `Project` object.
+        :param dataset_name: Name of the dataset for which specifications \
+                need to be modified.
+        :param specs: A dictionary containing the new specifications for the \
+                dataset.
+        :param write_to_file: If true, the data dictionary will be updated to \
+                the new specifications. If False (the default), the new \
+                specifications are used for the respective dataset only for \
+                the lifetime of the `Project` object.
         :type dataset_name: str
         :type specs: dict
         :type write_to_file: bool
@@ -423,7 +425,7 @@ class Project(object):
                       default_flow_style=False)
 
     def load_dataset(self, dataset_name):
-        """Load and return the dataset.
+        """Load and return a dataset.
 
         :param dataset_name: Name of the dataset
         :type dataset_name: str
@@ -459,7 +461,7 @@ class Project(object):
             return pd.concat(dfs, axis=0)
 
     def load_datasets(self):
-        """Loads and returns all datasets.
+        """Load and return all datasets.
 
         :return: dictionary like {dataset_name: dataframe}
         :rtype: dict

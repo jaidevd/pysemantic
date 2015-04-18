@@ -28,13 +28,9 @@ def colnames(filename, **kwargs):
     whole file. This is simply a wrapper around `pandas.read_csv`, which reads
     only one row and returns the column names.
 
-    Parameters:
-    -----------
 
-    filename: Path to the file to be read
-
-    kwargs: Arguments to be passed to the `pandas.read_csv`
-
+    :param filename: Path to the file to be read
+    :param kwargs: Arguments to be passed to the `pandas.read_csv`
     """
 
     if 'nrows' in kwargs:
