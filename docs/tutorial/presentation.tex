@@ -1,0 +1,117 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Beamer Presentation
+% LaTeX Template
+% Version 1.0 (10/11/12)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND THEMES
+%----------------------------------------------------------------------------------------
+
+
+
+\documentclass{beamer}
+
+
+\definecolor{dcorange}{HTML}{F05A28}
+\setbeamercolor{structure}{bg=black, fg=dcorange}
+
+
+\usetheme{Warsaw}
+
+\usepackage{graphicx} % Allows including images
+\usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
+\usepackage{hyperref} % Allows the use of \toprule, \midrule and \bottomrule in tables
+\usepackage{textpos}
+
+%----------------------------------------------------------------------------------------
+%	TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\titlegraphic{\includegraphics[width=.6\textwidth,height=.3\textheight]{dc_logo.jpg}}
+\title[Introduction to PySemantic]{Introduction to PySemantic}
+% The short title appears at the bottom of every slide, the full title is only on the title page
+
+%\titlegraphic{\includegraphics[width=.5\textwidth,height=.5\textheight]{dc_logo.jpg}}
+\author{Jaidev Deshpande} % Your name
+\institute[DataCulture Analytics Company] % Your institution as it will appear on the bottom of every slide, may be shorthand to save space
+
+
+%{
+%DataCulture Analytics Company \\ % Your institution for the title page
+%%\includegraphics[width=2cm]{dc_logo.jpg}
+%\medskip
+%\textit{jaidev@dataculture.in} % Your email address
+%}
+\date{\today} % Date, can be changed to a custom date
+
+%\titlegraphic{\includegraphics[width=2cm]{dc_logo.jpg}}
+
+%\addtobeamertemplate{frametitle}{}{%
+%    \begin{textblock*}{100mm}(.85\textwidth,-1cm)
+%        \includegraphics[height=1cm,width=2cm]{dc_logo.jpg}
+%\end{textblock*}}
+
+
+
+\begin{document}
+
+\begin{frame}
+\titlepage % Print the title page as the first slide
+\end{frame}
+
+\begin{frame}
+\frametitle{Motivation}
+\begin{itemize}
+\item Typical data analysis pipeline:\\
+Data Ingest $\rightarrow$ Exploratory Analysis $\rightarrow$ Feature Engineering $\rightarrow$ Machine Learning $\rightarrow$ Insights!
+\item Data scientists often work in large teams.
+\item Communication about data ingest is important.
+\item Messy data $\Rightarrow$ more communication.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Why PySemantic?}
+    \begin{itemize}
+        \item Problem: How do I effectively communicate about data?
+        \item Existing solutions:\\
+            \begin{enumerate}
+                \item Text documentation
+                \item Ad-hoc scripts to clean or validate the data
+                \item Version control
+            \end{enumerate}
+        \item Don't scale with the diversity of the data.
+        \item The process is \textit{reactive}
+        \item The process is unnecessarily redundant.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Why PySemantic?}
+    \begin{itemize}
+        \item Group all datasets under \textit{projects}.
+        \item A centralized data dictionary that holds properties of all
+            datasets under a project.
+        \item A single entry point into the software framework required for
+            reading, cleaning and validating a dataset.
+        \item Reproducibility across teams and individuals.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Getting Started}
+    \url{https://github.com/motherbox/pysemantic}
+\end{frame}
+
+
+%----------------------------------------------------------------------------------------
+
+\end{document} 
