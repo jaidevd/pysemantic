@@ -8,7 +8,6 @@
 
 """Traited Data validator for `pandas.DataFrame` objects."""
 
-import re
 import copy
 import json
 import logging
@@ -194,9 +193,7 @@ class SeriesValidator(HasTraits):
                 # filter by regex
                 logger.info("Applying regex filter with the following regex:")
                 logger.info(self.regex)
-                re_filter = lambda x: re.search(self.regex, x)
-                re_matches = self.data.apply(re_filter)
-                self.data = self.data[pd.notnull(re_matches)]
+                self.data = self.data[self.data.str.contains(self.regex)]
 
     def clean(self):
         """Return the converted dataframe after enforcing all rules."""

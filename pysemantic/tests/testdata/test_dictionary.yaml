@@ -30,7 +30,7 @@ person_activity:
   column_rules:
     activity:
       drop_duplicates: false
-      regex: ([\w|\s]+)+
+      regex: \W|\w
     date:
       drop_duplicates: false
     sequence_name:
