@@ -3,5 +3,3 @@ traits
 pandas
 pytables
 docopt
-coverage
-coveralls
