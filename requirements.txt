@@ -1,6 +1,7 @@
 pyyaml
 traits
 pandas
+numexpr
 tables
 docopt
 coverage
