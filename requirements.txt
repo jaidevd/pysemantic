@@ -1,6 +1,7 @@
 pyyaml
 traits
 pandas
+tables
 docopt
 coverage
 coveralls
