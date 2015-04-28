@@ -128,6 +128,22 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_export_dataset_hdf(self):
+        """Test if exporting the dataset to hdf works."""
+        tempdir = tempfile.mkdtemp()
+        project = pr.Project("pysemantic")
+        try:
+            for dataset in project.datasets:
+                outpath = op.join(tempdir, dataset + ".h5")
+                project.export_dataset(dataset, outpath=outpath)
+                self.assertTrue(op.exists(outpath))
+                group = r'/{0}/{1}'.format(project.project_name, dataset)
+                loaded = pd.read_hdf(outpath, group)
+                self.assertDataFrameEqual(loaded,
+                                          project.load_dataset(dataset))
+        finally:
+            shutil.rmtree(tempdir)
+
     def test_reload_data_dict(self):
         """Test if the reload_data_dict method works."""
         project = pr.Project("pysemantic")

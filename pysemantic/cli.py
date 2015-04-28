@@ -15,6 +15,7 @@ Usage:
   semantic set-schema PROJECT_NAME SCHEMA_FPATH
   semantic set-specs PROJECT_NAME --dataset=<dname> [--path=<pth>] [--dlm=<sep>]
   semantic add-dataset DATASET_NAME --project=<pname> --path=<pth> --dlm=<sep>
+  semantic export PROJECT_NAME [--dataset=<dname>] OUTPATH
 
 Options:
   -h --help	        Show this screen
@@ -85,6 +86,10 @@ def cli(arguments):
         dataset_name = arguments.get("DATASET_NAME")
         specs = dict(path=arguments["--path"], delimiter=arguments["--dlm"])
         pr.add_dataset(proj_name, dataset_name, specs)
+    elif arguments.get("export", False):
+        project = pr.Project(arguments.get("PROJECT_NAME"))
+        project.export_dataset(arguments.get("--dataset"),
+                               outpath=arguments.get("OUTPATH"))
 
 
 def main():

@@ -343,7 +343,7 @@ class Project(object):
             self.df_rules[name] = specs.get('dataframe_rules', {})
         self.specifications = specifications
 
-    def export_dataset(self, dataset_name, dataframe=None):
+    def export_dataset(self, dataset_name, dataframe=None, outpath=None):
         """Export a dataset to an exporter defined in the schema.
 
         :param dataset_name: Name of the dataset to exporter.
@@ -353,12 +353,18 @@ class Project(object):
         """
         if dataframe is None:
             dataframe = self.load_dataset(dataset_name)
-        config = self.specifications[dataset_name]['exporter']
-        if config['kind'] == "aerospike":
-            config['namespace'] = self.project_name
-            config['set'] = dataset_name
-            exporter = AerospikeExporter(config, dataframe)
-            exporter.run()
+        config = self.specifications[dataset_name].get('exporter')
+        if config is not None:
+            if config['kind'] == "aerospike":
+                config['namespace'] = self.project_name
+                config['set'] = dataset_name
+                exporter = AerospikeExporter(config, dataframe)
+                exporter.run()
+        else:
+            suffix = outpath.split('.')[-1]
+            if suffix in ("h5", "hdf"):
+                group = r'/{0}/{1}'.format(self.project_name, dataset_name)
+                dataframe.to_hdf(outpath, group)
 
     def reload_data_dict(self):
         """Reload the data dictionary and re-populate the schema."""

@@ -189,6 +189,18 @@ class TestCLI(BaseTestCase):
         self.assertEqual(pr.get_default_specfile('dummy_project'),
                          '/tmp/baz.yaml')
 
+    def test_export_hdf(self):
+        """Test if exporting a dataset to hdf works."""
+        tempdir = tempfile.mkdtemp()
+        cmd = "semantic export pysemantic --dataset iris {0}"
+        cmd = cmd.format(op.join(tempdir, "iris.h5"))
+        cmd = cmd.split()
+        try:
+            subprocess.check_call(cmd, env=self.testenv)
+            self.assertTrue(op.exists(op.join(tempdir, "iris.h5")))
+        finally:
+            shutil.rmtree(tempdir)
+
     def test_set_schema_nonexistent_project(self):
         """Test if the set-schema prints proper warnings when trying to set
         schema file for nonexistent project.
