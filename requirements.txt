@@ -3,3 +3,4 @@ traits
 pandas
 pytables
 docopt
+nose
