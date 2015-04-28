@@ -1,7 +1,9 @@
 pyyaml
 traits
+numpy>=1.4.1
+numexpr>=2.0
+cython>=0.14
 pandas
-numexpr
 tables
 docopt
 coverage
