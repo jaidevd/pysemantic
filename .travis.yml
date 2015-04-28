@@ -1,6 +1,8 @@
 language: python
 python:
   - "2.7"
+env:
+  - DISTRIB="conda" COVERAGE="true" PYTHON_VERSION="2.7"
 addons:
   apt_packages:
     - libbz2-dev
@@ -8,9 +10,7 @@ addons:
     - liblzo2-dev
 # command to install dependencies
 install:
-  - "pip install -r requirements.txt"
-  - "pip install ."
-  - "pip install coveralls"
+  source continuous_integration/install.sh
 # command to run tests
 script: nosetests --with-coverage --cover-package=pysemantic
 after_success:
