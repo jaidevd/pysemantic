@@ -110,7 +110,7 @@ The following parameters can be supplied to any column under ``column_rules``:
 * ``is_drop_na`` ([true|false], default false) Setting this to ``true`` causes PySemantic to drop all NA values in the column.
 * ``is_drop_duplicates`` ([true|false], default false) Setting this to ``true`` causes PySemantic to drop all duplicated values in the column.
 * ``unique_values``: These are the unique values that are expected in a column. The value of this parameter has to be a yaml list. Any value not found in this list will be dropped when cleaning the dataset.
-* ``exclude_values``: These are the values that are to be explicitly excluded from the column. This comes in handy when a column has too many unique values, and a handful of them have to be dropped.
+* ``exclude``: These are the values that are to be explicitly excluded from the column. This comes in handy when a column has too many unique values, and a handful of them have to be dropped.
 * ``converters``: A list of functions to be applied to the column when cleaning it. Any Python callable can be added to this list.
 * ``minimum``: Minimum value allowed in a column if the column holds numerical data. By default, the minimum is -np.inf. Any value less than this one is dropped.
 * ``maximum``: Maximum value allowed in a column if the column holds numerical data. By default, the maximum is np.inf. Any value greater than this one is dropped.
@@ -132,7 +132,7 @@ Here is a more extensive example of the usage of this schema.
         converters:
           - !!python/name:numpy.floor
       Petal Width:
-        exclude_values:
+        exclude:
           - 3.14
       Species:
         unique_values:
