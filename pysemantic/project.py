@@ -20,6 +20,7 @@ import os.path as op
 import yaml
 import pandas as pd
 import numpy as np
+from pandas.parser import CParserError
 
 from pysemantic.validator import SchemaValidator, DataFrameValidator
 from pysemantic.errors import MissingProject, MissingConfigError
@@ -599,6 +600,12 @@ class Project(object):
                 logger.warn(msg)
                 logger.info("dtype removed for columns:".format(bad_rows))
                 return self.parser(**parser_args)
+        except CParserError as e:
+            parser_args['error_bad_lines'] = False
+            msg = 'Adding the "error_bad_lines=False" argument to the ' + \
+                  'list of parser arguments.'
+            logger.info(msg)
+            return self.parser(**parser_args)
         except Exception as e:
             if e.message == "Integer column has NA values":
                 bad_rows = self._detect_row_with_na(parser_args)

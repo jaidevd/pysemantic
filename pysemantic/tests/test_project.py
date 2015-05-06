@@ -128,6 +128,30 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_error_bad_lines_correction(self):
+        """test if the correction for bad lines works."""
+        tempdir = tempfile.mkdtemp()
+        iris_path = op.join(op.abspath(op.dirname(__file__)), "testdata",
+                            "iris.csv")
+        with open(iris_path, "r") as fid:
+            iris_lines = fid.readlines()
+        outpath = op.join(tempdir, "bad_iris.csv")
+        iris_lines[50] = iris_lines[50].rstrip() + ",0,23,\n"
+        with open(outpath, 'w') as fid:
+            fid.writelines(iris_lines)
+        data_dict = op.join(tempdir, "dummy_project.yaml")
+        specs = {'bad_iris': {'path': outpath}}
+        with open(data_dict, "w") as fid:
+            yaml.dump(specs, fid, Dumper=Dumper, default_flow_style=False)
+        pr.add_project('dummy_project', data_dict)
+        try:
+            project = pr.Project('dummy_project')
+            df = project.load_dataset('bad_iris')
+            self.assertItemsEqual(df.shape, (146, 5))
+        finally:
+            shutil.rmtree(tempdir)
+            pr.remove_project('dummy_project')
+
     def test_export_dataset_hdf(self):
         """Test if exporting the dataset to hdf works."""
         tempdir = tempfile.mkdtemp()
