@@ -42,14 +42,14 @@ class TestProjectModule(BaseProjectTestCase):
     def test_get_datasets(self):
         """Test the get_datasets function returns the correct datasets."""
         datasets = pr.get_datasets("pysemantic")
-        ideal = ['person_activity', 'multi_iris', 'iris']
+        ideal = ['person_activity', 'multi_iris', 'iris', 'bad_iris']
         self.assertItemsEqual(ideal, datasets)
 
     def test_get_datasets_no_project(self):
         """Test if the get_datasets function works with no project name."""
         dataset_names = pr.get_datasets()
         self.assertTrue("pysemantic" in dataset_names)
-        ideal = ['person_activity', 'multi_iris', 'iris']
+        ideal = ['person_activity', 'multi_iris', 'iris', 'bad_iris']
         self.assertItemsEqual(dataset_names['pysemantic'], ideal)
 
     def test_add_dataset(self):
@@ -128,6 +128,12 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_na_reps(self):
+        """Test if the NA representations are parsed properly."""
+        project = pr.Project("pysemantic")
+        loaded = project.load_dataset("bad_iris")
+        self.assertItemsEqual(loaded.shape, (300, 4))
+
     def test_error_bad_lines_correction(self):
         """test if the correction for bad lines works."""
         tempdir = tempfile.mkdtemp()
@@ -158,13 +164,14 @@ class TestProjectClass(BaseProjectTestCase):
         project = pr.Project("pysemantic")
         try:
             for dataset in project.datasets:
-                outpath = op.join(tempdir, dataset + ".h5")
-                project.export_dataset(dataset, outpath=outpath)
-                self.assertTrue(op.exists(outpath))
-                group = r'/{0}/{1}'.format(project.project_name, dataset)
-                loaded = pd.read_hdf(outpath, group)
-                self.assertDataFrameEqual(loaded,
-                                          project.load_dataset(dataset))
+                if dataset != "bad_iris":
+                    outpath = op.join(tempdir, dataset + ".h5")
+                    project.export_dataset(dataset, outpath=outpath)
+                    self.assertTrue(op.exists(outpath))
+                    group = r'/{0}/{1}'.format(project.project_name, dataset)
+                    loaded = pd.read_hdf(outpath, group)
+                    self.assertDataFrameEqual(loaded,
+                                              project.load_dataset(dataset))
         finally:
             shutil.rmtree(tempdir)
 
@@ -328,7 +335,8 @@ class TestProjectClass(BaseProjectTestCase):
             org_specs = yaml.load(fileobj, Loader=Loader)
         new_specs = deepcopy(org_specs)
         for dataset_specs in new_specs.itervalues():
-            del dataset_specs['nrows']
+            if "nrows" in dataset_specs:
+                del dataset_specs['nrows']
         with open(TEST_DATA_DICT, "w") as fileobj:
             yaml.dump(new_specs, fileobj, Dumper=Dumper,
                       default_flow_style=False)
@@ -348,6 +356,7 @@ class TestProjectClass(BaseProjectTestCase):
     def test_get_project_specs(self):
         """Test if the project manager gets all specifications correctly."""
         specs = self.project.get_project_specs()
+        del specs['bad_iris']
         for name, argdict in specs.iteritems():
             if isinstance(argdict, list):
                 for i in range(len(argdict)):
@@ -412,7 +421,7 @@ class TestProjectClass(BaseProjectTestCase):
         """Test if loading all datasets in a project works as expected."""
         loaded = self.project.load_datasets()
         self.assertItemsEqual(loaded.keys(), ('iris', 'person_activity',
-                                              'multi_iris'))
+                                              'multi_iris', 'bad_iris'))
         dframe = pd.read_csv(**self.expected_specs['iris'])
         self.assertDataFrameEqual(loaded['iris'], dframe)
         dframe = pd.read_csv(**self.expected_specs['person_activity'])

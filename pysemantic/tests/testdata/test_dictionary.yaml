@@ -1,3 +1,23 @@
+bad_iris:
+  column_rules:
+    Species:
+      na_values:
+      - unknown
+  dataframe_rules:
+    drop_duplicates: false
+    drop_na: false
+  delimiter: ','
+  dtypes:
+    Petal Length: &id001 !!python/name:__builtin__.float 
+    Sepal Length: *id001
+    Sepal Width: *id001
+    Species: &id002 !!python/name:__builtin__.str 
+  path: /home/jaidev/src/pysemantic/pysemantic/tests/testdata/bad_iris.csv
+  use_columns:
+  - Petal Length
+  - Sepal Length
+  - Sepal Width
+  - Species
 iris:
   column_rules:
     Petal Length:
@@ -19,11 +39,11 @@ iris:
     drop_duplicates: false
   delimiter: ','
   dtypes:
-    Petal Length: &id001 !!python/name:__builtin__.float 
+    Petal Length: *id001
     Petal Width: *id001
     Sepal Length: *id001
     Sepal Width: *id001
-    Species: &id002 !!python/name:__builtin__.str 
+    Species: *id002
   nrows: 150
   path: testdata/iris.csv
 person_activity:

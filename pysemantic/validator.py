@@ -93,7 +93,7 @@ class DataFrameValidator(HasTraits):
                 logger.info("Excluding following values from col {0}".format(
                                                                           col))
                 logger.info(json.dumps(validator.exclude_values))
-            self.data.dropna(inplace=True)
+            # self.data.dropna(inplace=True)
 
         return self.data
 
@@ -300,6 +300,9 @@ class SchemaValidator(HasTraits):
     # md5 checksum of the dataset file
     md5 = Property(Str, depends_on=['filepath'])
 
+    # List of values that represent NAs
+    na_values = Property(Dict, depends_on=['specification'])
+
     # List of required traits
     # FIXME: Arguments required by the schema should't have to be programmed
     # into the validator class. There must be a way to enforce requirements
@@ -371,6 +374,8 @@ class SchemaValidator(HasTraits):
             args['sep'] = self._delimiter
         if len(self.colnames) > 0:
             args['usecols'] = self.colnames
+        if len(self.na_values) > 0:
+            args['na_values'] = self.na_values
         parse_dates = []
         for k, v in self._dtypes.iteritems():
             if v is datetime.date:
@@ -400,6 +405,15 @@ class SchemaValidator(HasTraits):
     @cached_property
     def _get_md5(self):
         return self.specification.get("md5", "")
+
+    @cached_property
+    def _get_na_values(self):
+        na_values = {}
+        col_rules = self.specification.get("column_rules", {})
+        for colname, rules in col_rules.iteritems():
+            if "na_values" in rules:
+                na_values[colname] = rules['na_values']
+        return na_values
 
     @cached_property
     def _get_colnames(self):

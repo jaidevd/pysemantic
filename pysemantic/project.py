@@ -509,12 +509,12 @@ class Project(object):
         validator = self.validators[dataset_name]
         column_rules = self.column_rules.get(dataset_name, {})
         df_rules = self.df_rules.get(dataset_name, {})
-        args = validator.get_parser_args()
+        parser_args = validator.get_parser_args()
         logger.info("Attempting to load dataset {} with args:".format(
                                                                  dataset_name))
-        logger.info(json.dumps(args, cls=TypeEncoder))
-        if isinstance(args, dict):
-            df = self._load(args)
+        logger.info(json.dumps(parser_args, cls=TypeEncoder))
+        if isinstance(parser_args, dict):
+            df = self._load(parser_args)
             logger.info("Success!")
             df_validator = DataFrameValidator(data=df, rules=df_rules,
                                              column_rules=column_rules)
@@ -526,7 +526,7 @@ class Project(object):
             return df_validator.clean()
         else:
             dfs = []
-            for argset in args:
+            for argset in parser_args:
                 self._update_parser(argset)
                 _df = self.parser(**argset)
                 df_validator = DataFrameValidator(data=_df,

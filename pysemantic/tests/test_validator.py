@@ -75,6 +75,19 @@ class TestSchemaValidator(BaseTestCase):
         # are messing up the base specifications.
         self.basespecs = deepcopy(self.specs)
 
+    def test_na_values(self):
+        """Test if adding NA values in the schema works properly."""
+        bad_iris_path = op.join(op.abspath(op.dirname(__file__)), "testdata",
+                                "bad_iris.csv")
+        schema = deepcopy(self.basespecs['iris'])
+        schema['path'] = bad_iris_path
+        schema['column_rules']['Species']['unique_values'].append('unknown')
+        schema['column_rules']['Species']['na_values'] = ['unknown']
+        validator = SchemaValidator(specification=schema)
+        parser_args = validator.get_parser_args()
+        self.assertDictEqual(parser_args.get("na_values"),
+                             {'Species': ['unknown']})
+
     def test_md5(self):
         """Check if the md5 checksum validation works properly."""
         schema = deepcopy(self.basespecs["iris"])
