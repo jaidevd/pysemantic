@@ -12,7 +12,7 @@ bad_iris:
     Sepal Length: *id001
     Sepal Width: *id001
     Species: &id002 !!python/name:__builtin__.str 
-  path: /home/jaidev/src/pysemantic/pysemantic/tests/testdata/bad_iris.csv
+  path: testdata/bad_iris.csv
   use_columns:
   - Petal Length
   - Sepal Length
