@@ -115,6 +115,7 @@ The following parameters can be supplied to any column under ``column_rules``:
 * ``minimum``: Minimum value allowed in a column if the column holds numerical data. By default, the minimum is -np.inf. Any value less than this one is dropped.
 * ``maximum``: Maximum value allowed in a column if the column holds numerical data. By default, the maximum is np.inf. Any value greater than this one is dropped.
 * ``regex``: A regular expression that each element of the column must match, if the column holds text data. Any element of the column not matching this regex is dropped.
+* ``na_values``: A list of values that are considered as NAs by the pandas parsers.
 
 
 Here is a more extensive example of the usage of this schema.
