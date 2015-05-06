@@ -156,6 +156,7 @@ class BaseProjectTestCase(BaseTestCase):
             with open(TEST_DATA_DICT, "r") as fileobj:
                 test_data = yaml.load(fileobj, Loader=Loader)
             test_data['iris']['path'] = op.join("testdata", "iris.csv")
+            test_data['bad_iris']['path'] = op.join("testdata", "bad_iris.csv")
             test_data['person_activity']['path'] = op.join("testdata",
                                                          "person_activity.tsv")
             del test_data['multi_iris']
