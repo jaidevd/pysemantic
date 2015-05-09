@@ -75,6 +75,27 @@ class TestSchemaValidator(BaseTestCase):
         # are messing up the base specifications.
         self.basespecs = deepcopy(self.specs)
 
+    def test_timestamp_cols_combine(self):
+        """Test if the schema for combining datetime columns works."""
+        tempdir = tempfile.mkdtemp()
+        outpath = op.join(tempdir, "data.csv")
+        rng = pd.date_range('1/1/2011', periods=72, freq='H')
+        rng = [str(x).split() for x in rng]
+        date = [x[0] for x in rng]
+        time = [x[1] for x in rng]
+        data = pd.DataFrame({'Date': date, 'Time': time,
+                             'X': np.random.rand(len(date),)})
+        data.to_csv(outpath, index=False)
+        specs = dict(path=outpath, combine_dt_columns=['Date', 'Time'])
+        validator = SchemaValidator(specification=specs)
+        try:
+            loaded = pd.read_csv(**validator.get_parser_args())
+            x = " ".join((date[0], time[0]))
+            self.assertEqual(loaded['Date_Time'].dtype,
+                             np.datetime64(x, 'ns').dtype)
+        finally:
+            shutil.rmtree(tempdir)
+
     def test_na_values(self):
         """Test if adding NA values in the schema works properly."""
         bad_iris_path = op.join(op.abspath(op.dirname(__file__)), "testdata",

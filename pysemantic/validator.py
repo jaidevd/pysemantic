@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
                         Bool, Either, push_exception_handler, cached_property,
-                        Array, Instance, Callable, Float)
+                        Array, Instance, Callable, Float, Any)
 
 from pysemantic.utils import TypeEncoder, get_md5_checksum
 from pysemantic.custom_traits import (DTypesDict, NaturalNumber, AbsFile,
@@ -303,6 +303,9 @@ class SchemaValidator(HasTraits):
     # List of values that represent NAs
     na_values = Property(Dict, depends_on=['specification'])
 
+    # List of columns to combine
+    datetime_cols = Property(Any, depends_on=['specification'])
+
     # List of required traits
     # FIXME: Arguments required by the schema should't have to be programmed
     # into the validator class. There must be a way to enforce requirements
@@ -372,19 +375,34 @@ class SchemaValidator(HasTraits):
         args = {}
         if self._delimiter:
             args['sep'] = self._delimiter
+
+        # Columns to use
         if len(self.colnames) > 0:
             args['usecols'] = self.colnames
+
+        # NA values
         if len(self.na_values) > 0:
             args['na_values'] = self.na_values
-        parse_dates = []
-        for k, v in self._dtypes.iteritems():
-            if v is datetime.date:
-                parse_dates.append(k)
-        for k in parse_dates:
-            del self._dtypes[k]
-        args['dtype'] = self.dtypes
-        if len(parse_dates) > 0:
-            args['parse_dates'] = parse_dates
+
+        # Date/Time arguments
+        # FIXME: Allow for a mix of datetime column groupings and individual
+        # columns
+        if len(self.datetime_cols) > 0:
+            if isinstance(self.datetime_cols, dict):
+                args['parse_dates'] = self.datetime_cols
+            elif isinstance(self.datetime_cols, list):
+                args['parse_dates'] = [self.datetime_cols]
+        else:
+            parse_dates = []
+            for k, v in self._dtypes.iteritems():
+                if v is datetime.date:
+                    parse_dates.append(k)
+            for k in parse_dates:
+                del self._dtypes[k]
+            args['dtype'] = self.dtypes
+            if len(parse_dates) > 0:
+                args['parse_dates'] = parse_dates
+
         if self.is_multifile:
             arglist = []
             for i in range(len(self._filepath)):
@@ -401,6 +419,10 @@ class SchemaValidator(HasTraits):
 
     def _set_parser_args(self, specs):
         self.parser_args.update(specs)
+
+    @cached_property
+    def _get_datetime_cols(self):
+        return self.specification.get("combine_dt_columns", {})
 
     @cached_property
     def _get_md5(self):
