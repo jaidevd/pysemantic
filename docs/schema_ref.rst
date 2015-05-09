@@ -53,6 +53,15 @@ to:
 
 If this parameter is not specified, all columns present in the dataset are read.
 
+* ``converters``: A dictionary of functions to be applied to columns when loading data. Any Python callable can be added to this list. This parameter makes up the ``converters`` argument of Pandas parsers. The usage is as follows:
+
+.. code-block:: yaml
+
+    converters:
+      col_a: !!python/name:numpy.int
+
+This results in the ``numpy.int`` function being called on the column ``col_a``
+
 * ``dtypes`` (Optional) Data types of the columns to be read. Since types in Python are native objects, PySemantic expects them to be so in the schema. This can be formatted as follows:
 
 .. code-block:: yaml
@@ -131,7 +140,6 @@ The following parameters can be supplied to any column under ``column_rules``:
 * ``is_drop_duplicates`` ([true|false], default false) Setting this to ``true`` causes PySemantic to drop all duplicated values in the column.
 * ``unique_values``: These are the unique values that are expected in a column. The value of this parameter has to be a yaml list. Any value not found in this list will be dropped when cleaning the dataset.
 * ``exclude``: These are the values that are to be explicitly excluded from the column. This comes in handy when a column has too many unique values, and a handful of them have to be dropped.
-* ``converters``: A list of functions to be applied to the column when cleaning it. Any Python callable can be added to this list.
 * ``minimum``: Minimum value allowed in a column if the column holds numerical data. By default, the minimum is -np.inf. Any value less than this one is dropped.
 * ``maximum``: Maximum value allowed in a column if the column holds numerical data. By default, the maximum is np.inf. Any value greater than this one is dropped.
 * ``regex``: A regular expression that each element of the column must match, if the column holds text data. Any element of the column not matching this regex is dropped.
@@ -144,14 +152,13 @@ Here is a more extensive example of the usage of this schema.
 
   iris:
     path: /home/username/src/pysemantic/testdata/iris.csv
+    converters:
+      Sepal Width: !!python/name:numpy.floor
     column_rules:
       Sepal Length:
         minimum: 2.0
       Petal Length:
         maximum: 4.0
-      Sepal Width:
-        converters:
-          - !!python/name:numpy.floor
       Petal Width:
         exclude:
           - 3.14

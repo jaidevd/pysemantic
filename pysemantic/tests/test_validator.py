@@ -21,8 +21,8 @@ import pandas as pd
 import yaml
 from traits.api import TraitError
 
-from pysemantic.tests.test_base import (BaseTestCase, _dummy_converter,
-                                        TEST_DATA_DICT, _get_iris_args,
+from pysemantic.tests.test_base import (BaseTestCase, TEST_DATA_DICT,
+                                        _get_iris_args,
                                         _get_person_activity_args)
 from pysemantic.validator import (SeriesValidator, SchemaValidator,
                                   DataFrameValidator)
@@ -74,6 +74,14 @@ class TestSchemaValidator(BaseTestCase):
         # tests strangely fail. I think one or both of the following two tests
         # are messing up the base specifications.
         self.basespecs = deepcopy(self.specs)
+
+    def test_converter(self):
+        """Test if the SeriesValidator properly applies converters."""
+        schema = deepcopy(self.basespecs['iris'])
+        schema['converters'] = {'Sepal Width': lambda x: int(float(x))}
+        validator = SchemaValidator(specification=schema)
+        filtered = pd.read_csv(**validator.get_parser_args())['Sepal Width']
+        self.assertTrue(filtered.dtype == np.int)
 
     def test_timestamp_cols_combine(self):
         """Test if the schema for combining datetime columns works."""
@@ -338,20 +346,6 @@ class TestSeriesValidator(BaseTestCase):
         cleaned = validator.clean()
         self.assertItemsEqual(cleaned.unique(),
                               self.dataframe['Species'].unique())
-
-    def test_converter(self):
-        """Test if the SeriesValidator properly applies converters."""
-        self.species_rules['converters'] = [_dummy_converter]
-        try:
-            validator = SeriesValidator(data=self.species,
-                                        rules=self.species_rules)
-            cleaned = validator.clean()
-            cleaned = cleaned.astype(bool)
-            filtered = self.species[cleaned]
-            self.assertEqual(filtered.nunique(), 1)
-            self.assertItemsEqual(filtered.unique(), ['setosa'])
-        finally:
-            del self.species_rules['converters']
 
     def test_drop_duplicates(self):
         """Check if the SeriesValidator drops duplicates in the series."""

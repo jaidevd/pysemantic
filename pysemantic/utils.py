@@ -18,8 +18,10 @@ class TypeEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, type):
             return str(obj)
-        if isinstance(obj, set):
+        elif isinstance(obj, set):
             return list(obj)
+        elif callable(obj):
+            return ".".join((obj.__module__, obj.__name__))
         else:
             return json.JSONEncoder.default(self, obj)
 

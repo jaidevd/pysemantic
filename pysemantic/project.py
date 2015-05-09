@@ -607,7 +607,7 @@ class Project(object):
             logger.info(msg)
             return self.parser(**parser_args)
         except Exception as e:
-            if e.message == "Integer column has NA values":
+            if "Integer column has NA values" in e.message:
                 bad_rows = self._detect_row_with_na(parser_args)
                 new_types = [(col, float) for col in bad_rows]
                 self._update_dtypes(parser_args['dtype'], new_types)
@@ -636,9 +636,20 @@ class Project(object):
             usecols = colnames(parser_args['filepath_or_buffer'])
         int_cols = [col for col in usecols if dtypes.get(col) is int]
         fpath = parser_args['filepath_or_buffer']
-        sep = parser_args['sep']
+        sep = parser_args.get('sep', ',')
         nrows = parser_args.get('nrows')
-        df = self.parser(fpath, sep=sep, usecols=int_cols, nrows=nrows)
+        na_reps = {}
+        if parser_args.get('na_values', False):
+            for colname, na_vals in parser_args.get('na_values').iteritems():
+                if colname in int_cols:
+                    na_reps[colname] = na_vals
+        converters = {}
+        if parser_args.get('converters', False):
+            for cname, cnv in parser_args.get('converters').iteritems():
+                if cname in int_cols:
+                    converters[cname] = cnv
+        df = self.parser(fpath, sep=sep, usecols=int_cols, nrows=nrows,
+                         na_values=na_reps, converters=converters)
         bad_rows = []
         for col in df:
             if np.any(pd.isnull(df[col])):

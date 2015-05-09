@@ -100,11 +100,6 @@ class BaseTestCase(unittest.TestCase):
         self.assertTrue(np.all(s1.index == s2.index))
 
 
-def _dummy_converter(series):
-    """Dummy function for testing converters on series objects."""
-    return pd.Series([0 if "v" in i else 1 for i in series])
-
-
 class BaseProjectTestCase(BaseTestCase):
 
     """Base class for tests of the Project module."""

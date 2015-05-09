@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
                         Bool, Either, push_exception_handler, cached_property,
-                        Array, Instance, Callable, Float, Any)
+                        Array, Instance, Float, Any)
 
 from pysemantic.utils import TypeEncoder, get_md5_checksum
 from pysemantic.custom_traits import (DTypesDict, NaturalNumber, AbsFile,
@@ -120,11 +120,6 @@ class SeriesValidator(HasTraits):
     # List of values to exclude
     exclude_values = Property(List, depends_on=['rules'])
 
-    # List of converters to be applied to the series. All converters are
-    # assumed to be callables, which take the series as input and return a
-    # series.
-    converters = Property(List(Callable), depends_on=['rules'])
-
     # Minimum value permitted in the series
     minimum = Property(Float, depends_on=['rules'])
 
@@ -151,12 +146,12 @@ class SeriesValidator(HasTraits):
             logger.info(json.dumps(na_rows))
             self.data.dropna(inplace=True)
 
-    def apply_converters(self):
-        """Apply the converter functions on the series."""
-        if len(self.converters) > 0:
-            for converter in self.converters:
-                logger.info("Applying converter {0}".format(converter))
-                self.data = converter(self.data)
+#    def apply_converters(self):
+#        """Apply the converter functions on the series."""
+#        if len(self.converters) > 0:
+#            for converter in self.converters:
+#                logger.info("Applying converter {0}".format(converter))
+#                self.data = converter(self.data)
 
     def apply_uniques(self):
         """Remove all values not included in the `uniques`."""
@@ -200,7 +195,7 @@ class SeriesValidator(HasTraits):
         self.do_drop_duplicates()
         self.do_drop_na()
         self.apply_uniques()
-        self.apply_converters()
+        # self.apply_converters()
         self.apply_minmax_rules()
         self.apply_regex()
         return self.data
@@ -212,10 +207,6 @@ class SeriesValidator(HasTraits):
     @cached_property
     def _get_unique_values(self):
         return self.rules.get("unique_values", self.data.unique())
-
-    @cached_property
-    def _get_converters(self):
-        return self.rules.get("converters", [])
 
     @cached_property
     def _get_is_drop_na(self):
@@ -305,6 +296,11 @@ class SchemaValidator(HasTraits):
 
     # List of columns to combine
     datetime_cols = Property(Any, depends_on=['specification'])
+
+    # List of converters to be applied to the columns. All converters are
+    # assumed to be callables, which take the series as input and return a
+    # series.
+    converters = Property(Dict, depends_on=['specification'])
 
     # List of required traits
     # FIXME: Arguments required by the schema should't have to be programmed
@@ -403,6 +399,9 @@ class SchemaValidator(HasTraits):
             if len(parse_dates) > 0:
                 args['parse_dates'] = parse_dates
 
+        if len(self.converters) > 0:
+            args['converters'] = self.converters
+
         if self.is_multifile:
             arglist = []
             for i in range(len(self._filepath)):
@@ -423,6 +422,10 @@ class SchemaValidator(HasTraits):
     @cached_property
     def _get_datetime_cols(self):
         return self.specification.get("combine_dt_columns", {})
+
+    @cached_property
+    def _get_converters(self):
+        return self.specification.get("converters", [])
 
     @cached_property
     def _get_md5(self):
