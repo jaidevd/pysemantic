@@ -3,7 +3,7 @@
 [![Code Health](https://landscape.io/github/motherbox/pysemantic/master/landscape.svg?style=plastic)](https://landscape.io/github/motherbox/pysemantic/master)
 [![Documentation Status](https://readthedocs.org/projects/pysemantic/badge/?version=latest)](https://readthedocs.org/projects/pysemantic/?badge=latest)
 
-[logo][docs/_static/logo.png]
+![logo](docs/_static/logo.png)
 
 # pysemantic
 A traits based data validation and data cleaning module for pandas data structures.
