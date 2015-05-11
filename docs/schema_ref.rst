@@ -40,6 +40,8 @@ to:
   because sometimes we read files and after processing it, rewrite to the same
   path. This parameter helps keep track of whether the file is correct.
 
+* ``header``: (Optional) The header row of the file.
+
 * ``nrows``: (Optional) Number of rows to read from the file. If not specified, all rows from the file are read.
 
 * ``use_columns``: (Optional) The list of the columns to read from the dataset. The format for specifying this parameter is as follows:

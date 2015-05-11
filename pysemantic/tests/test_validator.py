@@ -75,6 +75,14 @@ class TestSchemaValidator(BaseTestCase):
         # are messing up the base specifications.
         self.basespecs = deepcopy(self.specs)
 
+    def test_header(self):
+        schema = deepcopy(self.basespecs['iris'])
+        schema['header'] = 1
+        validator = SchemaValidator(specification=schema)
+        loaded = pd.read_csv(**validator.get_parser_args())
+        self.assertItemsEqual(loaded.columns,
+                              ['5.1', '3.5', '1.4', '0.2', 'setosa'])
+
     def test_converter(self):
         """Test if the SeriesValidator properly applies converters."""
         schema = deepcopy(self.basespecs['iris'])

@@ -322,6 +322,9 @@ class SchemaValidator(HasTraits):
     # series.
     converters = Property(Dict, depends_on=['specification'])
 
+    # Header of the file
+    header = Property(Any, depends_on=['specification'])
+
     # List of required traits
     # FIXME: Arguments required by the schema should't have to be programmed
     # into the validator class. There must be a way to enforce requirements
@@ -422,6 +425,9 @@ class SchemaValidator(HasTraits):
         if len(self.converters) > 0:
             args['converters'] = self.converters
 
+        if self.header != 0:
+            args['header'] = self.header
+
         if self.is_multifile:
             arglist = []
             for i in range(len(self._filepath)):
@@ -442,6 +448,10 @@ class SchemaValidator(HasTraits):
     @cached_property
     def _get_datetime_cols(self):
         return self.specification.get("combine_dt_columns", {})
+
+    @cached_property
+    def _get_header(self):
+        return self.specification.get("header", 0)
 
     @cached_property
     def _get_converters(self):
