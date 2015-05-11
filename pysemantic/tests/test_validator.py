@@ -75,6 +75,14 @@ class TestSchemaValidator(BaseTestCase):
         # are messing up the base specifications.
         self.basespecs = deepcopy(self.specs)
 
+    def test_exclude_columns(self):
+        schema = deepcopy(self.basespecs['iris'])
+        schema['exclude_columns'] = ['Sepal Length', 'Petal Width']
+        validator = SchemaValidator(specification=schema)
+        loaded = pd.read_csv(**validator.get_parser_args())
+        self.assertItemsEqual(loaded.columns,
+                              ['Petal Length', 'Sepal Width', 'Species'])
+
     def test_header(self):
         """Test if the header option works."""
         schema = deepcopy(self.basespecs['iris'])

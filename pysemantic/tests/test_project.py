@@ -128,6 +128,19 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_exclude_cols(self):
+        """Test if importing data with excluded columns works."""
+        filepath = op.join(op.abspath(op.dirname(__file__)), "testdata",
+                           "iris.csv")
+        specs = {'path': filepath, 'exclude_columns': ['Species']}
+        pr.add_dataset('pysemantic', 'excl_iris', specs)
+        try:
+            project = pr.Project("pysemantic")
+            loaded = project.load_dataset("excl_iris")
+            self.assertNotIn('Species', loaded.columns)
+        finally:
+            pr.remove_dataset("pysemantic", "excl_iris")
+
     def test_column_postprocessors(self):
         """Test if postprocessors work on column data properly."""
         filepath = op.join(op.abspath(op.dirname(__file__)), "testdata",

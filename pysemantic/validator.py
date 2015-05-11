@@ -22,7 +22,7 @@ from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
                         Bool, Either, push_exception_handler, cached_property,
                         Array, Instance, Float, Any)
 
-from pysemantic.utils import TypeEncoder, get_md5_checksum
+from pysemantic.utils import TypeEncoder, get_md5_checksum, colnames
 from pysemantic.custom_traits import (DTypesDict, NaturalNumber, AbsFile,
                                       ValidTraitList)
 
@@ -77,7 +77,7 @@ class DataFrameValidator(HasTraits):
         """Rename columns in dataframe as per the schema."""
         if self.column_names is not None:
             logger.info("Renaming columns as follows:")
-            logger.info(json.dumps(self.column_names))
+            logger.info(json.dumps(self.column_names, cls=TypeEncoder))
             if isinstance(self.column_names, dict):
                 for old_name, new_name in self.column_names.iteritems():
                     if old_name in self.data:
@@ -355,6 +355,9 @@ class SchemaValidator(HasTraits):
     # dataset, therefore must be exported to DataFrameValidator.
     df_rules = Dict
 
+    # List of columns to exclude from the data
+    exclude_columns = Property(List, depends_on=['specification'])
+
     # List of required traits
     # FIXME: Arguments required by the schema should't have to be programmed
     # into the validator class. There must be a way to enforce requirements
@@ -429,6 +432,13 @@ class SchemaValidator(HasTraits):
         if len(self.colnames) > 0:
             args['usecols'] = self.colnames
 
+        # Columns to exclude
+        if len(self.exclude_columns) > 0:
+            usecols = colnames(self._filepath, sep=args.get('sep', ','))
+            for colname in self.exclude_columns:
+                usecols.remove(colname)
+            args['usecols'] = usecols
+
         # NA values
         if len(self.na_values) > 0:
             args['na_values'] = self.na_values
@@ -481,6 +491,10 @@ class SchemaValidator(HasTraits):
 
     def _set_parser_args(self, specs):
         self.parser_args.update(specs)
+
+    @cached_property
+    def _get_exclude_columns(self):
+        return self.specification.get("exclude_columns", [])
 
     @cached_property
     def _get_datetime_cols(self):

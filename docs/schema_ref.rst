@@ -83,6 +83,12 @@ to:
 
 If this parameter is not specified, all columns present in the dataset are read.
 
+* ``exclude_columns``: This option can be used to specify columns that are
+  explicityly to be ignored. This is useful when there are large number of
+  columns in the dataset and we only wish to exclude a few. Note that this
+  option overrides the ``use_columns`` option, i.e. if a column name is present
+  in both lists, it will be dropped.
+
 * ``converters``: A dictionary of functions to be applied to columns when loading data. Any Python callable can be added to this list. This parameter makes up the ``converters`` argument of Pandas parsers. The usage is as follows:
 
 .. code-block:: yaml
