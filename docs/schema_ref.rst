@@ -42,6 +42,34 @@ to:
 
 * ``header``: (Optional) The header row of the file.
 
+* ``column_names``: (Optional) Specify the names of columns to use in the
+  loaded dataframe. This option can have multiple types of values. It can be:
+
+    1. A list of strings to use as column names:
+
+    .. code-block:: yaml
+
+      column_names:
+        - column_1
+        - column_2
+        - column_3
+
+    2. A dictionary that maps original column names to new ones:
+
+    .. code-block:: yaml
+
+      column_names:
+        org_colname_1: new_colname_a
+        org_colname_2: new_colname_b
+        org_colname_3: new_colname_c
+
+    3. A Python function that translates the name of every column in the loaded
+       dataframe:
+
+    .. code-block:: yaml
+
+      column_names: !!python/name:module_name.translate_column_name
+
 * ``nrows``: (Optional) Number of rows to read from the file. If not specified, all rows from the file are read.
 
 * ``use_columns``: (Optional) The list of the columns to read from the dataset. The format for specifying this parameter is as follows:
