@@ -55,6 +55,9 @@ class DataFrameValidator(HasTraits):
     # whether to drop NAs
     is_drop_na = Property(Bool, depends_on=['rules'])
 
+    # Names of columns to be rewritten
+    column_names = Property(Any, depends_on=['rules'])
+
     def _rules_default(self):
         return {}
 
@@ -65,6 +68,18 @@ class DataFrameValidator(HasTraits):
     @cached_property
     def _get_is_drop_duplicates(self):
         return self.rules.get("drop_duplicates", True)
+
+    @cached_property
+    def _get_column_names(self):
+        return self.rules.get("column_names")
+
+    def rename_columns(self):
+        """Rename columns in dataframe as per the schema."""
+        if self.column_names is not None:
+            if isinstance(self.column_names, dict):
+                for old_name, new_name in self.column_names.iteritems():
+                    if old_name in self.data:
+                        self.data[new_name] = self.data.pop(old_name)
 
     def clean(self):
         """Return the converted dataframe after enforcing all rules."""
@@ -94,6 +109,7 @@ class DataFrameValidator(HasTraits):
                                                                           col))
                 logger.info(json.dumps(validator.exclude_values))
             # self.data.dropna(inplace=True)
+        self.rename_columns()
 
         return self.data
 
@@ -328,6 +344,10 @@ class SchemaValidator(HasTraits):
     # Names to use for columns in the dataframe
     column_names = Property(Any, depends_on=['specification'])
 
+    # Rules for the dataframe that can only be enforeced after loading the
+    # dataset, therefore must be exported to DataFrameValidator.
+    df_rules = Dict
+
     # List of required traits
     # FIXME: Arguments required by the schema should't have to be programmed
     # into the validator class. There must be a way to enforce requirements
@@ -431,9 +451,12 @@ class SchemaValidator(HasTraits):
         if self.header != 0:
             args['header'] = self.header
         if self.column_names is not None:
-            args['names'] = self.column_names
-            # Force include the header argument
-            args['header'] = self.header
+            if isinstance(self.column_names, list):
+                args['names'] = self.column_names
+                # Force include the header argument
+                args['header'] = self.header
+            elif isinstance(self.column_names, dict):
+                self.df_rules['column_names'] = self.column_names
 
         if self.is_multifile:
             arglist = []
@@ -536,3 +559,6 @@ class SchemaValidator(HasTraits):
 
     def _dtypes_default(self):
         return self._dtypes
+
+    def _df_rules_default(self):
+        return {}

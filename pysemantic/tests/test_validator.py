@@ -94,6 +94,18 @@ class TestSchemaValidator(BaseTestCase):
         loaded = pd.read_csv(**validator.get_parser_args())
         self.assertItemsEqual(loaded.columns, ideal)
 
+    def test_colnames_as_dict(self):
+        """Test if the column names work when specified as a dictionary."""
+        schema = deepcopy(self.basespecs['iris'])
+        namemap = {'Sepal Length': 'slength', 'Sepal Width': 'swidth',
+                   'Petal Width': 'pwidth', 'Petal Length': 'plength',
+                   'Species': 'spcs'}
+        schema['column_names'] = namemap
+        ideal = {'column_names': namemap}
+        validator = SchemaValidator(specification=schema)
+        validator.get_parser_args()
+        self.assertKwargsEqual(validator.df_rules, ideal)
+
     def test_converter(self):
         """Test if the SeriesValidator properly applies converters."""
         schema = deepcopy(self.basespecs['iris'])
@@ -474,6 +486,21 @@ class TestDataFrameValidator(BaseTestCase):
 
     def setUp(self):
         self.basespecs = deepcopy(self._basespecs)
+
+    def test_colnames_as_dict(self):
+        """Test if column names gotten from SchemaValidator are implemented."""
+        namemap = {'Sepal Length': 'slength', 'Sepal Width': 'swidth',
+                   'Petal Width': 'pwidth', 'Petal Length': 'plength',
+                   'Species': 'spcs'}
+        self.basespecs['iris']['column_names'] = namemap
+        schema_val = SchemaValidator(specification=self.basespecs['iris'])
+        parser_args = schema_val.get_parser_args()
+        df = pd.read_csv(**parser_args)
+        rules = {}
+        rules.update(schema_val.df_rules)
+        df_val = DataFrameValidator(data=df, rules=rules)
+        data = df_val.clean()
+        self.assertItemsEqual(data.columns, namemap.values())
 
     def test_column_rules(self):
         """Test if the DataFrame validator reads and enforces the column rules

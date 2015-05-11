@@ -510,6 +510,7 @@ class Project(object):
         column_rules = self.column_rules.get(dataset_name, {})
         df_rules = self.df_rules.get(dataset_name, {})
         parser_args = validator.get_parser_args()
+        df_rules.update(validator.df_rules)
         logger.info("Attempting to load dataset {} with args:".format(
                                                                  dataset_name))
         logger.info(json.dumps(parser_args, cls=TypeEncoder))
