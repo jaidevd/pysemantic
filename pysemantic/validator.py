@@ -80,6 +80,11 @@ class DataFrameValidator(HasTraits):
                 for old_name, new_name in self.column_names.iteritems():
                     if old_name in self.data:
                         self.data[new_name] = self.data.pop(old_name)
+            elif callable(self.column_names):
+                columns = self.data.columns.copy()
+                for old_name in columns:
+                    new_name = self.column_names(old_name)
+                    self.data[new_name] = self.data.pop(old_name)
 
     def clean(self):
         """Return the converted dataframe after enforcing all rules."""
@@ -455,7 +460,7 @@ class SchemaValidator(HasTraits):
                 args['names'] = self.column_names
                 # Force include the header argument
                 args['header'] = self.header
-            elif isinstance(self.column_names, dict):
+            elif isinstance(self.column_names, dict) or callable(self.column_names):
                 self.df_rules['column_names'] = self.column_names
 
         if self.is_multifile:

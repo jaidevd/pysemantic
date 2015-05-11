@@ -106,6 +106,16 @@ class TestSchemaValidator(BaseTestCase):
         validator.get_parser_args()
         self.assertKwargsEqual(validator.df_rules, ideal)
 
+    def test_colnames_as_callable(self):
+        """Test if column names work when specified as a callable."""
+        schema = deepcopy(self.basespecs['iris'])
+        translator = lambda x: "_".join([s.lower() for s in x.split()])
+        schema['column_names'] = translator
+        ideal = {'column_names': translator}
+        validator = SchemaValidator(specification=schema)
+        validator.get_parser_args()
+        self.assertKwargsEqual(validator.df_rules, ideal)
+
     def test_converter(self):
         """Test if the SeriesValidator properly applies converters."""
         schema = deepcopy(self.basespecs['iris'])
@@ -501,6 +511,20 @@ class TestDataFrameValidator(BaseTestCase):
         df_val = DataFrameValidator(data=df, rules=rules)
         data = df_val.clean()
         self.assertItemsEqual(data.columns, namemap.values())
+
+    def test_colnames_as_callable(self):
+        translator = lambda x: "_".join([s.lower() for s in x.split()])
+        self.basespecs['iris']['column_names'] = translator
+        schema_val = SchemaValidator(specification=self.basespecs['iris'])
+        parser_args = schema_val.get_parser_args()
+        df = pd.read_csv(**parser_args)
+        rules = {}
+        rules.update(schema_val.df_rules)
+        df_val = DataFrameValidator(data=df, rules=rules)
+        data = df_val.clean()
+        ideal = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width',
+                 'species']
+        self.assertItemsEqual(data.columns, ideal)
 
     def test_column_rules(self):
         """Test if the DataFrame validator reads and enforces the column rules
