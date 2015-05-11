@@ -129,6 +129,22 @@ class SeriesValidator(HasTraits):
     # Regular expression match for series containing strings
     regex = Property(Str, depends_on=['rules'])
 
+    # List of postprocessors that work in the series
+    postprocessors = Property(List, depends_on=['rules'])
+
+    def do_postprocessing(self):
+        for postprocessor in self.postprocessors:
+            org_len = self.data.shape[0]
+            logger.info("Applying postprocessor on column:")
+            logger.info(json.dumps(postprocessor, cls=TypeEncoder))
+            self.data = postprocessor(self.data)
+            final_len = self.data.shape[0]
+            if org_len != final_len:
+                msg = ("Size of column changed after applying postprocessor."
+                       "This could disturb the alignment of your data.")
+                logger.warn(msg)
+                warnings.warn(msg, UserWarning)
+
     def do_drop_duplicates(self):
         """Drop duplicates from the series if required."""
         if self.is_drop_duplicates:
@@ -195,10 +211,14 @@ class SeriesValidator(HasTraits):
         self.do_drop_duplicates()
         self.do_drop_na()
         self.apply_uniques()
-        # self.apply_converters()
+        self.do_postprocessing()
         self.apply_minmax_rules()
         self.apply_regex()
         return self.data
+
+    @cached_property
+    def _get_postprocessors(self):
+        return self.rules.get("postprocessors", [])
 
     @cached_property
     def _get_exclude_values(self):

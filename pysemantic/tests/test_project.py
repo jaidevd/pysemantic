@@ -24,7 +24,7 @@ from pandas.io.parsers import ParserWarning
 
 import pysemantic.project as pr
 from pysemantic.tests.test_base import (BaseProjectTestCase, TEST_DATA_DICT,
-                                        TEST_CONFIG_FILE_PATH)
+                                        TEST_CONFIG_FILE_PATH, _dummy_postproc)
 from pysemantic.errors import MissingProject
 
 try:
@@ -127,6 +127,21 @@ class TestProjectModule(BaseProjectTestCase):
 class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
+
+    def test_column_postprocessors(self):
+        """Test if postprocessors work on column data properly."""
+        filepath = op.join(op.abspath(op.dirname(__file__)), "testdata",
+                           "iris.csv")
+        col_rules = {'Species': {'postprocessors': [_dummy_postproc]}}
+        specs = {'path': filepath, 'column_rules': col_rules}
+        pr.add_dataset("pysemantic", "postproc_iris", specs)
+        try:
+            project = pr.Project("pysemantic")
+            loaded = project.load_dataset("postproc_iris")
+            processed = loaded['Species']
+            self.assertNotIn("setosa", processed.unique())
+        finally:
+            pr.remove_dataset("pysemantic", "postproc_iris")
 
     def test_na_reps(self):
         """Test if the NA representations are parsed properly."""

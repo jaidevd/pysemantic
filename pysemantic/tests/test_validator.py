@@ -22,7 +22,7 @@ import yaml
 from traits.api import TraitError
 
 from pysemantic.tests.test_base import (BaseTestCase, TEST_DATA_DICT,
-                                        _get_iris_args,
+                                        _get_iris_args, _dummy_postproc,
                                         _get_person_activity_args)
 from pysemantic.validator import (SeriesValidator, SchemaValidator,
                                   DataFrameValidator)
@@ -325,6 +325,16 @@ class TestSeriesValidator(BaseTestCase):
     def setUp(self):
         self.species = self.dataframe['Species'].copy()
         self.sepal_length = self.dataframe['Sepal Length'].copy()
+
+    def test_postprocessor(self):
+        """Test if postporocessors work for series data."""
+        self.species_rules['postprocessors'] = [_dummy_postproc]
+        validator = SeriesValidator(data=self.species, rules=self.species_rules)
+        try:
+            cleaned = validator.clean()
+            self.assertNotIn("setosa", cleaned.unique())
+        finally:
+            del self.species_rules['postprocessors']
 
     def test_unique_values(self):
         """Test if the validator checks for the unique values."""

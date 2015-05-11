@@ -144,6 +144,7 @@ The following parameters can be supplied to any column under ``column_rules``:
 * ``maximum``: Maximum value allowed in a column if the column holds numerical data. By default, the maximum is np.inf. Any value greater than this one is dropped.
 * ``regex``: A regular expression that each element of the column must match, if the column holds text data. Any element of the column not matching this regex is dropped.
 * ``na_values``: A list of values that are considered as NAs by the pandas parsers.
+* ``postprocessors``: A list of callables that called one by one on the columns. Any python function that accepts a series, and returns a series can be a postprocessor.
 
 
 Here is a more extensive example of the usage of this schema.
@@ -166,6 +167,8 @@ Here is a more extensive example of the usage of this schema.
         unique_values:
           - setosa
           - versicolor
+        postprocessors:
+          - !!python/name:module_name.foo
 
 This would cause PySemantic to produce a dataframe corresponding to the Fisher
 iris dataset which has the following characteristics:
@@ -175,6 +178,7 @@ iris dataset which has the following characteristics:
 3. The sepal width only contains integers.
 4. The petal width column will not contain the specific value 3.14
 5. The species column will only contain the values "setosa" and "versicolor", i.e. it will not contain the value "virginica".
+6. The species column in the dataframe will be processed by the ``module_name.foo`` function.
 
 
 ------------------------------

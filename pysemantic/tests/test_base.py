@@ -259,6 +259,11 @@ class TestConfig(BaseTestCase):
             os.unlink(home_file)
 
 
+def _dummy_postproc(series):
+    return pd.Series([x if "v" in x else "" for x in series],
+                     index=series.index)
+
+
 def _get_iris_args():
     """Get the ideal parser arguments for the iris dataset."""
     filepath = op.join(op.dirname(__file__), "testdata", "iris.csv")
