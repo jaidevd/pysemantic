@@ -325,6 +325,9 @@ class SchemaValidator(HasTraits):
     # Header of the file
     header = Property(Any, depends_on=['specification'])
 
+    # Names to use for columns in the dataframe
+    column_names = Property(Any, depends_on=['specification'])
+
     # List of required traits
     # FIXME: Arguments required by the schema should't have to be programmed
     # into the validator class. There must be a way to enforce requirements
@@ -427,6 +430,10 @@ class SchemaValidator(HasTraits):
 
         if self.header != 0:
             args['header'] = self.header
+        if self.column_names is not None:
+            args['names'] = self.column_names
+            # Force include the header argument
+            args['header'] = self.header
 
         if self.is_multifile:
             arglist = []
@@ -452,6 +459,10 @@ class SchemaValidator(HasTraits):
     @cached_property
     def _get_header(self):
         return self.specification.get("header", 0)
+
+    @cached_property
+    def _get_column_names(self):
+        return self.specification.get("column_names")
 
     @cached_property
     def _get_converters(self):

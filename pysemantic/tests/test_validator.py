@@ -76,12 +76,23 @@ class TestSchemaValidator(BaseTestCase):
         self.basespecs = deepcopy(self.specs)
 
     def test_header(self):
+        """Test if the header option works."""
         schema = deepcopy(self.basespecs['iris'])
         schema['header'] = 1
         validator = SchemaValidator(specification=schema)
         loaded = pd.read_csv(**validator.get_parser_args())
         self.assertItemsEqual(loaded.columns,
                               ['5.1', '3.5', '1.4', '0.2', 'setosa'])
+
+    def test_colnames_as_list(self):
+        """Test if the column names option works when provided as a list."""
+        schema = deepcopy(self.basespecs['iris'])
+        schema['header'] = 0
+        ideal = ['a', 'b', 'c', 'd', 'e']
+        schema['column_names'] = ideal
+        validator = SchemaValidator(specification=schema)
+        loaded = pd.read_csv(**validator.get_parser_args())
+        self.assertItemsEqual(loaded.columns, ideal)
 
     def test_converter(self):
         """Test if the SeriesValidator properly applies converters."""
