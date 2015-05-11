@@ -76,6 +76,8 @@ class DataFrameValidator(HasTraits):
     def rename_columns(self):
         """Rename columns in dataframe as per the schema."""
         if self.column_names is not None:
+            logger.info("Renaming columns as follows:")
+            logger.info(json.dumps(self.column_names))
             if isinstance(self.column_names, dict):
                 for old_name, new_name in self.column_names.iteritems():
                     if old_name in self.data:
