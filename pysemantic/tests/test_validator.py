@@ -10,6 +10,7 @@
 
 import os
 import os.path as op
+import cPickle
 import unittest
 import tempfile
 import warnings
@@ -74,6 +75,25 @@ class TestSchemaValidator(BaseTestCase):
         # tests strangely fail. I think one or both of the following two tests
         # are messing up the base specifications.
         self.basespecs = deepcopy(self.specs)
+
+    def test_pickled_arguments(self):
+        """Test if the SchemaValidator correctly loads pickled arguments."""
+        tempdir = tempfile.mkdtemp()
+        outpath = op.join(tempdir, "iris_args.pkl")
+        with open(outpath, 'w') as fid:
+            cPickle.dump(self.ideal_iris_parser_args, fid)
+        new_schema_path = op.join(tempdir, "pickle_schema.yml")
+        with open(new_schema_path, 'w') as fid:
+            yaml.dump(dict(iris=dict(pickle=outpath)), fid, Dumper=Dumper,
+                      default_flow_style=False)
+        org_data = pd.read_csv(self.ideal_iris_parser_args['filepath_or_buffer'])
+        try:
+            validator = SchemaValidator.from_specfile(new_schema_path, "iris",
+                                                      is_pickled=True)
+            loaded = pd.read_csv(**validator.get_parser_args())
+            self.assertDataFrameEqual(loaded, org_data)
+        finally:
+            shutil.rmtree(tempdir)
 
     def test_exclude_columns(self):
         schema = deepcopy(self.basespecs['iris'])

@@ -337,9 +337,11 @@ class Project(object):
         for name, specs in specifications.iteritems():
             logger.info("Schema for dataset {0}:".format(name))
             logger.info(json.dumps(specs, cls=TypeEncoder))
+            is_pickled = specs.get('pickle', False)
             self.validators[name] = SchemaValidator(specification=specs,
                                                     specfile=self.specfile,
-                                                    name=name)
+                                                    name=name,
+                                                    is_pickled=is_pickled)
             self.column_rules[name] = specs.get('column_rules', {})
             self.df_rules[name] = specs.get('dataframe_rules', {})
         self.specifications = specifications
@@ -379,9 +381,11 @@ class Project(object):
         for name, specs in specifications.iteritems():
             logger.info("Schema for dataset {0}:".format(name))
             logger.info(json.dumps(specs, cls=TypeEncoder))
+            is_pickled = specs.get('pickle', False)
             self.validators[name] = SchemaValidator(specification=specs,
                                                     specfile=self.specfile,
-                                                    name=name)
+                                                    name=name,
+                                                    is_pickled=is_pickled)
             self.column_rules[name] = specs.get('column_rules', {})
             self.df_rules[name] = specs.get('dataframe_rules', {})
         self.specifications = specifications

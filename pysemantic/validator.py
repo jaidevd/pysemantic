@@ -9,6 +9,7 @@
 """Traited Data validator for `pandas.DataFrame` objects."""
 
 import copy
+import cPickle
 import json
 import logging
 import datetime
@@ -285,20 +286,21 @@ class SchemaValidator(HasTraits):
         return cls(specification=specification)
 
     @classmethod
-    def from_specfile(cls, specfile, name):
+    def from_specfile(cls, specfile, name, **kwargs):
         """Get a validator from a schema file.
 
         :param specfile: Path to the schema file.
         :param name: Name of the project to create the validator for.
         """
-        return cls(specfile=specfile, name=name)
+        return cls(specfile=specfile, name=name, **kwargs)
 
     def __init__(self, **kwargs):
         """Overwritten to ensure that the `required_args` trait is validated
         when the object is created, not when the trait is accessed.
         """
         super(SchemaValidator, self).__init__(**kwargs)
-        self.required_args = ['filepath', 'delimiter']
+        if not kwargs.get('is_pickled', False):
+            self.required_args = ['filepath', 'delimiter']
 
     # Public traits
 
@@ -358,6 +360,15 @@ class SchemaValidator(HasTraits):
     # List of columns to exclude from the data
     exclude_columns = Property(List, depends_on=['specification'])
 
+    # Whether pickled arguments exist in the schema
+    is_pickled = Bool
+
+    # Path to pickle file containing parser arguments
+    pickle_file = Property(AbsFile, depends_on=['specification'])
+
+    # Dictionary of arguments loaded from the pickle file.
+    pickled_args = Property(Dict, depends_on=['pickle_file'])
+
     # List of required traits
     # FIXME: Arguments required by the schema should't have to be programmed
     # into the validator class. There must be a way to enforce requirements
@@ -409,9 +420,10 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get_is_multifile(self):
-        if isinstance(self.filepath, list):
-            if len(self.filepath) > 1:
-                return True
+        if not self.is_pickled:
+            if isinstance(self.filepath, list):
+                if len(self.filepath) > 1:
+                    return True
         return False
 
     @cached_property
@@ -484,13 +496,27 @@ class SchemaValidator(HasTraits):
                 arglist.append(argset)
             return arglist
         else:
-            args.update({'filepath_or_buffer': self._filepath})
+            if self._filepath:
+                args.update({'filepath_or_buffer': self._filepath})
             if "nrows" in self.specification:
                 args.update({'nrows': self._nrows})
-            return args
+            self.pickled_args.update(args)
+            return self.pickled_args
 
     def _set_parser_args(self, specs):
         self.parser_args.update(specs)
+
+    @cached_property
+    def _get_pickle_file(self):
+        return self.specification.get('pickle')
+
+    @cached_property
+    def _get_pickled_args(self):
+        if self.pickle_file is not None:
+            with open(self.pickle_file, "r") as fid:
+                args = cPickle.load(fid)
+            return args
+        return {}
 
     @cached_property
     def _get_exclude_columns(self):
