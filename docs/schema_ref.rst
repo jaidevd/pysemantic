@@ -155,9 +155,10 @@ In this case the parser will simply name the output column as ``col_a_col_b``, a
 
 * ``pickle`` (Optional) Absolute path to file which contains pickled arguments for the
   parser. This option can be used if readability or declaratives are not a concern. The file should contain a picked dictionary that is directly passed
-  to the parser, i.e. if the loaded pickled data is in a dict named `data`,
-  then parser invocation becomes `parser(**data)`.
-  *NOTE*: If any of the above options are present, they will override the
+  to the parser, i.e. if the loaded pickled data is in a dict named ``data``,
+  then parser invocation becomes ``parser(**data)``.
+
+*NOTE*: If any of the above options are present, they will override the
   corresponding arguments contained in the pickle file. In PySemantic,
   declarative statements have the right of way.
 
