@@ -1,6 +1,6 @@
 pyyaml
 traits
 pandas
-pytables
+tables
 docopt
 nose
