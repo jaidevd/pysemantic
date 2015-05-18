@@ -1,0 +1,6 @@
+pyyaml
+traits
+pandas
+pytables
+docopt
+nose
