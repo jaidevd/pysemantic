@@ -277,8 +277,17 @@ def view_projects():
     Project south park with specfile at /path/to/south_park.yaml
     """
     projects = get_projects()
-    for project_name, specfile in projects:
-        print "Project {0} with specfile at {1}".format(project_name, specfile)
+    if len(projects) > 0:
+        for project_name, specfile in projects:
+            print "Project {0} with specfile at {1}".format(project_name,
+                                                            specfile)
+    else:
+        msg = textwrap.dedent("""\
+            No projects found. You can add projects using the
+            $ semantic list
+            command.
+            """)
+        print msg
 
 
 def remove_project(project_name):
