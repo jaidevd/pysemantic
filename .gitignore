@@ -53,19 +53,6 @@ docs/_build/
 # PyBuilder
 target/
 
-# Directory for sample data
-data/
-
-# No need to commit the data dictionary
-*.yaml
-!pysemantic/tests/testdata/*.yaml
-!.*.yaml
-
-# Ignore the config files.
-*.conf
-!pysemantic/tests/testdata/*.conf
-!pysemantic/*.conf
-
 # Vim swap files
 *.swp
 
