@@ -23,6 +23,7 @@ Options:
   --path=<pth>        Path to a dataset
   --dlm=<sep>         Declare the delimiter for a dataset
   -p --project=<pname>   Name of the project to modify
+  -v --version        Print the version of PySemantic
 
 """
 
