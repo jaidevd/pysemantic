@@ -128,6 +128,20 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_export_dataset_csv(self):
+        """Test if the default csv exporter works."""
+        tempdir = tempfile.mkdtemp()
+        project = pr.Project("pysemantic")
+        try:
+            dataset = "iris"
+            outpath = op.join(tempdir, dataset + ".csv")
+            project.export_dataset(dataset, outpath=outpath)
+            self.assertTrue(op.exists(outpath))
+            loaded = pd.read_csv(outpath)
+            self.assertDataFrameEqual(loaded, project.load_dataset(dataset))
+        finally:
+            shutil.rmtree(tempdir)
+
     def test_exclude_cols(self):
         """Test if importing data with excluded columns works."""
         filepath = op.join(op.abspath(op.dirname(__file__)), "testdata",

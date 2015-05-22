@@ -356,7 +356,9 @@ class Project(object):
         self.specifications = specifications
 
     def export_dataset(self, dataset_name, dataframe=None, outpath=None):
-        """Export a dataset to an exporter defined in the schema.
+        """Export a dataset to an exporter defined in the schema. If nothing is
+        specified in the schema, simply export to a CSV file such named
+        <dataset_name>.csv
 
         :param dataset_name: Name of the dataset to exporter.
         :param dataframe: Pandas dataframe to export. If None (default), this \
@@ -366,6 +368,8 @@ class Project(object):
         if dataframe is None:
             dataframe = self.load_dataset(dataset_name)
         config = self.specifications[dataset_name].get('exporter')
+        if outpath is None:
+            outpath = dataset_name + ".csv"
         if config is not None:
             if config['kind'] == "aerospike":
                 config['namespace'] = self.project_name
@@ -377,6 +381,8 @@ class Project(object):
             if suffix in ("h5", "hdf"):
                 group = r'/{0}/{1}'.format(self.project_name, dataset_name)
                 dataframe.to_hdf(outpath, group)
+            elif suffix == "csv":
+                dataframe.to_csv(outpath, index=False)
 
     def reload_data_dict(self):
         """Reload the data dictionary and re-populate the schema."""
