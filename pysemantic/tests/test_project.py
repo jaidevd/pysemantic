@@ -472,6 +472,7 @@ class TestProjectClass(BaseProjectTestCase):
                self.expected_specs['multi_iris']]
         dframes = [x.drop_duplicates() for x in dframes]
         dframe = pd.concat(dframes)
+        dframe.set_index(np.arange(dframe.shape[0]), inplace=True)
         self.assertDataFrameEqual(loaded['multi_iris'], dframe)
 
     def test_dataset_colnames(self):

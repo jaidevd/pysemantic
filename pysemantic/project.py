@@ -552,7 +552,8 @@ class Project(object):
                 df_validator = DataFrameValidator(data=_df,
                                                   column_rules=column_rules)
                 dfs.append(df_validator.clean())
-            return pd.concat(dfs, axis=0)
+            df = pd.concat(dfs, axis=0)
+            return df.set_index(np.arange(df.shape[0]))
 
     def load_datasets(self):
         """Load and return all datasets.
