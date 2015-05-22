@@ -366,6 +366,8 @@ class Project(object):
         if dataframe is None:
             dataframe = self.load_dataset(dataset_name)
         config = self.specifications[dataset_name].get('exporter')
+        if outpath is None:
+            outpath = dataset_name + ".csv"
         if config is not None:
             if config['kind'] == "aerospike":
                 config['namespace'] = self.project_name
@@ -377,6 +379,8 @@ class Project(object):
             if suffix in ("h5", "hdf"):
                 group = r'/{0}/{1}'.format(self.project_name, dataset_name)
                 dataframe.to_hdf(outpath, group)
+            elif suffix == "csv":
+                dataframe.to_csv(outpath, index=False)
 
     def reload_data_dict(self):
         """Reload the data dictionary and re-populate the schema."""
