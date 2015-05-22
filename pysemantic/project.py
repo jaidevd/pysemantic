@@ -356,7 +356,9 @@ class Project(object):
         self.specifications = specifications
 
     def export_dataset(self, dataset_name, dataframe=None, outpath=None):
-        """Export a dataset to an exporter defined in the schema.
+        """Export a dataset to an exporter defined in the schema. If nothing is
+        specified in the schema, simply export to a CSV file such named
+        <dataset_name>.csv
 
         :param dataset_name: Name of the dataset to exporter.
         :param dataframe: Pandas dataframe to export. If None (default), this \
