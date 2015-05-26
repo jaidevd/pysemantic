@@ -11,6 +11,11 @@ Misecellaneous bells and whistles.
 """
 
 import json
+import pandas as pd
+import datetime
+
+DATA_TYPES = {'String': str, 'Date/Time': datetime.date, 'Float': float,
+              'Integer': int}
 
 
 class TypeEncoder(json.JSONEncoder):
@@ -24,6 +29,40 @@ class TypeEncoder(json.JSONEncoder):
             return ".".join((obj.__module__, obj.__name__))
         else:
             return json.JSONEncoder.default(self, obj)
+
+
+def generate_questionnaire(filepath):
+    """Generate a questionnaire for data at `filepath`.
+
+    This questionnaire will be presented to the client, which helps us
+    automatically generate the schema.
+
+    :param filepath: Path to the file that needs to be ingested.
+    :type filepath: str
+    :return: A dictionary of questions and their possible answers. The format
+    of the dictionary is such that every key is a question to be put to the
+    client, and its value is a list of possible answers. The first item in the
+    list is the default value.
+    :rtype: dict
+    """
+    qdict = {}
+    if filepath.endswith(".tsv"):
+        dataframe = pd.read_table(filepath)
+    else:
+        dataframe = pd.read_csv(filepath)
+    for col in dataframe.columns:
+        qstring = "What is the data type of {}?".format(col)
+        if "float" in str(dataframe[col].dtype).lower():
+            defaultType = "Float"
+        elif "object" in str(dataframe[col].dtype).lower():
+            defaultType = "String"
+        elif "int" in str(dataframe[col].dtype).lower():
+            defaultType = "Integer"
+        typeslist = DATA_TYPES.keys()
+        typeslist.remove(defaultType)
+        typeslist = [defaultType] + typeslist
+        qdict[qstring] = typeslist
+    return qdict
 
 
 def colnames(filename, **kwargs):
