@@ -130,6 +130,17 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_nrows_callable(self):
+        """Check if specifying the nrows argument as a callable works."""
+        nrows = lambda x: np.remainder(x, 2) == 0
+        iris_specs = pr.get_schema_specs("pysemantic", "iris")
+        iris_specs['nrows'] = nrows
+        project = pr.Project(schema={'iris': iris_specs})
+        loaded = project.load_dataset('iris')
+        self.assertEqual(loaded.shape[0], 75)
+        ideal_ix = np.arange(150, step=2)
+        np.testing.assert_allclose(ideal_ix, loaded.index.values)
+
     def test_random_row_selection_within_range(self):
         """Check if randomly selecting rows within a range works."""
         iris_specs = pr.get_schema_specs("pysemantic", "iris")

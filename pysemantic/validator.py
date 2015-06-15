@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 from traits.api import (HasTraits, File, Property, Str, Dict, List, Type,
                         Bool, Either, push_exception_handler, cached_property,
-                        Array, Instance, Float, Any)
+                        Array, Instance, Float, Any, Callable)
 
 from pysemantic.utils import TypeEncoder, get_md5_checksum, colnames
 from pysemantic.custom_traits import (DTypesDict, NaturalNumber, AbsFile,
@@ -60,7 +60,7 @@ class DataFrameValidator(HasTraits):
     column_names = Property(Any, depends_on=['rules'])
 
     # Specifications relating to the selection of rows.
-    nrows = Property(Dict, depends_on=['rules'])
+    nrows = Property(Any, depends_on=['rules'])
 
     def _rules_default(self):
         return {}
@@ -98,13 +98,17 @@ class DataFrameValidator(HasTraits):
 
     def clean(self):
         """Return the converted dataframe after enforcing all rules."""
-        if len(self.nrows) > 0:
-            if self.nrows.get('random', False):
-                ix = self.data.index.values.copy()
-                np.random.shuffle(ix)
-                self.data = self.data.ix[ix]
-            count = self.nrows.get('count', self.data.shape[0])
-            self.data = self.data.ix[self.data.index[:count]]
+        if isinstance(self.nrows, dict):
+            if len(self.nrows) > 0:
+                if self.nrows.get('random', False):
+                    ix = self.data.index.values.copy()
+                    np.random.shuffle(ix)
+                    self.data = self.data.ix[ix]
+                count = self.nrows.get('count', self.data.shape[0])
+                self.data = self.data.ix[self.data.index[:count]]
+        elif callable(self.nrows):
+            ix = self.nrows(self.data.index)
+            self.data = self.data.ix[self.data.index[ix]]
 
         if self.is_drop_na:
             x = self.data.shape[0]
@@ -338,7 +342,7 @@ class SchemaValidator(HasTraits):
     delimiter = Str
 
     # number of rows in the dataset
-    nrows = Either(NaturalNumber, List(NaturalNumber), Dict)
+    nrows = Either(NaturalNumber, List(NaturalNumber), Dict, Callable)
 
     # A dictionary whose keys are the names of the columns in the dataset, and
     # the keys are the datatypes of the corresponding columns
@@ -523,6 +527,8 @@ class SchemaValidator(HasTraits):
                         start, stop = self._nrows['range']
                         args['skiprows'] = start
                         args['nrows'] = stop - start
+                elif callable(self._nrows):
+                    self.df_rules.update({'nrows': self._nrows})
             self.pickled_args.update(args)
             return self.pickled_args
 
