@@ -76,6 +76,15 @@ class TestSchemaValidator(BaseTestCase):
         # are messing up the base specifications.
         self.basespecs = deepcopy(self.specs)
 
+    def test_random_rows_selection(self):
+        """Test if the validator correctly produces the function argument
+        required for selecting a range of rows from a dataset."""
+        self.basespecs['iris']['nrows'] = {'range': [25, 75]}
+        validator = SchemaValidator(specification=self.basespecs['iris'])
+        parser_args = validator.get_parser_args()
+        self.assertEqual(parser_args['skiprows'], 25)
+        self.assertEqual(parser_args['nrows'], 50)
+
     def test_pickled_arguments(self):
         """Test if the SchemaValidator correctly loads pickled arguments."""
         tempdir = tempfile.mkdtemp()

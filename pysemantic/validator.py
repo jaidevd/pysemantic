@@ -517,7 +517,12 @@ class SchemaValidator(HasTraits):
                 if isinstance(self._nrows, int):
                     args.update({'nrows': self._nrows})
                 elif isinstance(self._nrows, dict):
-                    self.df_rules.update({'nrows': self._nrows})
+                    if self._nrows.get('random', False):
+                        self.df_rules.update({'nrows': self._nrows})
+                    if "range" in self._nrows:
+                        start, stop = self._nrows['range']
+                        args['skiprows'] = start
+                        args['nrows'] = stop - start
             self.pickled_args.update(args)
             return self.pickled_args
 
