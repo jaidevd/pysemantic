@@ -70,7 +70,70 @@ to:
 
       column_names: !!python/name:module_name.translate_column_name
 
-* ``nrows``: (Optional) Number of rows to read from the file. If not specified, all rows from the file are read.
+* ``nrows``: (Optional) Method to select which rows are read from the dataset.
+  This option, like ``column_names``, can be specified in many ways. It can be:
+
+    1. An integer (default): Number of rows to read from the file. If this
+       option is not specified, all rows from the file are read.
+
+    .. code-block:: yaml
+
+      nrows: 100
+
+    2. A dictionary that recognizes specific keys:
+           * ``random``: A boolean that directs PySemantic to shuffle the selected rows after loading the dataset.
+             For example, including the following lines in the schema
+
+           .. code-block:: yaml
+
+             nrows:
+                random: true
+
+           will shuffle the dataset before returning it.
+
+           * ``range``: A list of two integers, which denote the first and the
+             last index of the range of rows to be read. For example, the
+             following lines
+
+           .. code-block:: yaml
+
+            nrows:
+                range:
+                    - 10
+                    - 50
+
+           will only select the 10th to the 50th (exclusive) rows.
+            
+           * ``count``: An integer that can be used in conjunction with either
+             or both of the above options, to denote the number of rows to read
+             from a random selection or a range.
+
+           .. code-block:: yaml
+
+            nrows:
+                range:
+                    - 10
+                    - 50
+                count: 10
+                random: true
+
+          The lines shown above will direct PySemantic to load 10 rows at
+          random between the 10th and the 50th rows of a dataset.
+    
+    3. A callable which returns a logical array which has the same number of elements as the number of rows in the dataset. The output of this callable is used as a logical index for slicing the dataset. For example, suppose we wanted to extract all even numbered rows from a dataset, then we could make a callable as follows:
+
+    .. code-block:: python
+
+      iseven = lambda x: np.remainder(x, 2) == 0
+
+    Suppose this function resides in a module called ``foo.bar``, then we
+    can include it in the schema as follows:
+
+    .. code-block:: yaml
+
+      nrows: !!python/name:foo.bar.iseven
+
+    This will cause PySemantic to only load all even valued row numbers.
 
 * ``use_columns``: (Optional) The list of the columns to read from the dataset. The format for specifying this parameter is as follows:
 

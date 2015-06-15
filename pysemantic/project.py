@@ -320,37 +320,57 @@ class Project(object):
 
     """The Project class, the entry point for most things in this module."""
 
-    def __init__(self, project_name, parser=None):
+    def __init__(self, project_name=None, parser=None, schema=None):
         """The Project class.
 
         :param project_name: Name of the project as specified in the \
-                pysemantic configuration file.
+                pysemantic configuration file. If this is ``None``, then the
+                ``schema`` parameter is expected to contain the schema
+                dictionary. (see below)
         :param parser: The parser to be used for reading dataset files. The \
                 default is `pandas.read_table`.
+        :param schema: Dictionary containing the schema for the project. When
+        this argument is supplied (not ``None``), the ``project_name`` is
+        ignored, no specfile is read, and all the specifications for the data
+        are inferred from this dictionary.
         """
-        setup_logging(project_name)
-        self.project_name = project_name
-        self.specfile = get_default_specfile(self.project_name)
-        logger.info("Schema for project {0} found at {1}".format(project_name,
-                                                                self.specfile))
+        if project_name is not None:
+            setup_logging(project_name)
+            self.project_name = project_name
+            self.specfile = get_default_specfile(self.project_name)
+            logger.info("Schema for project {0} found at {1}".format(project_name,
+                                                                    self.specfile))
+        else:
+            setup_logging("no_name")
+            logger.info("Schema defined by user at runtime. Not reading any "
+                    "specfile.")
+            self.specfile = None
         self.validators = {}
         if parser is not None:
             self.user_specified_parser = True
         else:
             self.user_specified_parser = False
         self.parser = parser
-        with open(self.specfile, 'r') as f:
-            specifications = yaml.load(f, Loader=Loader)
+        if self.specfile is not None:
+            with open(self.specfile, 'r') as f:
+                specifications = yaml.load(f, Loader=Loader)
+        else:
+            specifications = schema
         self.column_rules = {}
         self.df_rules = {}
         for name, specs in specifications.iteritems():
             logger.info("Schema for dataset {0}:".format(name))
             logger.info(json.dumps(specs, cls=TypeEncoder))
             is_pickled = specs.get('pickle', False)
-            self.validators[name] = SchemaValidator(specification=specs,
-                                                    specfile=self.specfile,
-                                                    name=name,
-                                                    is_pickled=is_pickled)
+            if self.specfile is not None:
+                self.validators[name] = SchemaValidator(specification=specs,
+                                                        specfile=self.specfile,
+                                                        name=name,
+                                                        is_pickled=is_pickled)
+            else:
+                self.validators[name] = SchemaValidator(specification=specs,
+                                                        name=name,
+                                                        is_pickled=is_pickled)
             self.column_rules[name] = specs.get('column_rules', {})
             self.df_rules[name] = specs.get('dataframe_rules', {})
         self.specifications = specifications
