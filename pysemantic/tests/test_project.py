@@ -130,6 +130,16 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_random_row_selection_within_range(self):
+        """Check if randomly selecting rows within a range works."""
+        iris_specs = pr.get_schema_specs("pysemantic", "iris")
+        iris_specs['nrows'] = {'range': [25, 75], 'count': 10, 'random': True}
+        project = pr.Project(schema={'iris': iris_specs})
+        loaded = project.load_dataset('iris')
+        self.assertEqual(loaded.shape[0], 10)
+        ix = loaded.index.values
+        self.assertTrue(ix.max() <= 50)
+
     def test_row_selection_range(self):
         """Check if a range of rows can be selected from the dataset."""
         iris_specs = pr.get_schema_specs("pysemantic", "iris")
