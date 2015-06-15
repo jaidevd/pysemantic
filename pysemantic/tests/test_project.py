@@ -42,14 +42,16 @@ class TestProjectModule(BaseProjectTestCase):
     def test_get_datasets(self):
         """Test the get_datasets function returns the correct datasets."""
         datasets = pr.get_datasets("pysemantic")
-        ideal = ['person_activity', 'multi_iris', 'iris', 'bad_iris']
+        ideal = ['person_activity', 'multi_iris', 'iris', 'bad_iris',
+                'random_row_iris']
         self.assertItemsEqual(ideal, datasets)
 
     def test_get_datasets_no_project(self):
         """Test if the get_datasets function works with no project name."""
         dataset_names = pr.get_datasets()
         self.assertTrue("pysemantic" in dataset_names)
-        ideal = ['person_activity', 'multi_iris', 'iris', 'bad_iris']
+        ideal = ['person_activity', 'multi_iris', 'iris', 'bad_iris',
+                'random_row_iris']
         self.assertItemsEqual(dataset_names['pysemantic'], ideal)
 
     def test_add_dataset(self):
@@ -127,6 +129,22 @@ class TestProjectModule(BaseProjectTestCase):
 class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
+
+    def test_random_row_directive(self):
+        """Check if the schema for randomizing rows works."""
+        loaded = self.project.load_dataset("random_row_iris")
+        self.assertEqual(loaded.shape[0], 50)
+        ideal_ix = np.arange(50)
+        self.assertFalse(np.all(loaded.index.values == ideal_ix))
+
+    def test_random_row_selection(self):
+        iris_specs = pr.get_schema_specs("pysemantic", "iris")
+        iris_specs['nrows'] = dict(random=True, count=50)
+        project = pr.Project(schema={'iris': iris_specs})
+        loaded = project.load_dataset('iris')
+        self.assertEqual(loaded.shape[0], 50)
+        ideal_ix = np.arange(50)
+        self.assertFalse(np.all(loaded.index.values == ideal_ix))
 
     def test_export_dataset_csv(self):
         """Test if the default csv exporter works."""
@@ -206,7 +224,7 @@ class TestProjectClass(BaseProjectTestCase):
         project = pr.Project("pysemantic")
         try:
             for dataset in project.datasets:
-                if dataset != "bad_iris":
+                if dataset not in ("bad_iris", "random_row_iris"):
                     outpath = op.join(tempdir, dataset + ".h5")
                     project.export_dataset(dataset, outpath=outpath)
                     self.assertTrue(op.exists(outpath))
@@ -399,6 +417,7 @@ class TestProjectClass(BaseProjectTestCase):
         """Test if the project manager gets all specifications correctly."""
         specs = self.project.get_project_specs()
         del specs['bad_iris']
+        del specs['random_row_iris']
         for name, argdict in specs.iteritems():
             if isinstance(argdict, list):
                 for i in range(len(argdict)):
@@ -463,7 +482,8 @@ class TestProjectClass(BaseProjectTestCase):
         """Test if loading all datasets in a project works as expected."""
         loaded = self.project.load_datasets()
         self.assertItemsEqual(loaded.keys(), ('iris', 'person_activity',
-                                              'multi_iris', 'bad_iris'))
+                                              'multi_iris', 'bad_iris',
+                                              'random_row_iris'))
         dframe = pd.read_csv(**self.expected_specs['iris'])
         self.assertDataFrameEqual(loaded['iris'], dframe)
         dframe = pd.read_csv(**self.expected_specs['person_activity'])
@@ -481,7 +501,8 @@ class TestProjectClass(BaseProjectTestCase):
         project = pr.Project(schema=project_specs)
         loaded = project.load_datasets()
         self.assertItemsEqual(loaded.keys(), ('iris', 'person_activity',
-                                              'multi_iris', 'bad_iris'))
+                                              'multi_iris', 'bad_iris',
+                                              'random_row_iris'))
         dframe = pd.read_csv(**self.expected_specs['iris'])
         self.assertDataFrameEqual(loaded['iris'], dframe)
         dframe = pd.read_csv(**self.expected_specs['person_activity'])

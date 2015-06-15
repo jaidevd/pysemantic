@@ -19,7 +19,7 @@ import os.path as op
 import yaml
 import numpy as np
 import pandas as pd
-from traits.api import (HasTraits, File, Property, Int, Str, Dict, List, Type,
+from traits.api import (HasTraits, File, Property, Str, Dict, List, Type,
                         Bool, Either, push_exception_handler, cached_property,
                         Array, Instance, Float, Any)
 
@@ -59,8 +59,15 @@ class DataFrameValidator(HasTraits):
     # Names of columns to be rewritten
     column_names = Property(Any, depends_on=['rules'])
 
+    # Specifications relating to the selection of rows.
+    nrows = Property(Dict, depends_on=['rules'])
+
     def _rules_default(self):
         return {}
+
+    @cached_property
+    def _get_nrows(self):
+        return self.rules.get('nrows', {})
 
     @cached_property
     def _get_is_drop_na(self):
@@ -91,6 +98,14 @@ class DataFrameValidator(HasTraits):
 
     def clean(self):
         """Return the converted dataframe after enforcing all rules."""
+        if len(self.nrows) > 0:
+            if self.nrows.get('random', False):
+                ix = self.data.index.values.copy()
+                np.random.shuffle(ix)
+                self.data = self.data.ix[ix]
+            count = self.nrows.get('count', self.data.shape[0])
+            self.data = self.data.ix[self.data.index[:count]]
+
         if self.is_drop_na:
             x = self.data.shape[0]
             self.data.dropna(inplace=True)
@@ -323,7 +338,7 @@ class SchemaValidator(HasTraits):
     delimiter = Str
 
     # number of rows in the dataset
-    nrows = Either(NaturalNumber, List(NaturalNumber))
+    nrows = Either(NaturalNumber, List(NaturalNumber), Dict)
 
     # A dictionary whose keys are the names of the columns in the dataset, and
     # the keys are the datatypes of the corresponding columns
@@ -388,7 +403,7 @@ class SchemaValidator(HasTraits):
 
     _delimiter = Property(Str, depends_on=['specification'])
 
-    _nrows = Property(Int, depends_on=['specification'])
+    _nrows = Property(Any, depends_on=['specification'])
 
     # Public interface
 
@@ -499,7 +514,10 @@ class SchemaValidator(HasTraits):
             if self._filepath:
                 args.update({'filepath_or_buffer': self._filepath})
             if "nrows" in self.specification:
-                args.update({'nrows': self._nrows})
+                if isinstance(self._nrows, int):
+                    args.update({'nrows': self._nrows})
+                elif isinstance(self._nrows, dict):
+                    self.df_rules.update({'nrows': self._nrows})
             self.pickled_args.update(args)
             return self.pickled_args
 

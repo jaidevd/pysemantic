@@ -151,6 +151,7 @@ class BaseProjectTestCase(BaseTestCase):
             with open(TEST_DATA_DICT, "r") as fileobj:
                 test_data = yaml.load(fileobj, Loader=Loader)
             test_data['iris']['path'] = op.join("testdata", "iris.csv")
+            test_data['random_row_iris']['path'] = op.join("testdata", "iris.csv")
             test_data['bad_iris']['path'] = op.join("testdata", "bad_iris.csv")
             test_data['person_activity']['path'] = op.join("testdata",
                                                          "person_activity.tsv")
@@ -197,9 +198,14 @@ class BaseProjectTestCase(BaseTestCase):
                                               op.abspath(op.dirname(__file__)),
                                               "testdata",
                                               "person_activity.tsv")}
+        random_row_iris_specs = {'nrows': {'random': True, 'count': 50},
+                                 'filepath_or_buffer': op.join(
+                                              op.abspath(op.dirname(__file__)),
+                                              "testdata", "iris.csv")}
         expected = {'iris': iris_specs,
                     'person_activity': person_activity_specs,
-                    'multi_iris': multi_iris_specs}
+                    'multi_iris': multi_iris_specs,
+                    'random_row_iris': random_row_iris_specs}
         self.expected_specs = expected
         self.project = pr.Project(project_name="pysemantic")
 
