@@ -475,6 +475,24 @@ class TestProjectClass(BaseProjectTestCase):
         dframe.set_index(np.arange(dframe.shape[0]), inplace=True)
         self.assertDataFrameEqual(loaded['multi_iris'], dframe)
 
+    def test_init_project_yaml_dump(self):
+        """Test initialization of Project class with the raw yaml dump."""
+        project_specs = pr.get_schema_specs('pysemantic')
+        project = pr.Project(schema=project_specs)
+        loaded = project.load_datasets()
+        self.assertItemsEqual(loaded.keys(), ('iris', 'person_activity',
+                                              'multi_iris', 'bad_iris'))
+        dframe = pd.read_csv(**self.expected_specs['iris'])
+        self.assertDataFrameEqual(loaded['iris'], dframe)
+        dframe = pd.read_csv(**self.expected_specs['person_activity'])
+        self.assertDataFrameEqual(loaded['person_activity'], dframe)
+        dframes = [pd.read_csv(**args) for args in
+               self.expected_specs['multi_iris']]
+        dframes = [x.drop_duplicates() for x in dframes]
+        dframe = pd.concat(dframes)
+        dframe.set_index(np.arange(dframe.shape[0]), inplace=True)
+        self.assertDataFrameEqual(loaded['multi_iris'], dframe)
+
     def test_dataset_colnames(self):
         """Check if the column names read by the Loader are correct."""
         for name in ['iris', 'person_activity']:
