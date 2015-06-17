@@ -456,6 +456,7 @@ class SchemaValidator(HasTraits):
                 logger.warn(msg.format(self.filepath))
                 warnings.warn(msg.format(self.filepath), UserWarning)
         args = {}
+        args['error_bad_lines'] = False
         if self._delimiter:
             args['sep'] = self._delimiter
 
