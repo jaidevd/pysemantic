@@ -180,6 +180,7 @@ class BaseProjectTestCase(BaseTestCase):
                                             'Sepal Length': float,
                                             'Species': str},
                       'nrows': 150,
+                      'error_bad_lines': False,
                       'filepath_or_buffer': op.join(
                                               op.abspath(op.dirname(__file__)),
                                               "testdata", "iris.csv")}
@@ -194,11 +195,13 @@ class BaseProjectTestCase(BaseTestCase):
                                                         'y': float, 'z': float,
                                                         },
                                  'parse_dates': ['date'], 'nrows': 100,
+                                 'error_bad_lines': False,
                                  'filepath_or_buffer': op.join(
                                               op.abspath(op.dirname(__file__)),
                                               "testdata",
                                               "person_activity.tsv")}
         random_row_iris_specs = {'nrows': {'random': True, 'count': 50},
+                                 'error_bad_lines': False,
                                  'filepath_or_buffer': op.join(
                                               op.abspath(op.dirname(__file__)),
                                               "testdata", "iris.csv")}
@@ -274,7 +277,7 @@ def _get_iris_args():
     """Get the ideal parser arguments for the iris dataset."""
     filepath = op.join(op.dirname(__file__), "testdata", "iris.csv")
     return dict(filepath_or_buffer=op.abspath(filepath),
-                sep=",", nrows=150,
+                sep=",", nrows=150, error_bad_lines=False,
                 dtype={'Petal Length': float,
                        'Petal Width': float,
                        'Sepal Length': float,
@@ -286,6 +289,7 @@ def _get_person_activity_args():
     """Get the ideal parser arguments for the activity dataset."""
     filepath = op.join(op.dirname(__file__), "testdata", "person_activity.tsv")
     return dict(filepath_or_buffer=op.abspath(filepath),
+                error_bad_lines=False,
                 sep="\t", nrows=100, dtype={'sequence_name': str,
                                             'tag': str,
                                             'x': float,

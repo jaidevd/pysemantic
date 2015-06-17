@@ -618,6 +618,8 @@ class Project(object):
                 logger.warn(msg)
                 logger.info("Removing the dtype argument")
                 warnings.warn(msg, UserWarning)
+                if "error_bad_lines" in parser_args:
+                    del parser_args['error_bad_lines']
                 return self.parser(**parser_args)
             elif e.message.startswith("cannot safely convert"):
                 bad_col = int(e.message.split(' ')[-1])
@@ -632,6 +634,18 @@ class Project(object):
                 logger.warn(msg)
                 logger.info("dtype for column {} removed.".format(bad_col))
                 warnings.warn(msg, UserWarning)
+                return self.parser(**parser_args)
+            elif e.message.startswith('could not convert string to float'):
+                bad_cols = self._detect_mismatched_dtype_row(float, parser_args)
+                for col in bad_cols:
+                    del parser_args['dtype'][col]
+                msg = textwrap.dedent("""\
+                The specified dtype for the column '{0}' ({1}) seems to be
+                incorrect. This has been ignored for now.
+                Consider fixing this by editing the schema.""".format(bad_cols,
+                                                              float))
+                logger.warn(msg)
+                logger.info("dtype removed for columns:".format(bad_cols))
                 return self.parser(**parser_args)
         except AttributeError as e:
             if e.message == "'NoneType' object has no attribute 'dtype'":
@@ -709,9 +723,10 @@ class Project(object):
             if value is specified_dtype:
                 to_read.append(key)
         fpath = parser_args['filepath_or_buffer']
-        sep = parser_args['sep']
+        sep = parser_args.get('sep', ',')
         nrows = parser_args.get('nrows')
-        df = self.parser(fpath, sep=sep, usecols=to_read, nrows=nrows)
+        df = self.parser(fpath, sep=sep, usecols=to_read, nrows=nrows,
+                error_bad_lines=False)
         bad_cols = []
         for col in df:
             try:

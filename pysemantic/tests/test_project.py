@@ -233,7 +233,7 @@ class TestProjectClass(BaseProjectTestCase):
         """Test if the NA representations are parsed properly."""
         project = pr.Project("pysemantic")
         loaded = project.load_dataset("bad_iris")
-        self.assertItemsEqual(loaded.shape, (300, 4))
+        self.assertItemsEqual(loaded.shape, (300, 5))
 
     def test_error_bad_lines_correction(self):
         """test if the correction for bad lines works."""
