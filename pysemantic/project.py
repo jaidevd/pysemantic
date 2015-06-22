@@ -255,8 +255,7 @@ def set_schema_specs(project_name, dataset_name, **kwargs):
     :Example:
 
     >>> set_schema_specs('skynet', 'kyle reese',
-                         {'path': '/path/to/new/file.csv',
-                          'delimiter': new_delimiter})
+                         path='/path/to/new/file.csv', delimiter=new_delimiter)
     """
     schema_file = get_default_specfile(project_name)
     with open(schema_file, "r") as f:
