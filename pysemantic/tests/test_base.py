@@ -180,6 +180,9 @@ class BaseProjectTestCase(BaseTestCase):
             parser.remove_option("pysemantic", "specfile")
             parser.set("pysemantic", "specfile",
                        op.join("testdata", "test_dictionary.yaml"))
+            parser.remove_option("test_excel", "specfile")
+            parser.set("test_excel", "specfile",
+                       op.join("testdata", "test_excel.yaml"))
             with open(TEST_CONFIG_FILE_PATH, 'w') as fileobj:
                 parser.write(fileobj)
 
