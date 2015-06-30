@@ -31,6 +31,8 @@ TEST_CONFIG_FILE_PATH = op.join(op.abspath(op.dirname(__file__)), "testdata",
                                 "test.conf")
 TEST_DATA_DICT = op.join(op.abspath(op.dirname(__file__)), "testdata",
                          "test_dictionary.yaml")
+TEST_XL_DICT = op.join(op.abspath(op.dirname(__file__)), "testdata",
+                       "test_excel.yaml")
 
 
 def _path_fixer(filepath, root=None):
@@ -144,6 +146,9 @@ class BaseProjectTestCase(BaseTestCase):
             parser.write(fileobj)
         pr.CONF_FILE_NAME = config_fname
 
+        # fix paths in the excel dictionary
+        _path_fixer(TEST_XL_DICT)
+
     @classmethod
     def tearDownClass(cls):
         try:
@@ -157,6 +162,16 @@ class BaseProjectTestCase(BaseTestCase):
                                                          "person_activity.tsv")
             del test_data['multi_iris']
             with open(TEST_DATA_DICT, "w") as fileobj:
+                test_data = yaml.dump(test_data, fileobj, Dumper=Dumper,
+                                     default_flow_style=False)
+
+            with open(TEST_XL_DICT, "r") as fileobj:
+                test_data = yaml.load(fileobj, Loader=Loader)
+            test_data['iris']['path'] = op.join("testdata",
+                                                "test_spreadsheet.xlsx")
+            test_data['person_activity']['path'] = op.join("testdata",
+                                                       "test_spreadsheet.xlsx")
+            with open(TEST_XL_DICT, "w") as fileobj:
                 test_data = yaml.dump(test_data, fileobj, Dumper=Dumper,
                                      default_flow_style=False)
 

@@ -1,0 +1,4 @@
+iris:
+  path: testdata/test_spreadsheet.xlsx
+person_activity:
+  path: testdata/test_spreadsheet.xlsx
