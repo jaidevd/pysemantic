@@ -1,6 +1,7 @@
 pyyaml
 traits
 pandas
+xlrd
 pytables
 docopt
 nose
