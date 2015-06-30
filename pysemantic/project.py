@@ -592,12 +592,22 @@ class Project(object):
         :param argdict: Dictionary containing parser arguments.
         :return None:
         """
+        fpath = argdict.get('filepath_or_buffer', argdict.get('io'))
+        xls = fpath.endswith(".xlsx") or fpath.endswith("xls")
         if not self.user_specified_parser:
-            sep = argdict.get('sep', ",")
-            if sep == ",":
-                self.parser = pd.read_csv
+            if not xls:
+                sep = argdict.get('sep', ",")
+                if sep == ",":
+                    self.parser = pd.read_csv
+                else:
+                    self.parser = pd.read_table
             else:
-                self.parser = pd.read_table
+                self.parser = self._load_excel_sheet
+
+    def _load_excel_sheet(self, **parser_args):
+        sheetname = parser_args.pop("sheetname")
+        io = parser_args.pop('io')
+        return pd.read_excel(io, sheetname=sheetname, **parser_args)
 
     def _load(self, parser_args):
         """The actual loader function that does the heavy lifting.

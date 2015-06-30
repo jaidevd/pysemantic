@@ -89,7 +89,7 @@ class BaseTestCase(unittest.TestCase):
     def assertDataFrameEqual(self, dframe1, dframe2):
         """Assert that two dataframes are equal by their columns, indices and
         values."""
-        self.assertTrue(np.all(dframe1.index == dframe2.index))
+        self.assertTrue(np.all(dframe1.index.values == dframe2.index.values))
         self.assertTrue(np.all(dframe1.columns == dframe2.columns))
         for col in dframe1:
             self.assertTrue(np.all(dframe1[col] == dframe2[col]))
@@ -131,6 +131,7 @@ class BaseProjectTestCase(BaseTestCase):
             yaml.dump(test_data, fileobj, Dumper=Dumper,
                       default_flow_style=False)
         cls.data_specs = test_data
+        _path_fixer(TEST_XL_DICT)
 
         # Fix config file to have absolute paths
 
@@ -138,16 +139,14 @@ class BaseProjectTestCase(BaseTestCase):
         cls.test_conf_file = op.join(os.getcwd(), config_fname)
         parser = RawConfigParser()
         parser.read(TEST_CONFIG_FILE_PATH)
-        specfile = parser.get('pysemantic', 'specfile')
-        specfile = op.join(op.abspath(op.dirname(__file__)), specfile)
-        parser.remove_option("pysemantic", "specfile")
-        parser.set("pysemantic", "specfile", specfile)
-        with open(cls.test_conf_file, 'w') as fileobj:
-            parser.write(fileobj)
+        for project in ("pysemantic", "test_excel"):
+            specfile = parser.get(project, 'specfile')
+            specfile = op.join(op.abspath(op.dirname(__file__)), specfile)
+            parser.remove_option(project, "specfile")
+            parser.set(project, "specfile", specfile)
+            with open(cls.test_conf_file, 'w') as fileobj:
+                parser.write(fileobj)
         pr.CONF_FILE_NAME = config_fname
-
-        # fix paths in the excel dictionary
-        _path_fixer(TEST_XL_DICT)
 
     @classmethod
     def tearDownClass(cls):
