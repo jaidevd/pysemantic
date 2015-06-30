@@ -130,6 +130,13 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_load_excel(self):
+        """Test if excel spreadsheets are read properly from the schema."""
+        xl_project = pr.Project("test_excel")
+        ideal_iris = self.project.load_dataset("iris")
+        actual_iris = xl_project.load_dataset("iris")
+        self.assertDataFrameEqual(ideal_iris, actual_iris)
+
     def test_nrows_callable(self):
         """Check if specifying the nrows argument as a callable works."""
         nrows = lambda x: np.remainder(x, 2) == 0

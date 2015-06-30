@@ -338,6 +338,9 @@ class SchemaValidator(HasTraits):
     # Whether the dataset spans multiple files
     is_multifile = Property(Bool, depends_on=['filepath'])
 
+    # Whether the dataset is contained in a spreadsheet
+    is_spreadsheet = Property(Bool, depends_on=['filepath'])
+
     # Delimiter
     delimiter = Str
 
@@ -446,6 +449,12 @@ class SchemaValidator(HasTraits):
         return False
 
     @cached_property
+    def _get_is_spreadsheet(self):
+        if (not self.is_multifile) and (not self.is_pickled):
+            return self.filepath.endswith('.xls') or self.filepath.endswith('xlsx')
+        return False
+
+    @cached_property
     def _get_parser_args(self):
         if self.md5:
             if self.md5 != get_md5_checksum(self.filepath):
@@ -456,7 +465,8 @@ class SchemaValidator(HasTraits):
                 logger.warn(msg.format(self.filepath))
                 warnings.warn(msg.format(self.filepath), UserWarning)
         args = {}
-        args['error_bad_lines'] = False
+        if not self.is_spreadsheet:
+            args['error_bad_lines'] = False
         if self._delimiter:
             args['sep'] = self._delimiter
 
@@ -531,6 +541,11 @@ class SchemaValidator(HasTraits):
                 elif callable(self._nrows):
                     self.df_rules.update({'nrows': self._nrows})
             self.pickled_args.update(args)
+            if self.is_spreadsheet:
+                self.pickled_args.pop('sep', None)
+                self.pickled_args.pop('dtype', None)
+                self.pickled_args['sheetname'] = self.name
+                self.pickled_args['io'] = self.pickled_args.pop('filepath_or_buffer')
             return self.pickled_args
 
     def _set_parser_args(self, specs):

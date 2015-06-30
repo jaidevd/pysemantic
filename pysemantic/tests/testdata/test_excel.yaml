@@ -1,0 +1,8 @@
+iris:
+  dataframe_rules:
+    drop_duplicates: false
+  path: testdata/test_spreadsheet.xlsx
+person_activity:
+  dataframe_rules:
+    drop_duplicates: false
+  path: testdata/test_spreadsheet.xlsx

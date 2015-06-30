@@ -99,7 +99,9 @@ class TestCLI(BaseTestCase):
         output = subprocess.check_output(cmd, env=self.testenv).splitlines()
         path = op.join(op.abspath(op.dirname(__file__)),
                        "testdata/test_dictionary.yaml")
-        dummy_data = [("pysemantic", path),
+        excel_path = op.join(op.abspath(op.dirname(__file__)),
+                       "testdata/test_excel.yaml")
+        dummy_data = [("pysemantic", path), ("test_excel", excel_path),
                       ("dummy_project", "/foo/bar.yaml")]
         for i, config in enumerate(dummy_data):
             ideal = "Project {0} with specfile at {1}".format(*config)
