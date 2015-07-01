@@ -271,6 +271,31 @@ class TestProjectClass(BaseProjectTestCase):
         loaded = project.load_dataset("bad_iris")
         self.assertItemsEqual(loaded.shape, (300, 5))
 
+    def test_na_reps_list(self):
+        """Test if NA values work when specified as a list."""
+        tempdir = tempfile.mkdtemp()
+        df = pd.DataFrame(np.random.rand(10, 2))
+        ix = np.random.randint(0, df.shape[0], size=(5,))
+        ix = np.unique(ix)
+        df.iloc[ix, 0] = "foo"
+        df.iloc[ix, 1] = "bar"
+        fpath = op.join(tempdir, "test_na.csv")
+        df.to_csv(fpath, index=False)
+        schema = {'path': fpath, 'na_values': ["foo", "bar"],
+                  'dataframe_rules': {'drop_na': False,
+                                      'drop_duplicates': False}}
+        schema_fpath = op.join(tempdir, "test_na.yaml")
+        with open(schema_fpath, "w") as fid:
+            yaml.dump({'test_na': schema}, fid, Dumper=Dumper,
+                      default_flow_style=False)
+        pr.add_project("test_na", schema_fpath)
+        try:
+            df = pr.Project("test_na").load_dataset("test_na")
+            self.assertEqual(pd.isnull(df).sum().sum(), ix.shape[0] * 2)
+        finally:
+            pr.remove_project("test_na")
+            shutil.rmtree(tempdir)
+
     def test_global_na_reps(self):
         """Test is specifying a global NA value for a dataset works."""
         tempdir = tempfile.mkdtemp()
