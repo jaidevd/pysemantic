@@ -130,12 +130,25 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_index_col(self):
+        """Test if specifying the index_col works."""
+        iris_fpath = self.expected_specs['iris']['filepath_or_buffer']
+        specs = {'path': iris_fpath, 'index_col': 'Species',
+                 'dataframe_rules': {'drop_duplicates': False}}
+        pr.add_dataset("pysemantic", "iris_indexed", specs)
+        try:
+            df = pr.Project('pysemantic').load_dataset('iris_indexed')
+            for specie in ['setosa', 'versicolor', 'virginica']:
+                self.assertEqual(df.ix[specie].shape[0], 50)
+        finally:
+            pr.remove_dataset('pysemantic', 'iris_indexed')
+
     def test_multiindex(self):
         """Test if providing a list of indices in the schema returns a proper
         multiindexed dataframe."""
         pa_fpath = self.expected_specs['person_activity']['filepath_or_buffer']
         index_cols = ['sequence_name', 'tag']
-        specs = {'path': pa_fpath, 'delimiter': '\t', 'index_col': index_cols}
+        specs = {'path': pa_fpath, 'index_col': index_cols, 'delimiter': '\t'}
         pr.add_dataset("pysemantic", "pa_multiindex", specs)
         try:
             df = pr.Project('pysemantic').load_dataset('pa_multiindex')
