@@ -27,12 +27,12 @@ to:
 
 * ``path`` (Required) The absolute path to the file containing the data. Note that the path must be absolute. This can also be a list of files if the dataset spans multiple files. If that is the case, the path parameter can be specified as:
 
-.. code-block:: yaml
+  .. code-block:: yaml
 
-  path:
-    - absolulte/path/to/file/1
-    - absolulte/path/to/file/2
-    # etc
+    path:
+      - absolulte/path/to/file/1
+      - absolulte/path/to/file/2
+      # etc
 
 * ``demlimiter`` (Optional, default: ``,``) The delimiter used in the file. This has to be a character delimiter, not words like "comma" or "tab".
 
@@ -41,6 +41,44 @@ to:
   path. This parameter helps keep track of whether the file is correct.
 
 * ``header``: (Optional) The header row of the file.
+
+* ``index_col``: (Optional) Name of the column that forms the index of the
+  dataframe. This can be a single string or a list of strings. If a list is
+  provided, the dataframe becomes multi-indexed.
+
+* ``sheetname``: (Optional) Name of the sheet containing the dataset in an
+  MS Excel spreadsheet. This comes into play only when ``path`` points to an
+  Excel file. For other types of files, this is ignored. When ``path`` is an
+  Excel file and this parameter is not provided, it is assumed to be the same
+  as the name of the dataset. For example:
+
+  .. code-block:: yaml
+
+    iris:
+        path: /path/to/iris.xlsx
+
+  The schema above assumes that the iris dataset resides in a sheet named
+  "iris". If instead the name of the sheet is different, you can specify it
+  as:
+
+  .. code-block:: yaml
+
+    iris:
+        path: /path/to/iris.xlsx
+        sheetname: name_of_sheet
+
+  This parameter can also be a list, to enable the combination of multiple
+  sheets into a dataframe, as follows:
+
+  .. code-block:: yaml
+
+    iris:
+        path: /path/to/iris.xlsx
+        sheetname:
+            - sheet1
+            - sheet2
+
+  This will combine the data from sheet1 and sheet2 into a single dataframe.
 
 * ``column_names``: (Optional) Specify the names of columns to use in the
   loaded dataframe. This option can have multiple types of values. It can be:
@@ -76,55 +114,56 @@ to:
     1. An integer (default): Number of rows to read from the file. If this
        option is not specified, all rows from the file are read.
 
-    .. code-block:: yaml
+      .. code-block:: yaml
 
-      nrows: 100
+        nrows: 100
 
     2. A dictionary that recognizes specific keys:
-           * ``random``: A boolean that directs PySemantic to shuffle the selected rows after loading the dataset.
-             For example, including the following lines in the schema
 
-           .. code-block:: yaml
+       * ``random``: A boolean that directs PySemantic to shuffle the selected rows after loading the dataset.
+         For example, including the following lines in the schema
 
-             nrows:
-                random: true
+         .. code-block:: yaml
 
-           will shuffle the dataset before returning it.
+           nrows:
+              random: true
 
-           * ``range``: A list of two integers, which denote the first and the
-             last index of the range of rows to be read. For example, the
-             following lines
+         will shuffle the dataset before returning it.
 
-           .. code-block:: yaml
+       * ``range``: A list of two integers, which denote the first and the
+         last index of the range of rows to be read. For example, the
+         following lines
 
-            nrows:
-                range:
-                    - 10
-                    - 50
+         .. code-block:: yaml
 
-           will only select the 10th to the 50th (exclusive) rows.
-            
-           * ``count``: An integer that can be used in conjunction with either
-             or both of the above options, to denote the number of rows to read
-             from a random selection or a range.
+          nrows:
+              range:
+                  - 10
+                  - 50
 
-           .. code-block:: yaml
+         will only select the 10th to the 50th (exclusive) rows.
+        
+       * ``count``: An integer that can be used in conjunction with either
+         or both of the above options, to denote the number of rows to read
+         from a random selection or a range.
 
-            nrows:
-                range:
-                    - 10
-                    - 50
-                count: 10
-                random: true
+         .. code-block:: yaml
 
-          The lines shown above will direct PySemantic to load 10 rows at
-          random between the 10th and the 50th rows of a dataset.
-    
+          nrows:
+              range:
+                  - 10
+                  - 50
+              count: 10
+              random: true
+
+        The lines shown above will direct PySemantic to load 10 rows at
+        random between the 10th and the 50th rows of a dataset.
+
     3. A callable which returns a logical array which has the same number of elements as the number of rows in the dataset. The output of this callable is used as a logical index for slicing the dataset. For example, suppose we wanted to extract all even numbered rows from a dataset, then we could make a callable as follows:
 
-    .. code-block:: python
+      .. code-block:: python
 
-      iseven = lambda x: np.remainder(x, 2) == 0
+        iseven = lambda x: np.remainder(x, 2) == 0
 
     Suppose this function resides in a module called ``foo.bar``, then we
     can include it in the schema as follows:
@@ -137,12 +176,12 @@ to:
 
 * ``use_columns``: (Optional) The list of the columns to read from the dataset. The format for specifying this parameter is as follows:
 
-.. code-block:: yaml
-
-    use_columns:
-      - column_1
-      - column_2
-      - column_3
+  .. code-block:: yaml
+  
+      use_columns:
+        - column_1
+        - column_2
+        - column_3
 
 If this parameter is not specified, all columns present in the dataset are read.
 
@@ -152,65 +191,67 @@ If this parameter is not specified, all columns present in the dataset are read.
   option overrides the ``use_columns`` option, i.e. if a column name is present
   in both lists, it will be dropped.
 
+* ``na_values``: A string or a list of values that are considered as NAs by the pandas parsers, applicable to the whole dataframe.
+
 * ``converters``: A dictionary of functions to be applied to columns when loading data. Any Python callable can be added to this list. This parameter makes up the ``converters`` argument of Pandas parsers. The usage is as follows:
 
-.. code-block:: yaml
-
-    converters:
-      col_a: !!python/name:numpy.int
+  .. code-block:: yaml
+  
+      converters:
+        col_a: !!python/name:numpy.int
 
 This results in the ``numpy.int`` function being called on the column ``col_a``
 
 * ``dtypes`` (Optional) Data types of the columns to be read. Since types in Python are native objects, PySemantic expects them to be so in the schema. This can be formatted as follows:
 
-.. code-block:: yaml
-
-  dtypes:
-    column_name: !!python/name:python_object
+  .. code-block:: yaml
+  
+    dtypes:
+      column_name: !!python/name:python_object
 
 For example, if you have three columns named ``foo``, ``bar``, and ``baz``,
 which have the types ``string``, ``integer`` and ``float`` respectively, then your schema
 should look like:
 
-.. code-block:: yaml
-
-  dtypes:
-    foo: !!python/name:__builtin__.str
-    bar: !!python/name:__builtin__.int
-    baz: !!python/name:__builtin__.float
+  .. code-block:: yaml
+  
+    dtypes:
+      foo: !!python/name:__builtin__.str
+      bar: !!python/name:__builtin__.int
+      baz: !!python/name:__builtin__.float
 
 Non-builtin types can be specified too:
 
-.. code-block:: yaml
+  .. code-block:: yaml
 
-   dtypes:
-     datetime_column: !!python/name:datetime.date
+     dtypes:
+       datetime_column: !!python/name:datetime.date
 
 *Note*: You can figure out the yaml representation of a Python type by doing
 the following:
 
-.. code-block:: python
+  .. code-block:: python
 
-  import yaml
-  x = type(foo) # where foo is the object who's type is to be yamlized
-  print yaml.dump(x)
+    import yaml
+    x = type(foo) # where foo is the object who's type is to be yamlized
+    print yaml.dump(x)
 
 * ``combine_dt_columns`` (Optional) Columns containing Date/Time values can be combined into one column by using the following schema:
 
-.. code-block:: yaml
+  .. code-block:: yaml
 
-  combine_dt_columns:
-    output_col_name:
-      - col_a
-      - col_b
+    combine_dt_columns:
+      output_col_name:
+        - col_a
+        - col_b
 
 This will parse columns ``col_a`` and ``col_b`` as datetime columns, and put the result in a column named ``output_col_name``. Specifying the output name is optional. You may declare the schema as:
 
-.. code-block:: yaml
+  .. code-block:: yaml
 
-  combine_dt_columns:
-    - col_a
-    - col_b
+    combine_dt_columns:
+      - col_a
+      - col_b
 
 In this case the parser will simply name the output column as ``col_a_col_b``, as is the default with Pandas.
 
@@ -249,7 +290,7 @@ The following parameters can be supplied to any column under ``column_rules``:
 * ``minimum``: Minimum value allowed in a column if the column holds numerical data. By default, the minimum is -np.inf. Any value less than this one is dropped.
 * ``maximum``: Maximum value allowed in a column if the column holds numerical data. By default, the maximum is np.inf. Any value greater than this one is dropped.
 * ``regex``: A regular expression that each element of the column must match, if the column holds text data. Any element of the column not matching this regex is dropped.
-* ``na_values``: A list of values that are considered as NAs by the pandas parsers.
+* ``na_values``: A list of values that are considered as NAs by the pandas parsers, applicable to this column.
 * ``postprocessors``: A list of callables that called one by one on the columns. Any python function that accepts a series, and returns a series can be a postprocessor.
 
 
