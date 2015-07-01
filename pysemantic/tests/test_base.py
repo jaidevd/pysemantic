@@ -166,10 +166,10 @@ class BaseProjectTestCase(BaseTestCase):
 
             with open(TEST_XL_DICT, "r") as fileobj:
                 test_data = yaml.load(fileobj, Loader=Loader)
-            test_data['iris']['path'] = op.join("testdata",
-                                                "test_spreadsheet.xlsx")
-            test_data['person_activity']['path'] = op.join("testdata",
-                                                       "test_spreadsheet.xlsx")
+            xl_path = op.join("testdata", "test_spreadsheet.xlsx")
+            test_data['iris']['path'] = xl_path
+            test_data['person_activity']['path'] = xl_path
+            test_data['iris_renamed']['path'] = xl_path
             with open(TEST_XL_DICT, "w") as fileobj:
                 test_data = yaml.dump(test_data, fileobj, Dumper=Dumper,
                                      default_flow_style=False)

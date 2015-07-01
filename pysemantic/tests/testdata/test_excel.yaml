@@ -2,6 +2,11 @@ iris:
   dataframe_rules:
     drop_duplicates: false
   path: testdata/test_spreadsheet.xlsx
+iris_renamed:
+  dataframe_rules:
+    drop_duplicates: false
+  path: testdata/test_spreadsheet.xlsx
+  sheetname: iris
 person_activity:
   dataframe_rules:
     drop_duplicates: false

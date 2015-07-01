@@ -341,6 +341,10 @@ class SchemaValidator(HasTraits):
     # Whether the dataset is contained in a spreadsheet
     is_spreadsheet = Property(Bool, depends_on=['filepath'])
 
+    # Name of the sheet containing the dataframe. Only relevant when
+    # is_spreadsheet is True
+    sheetname = Property(Str, depends_on=['is_spreadsheet', 'specification'])
+
     # Delimiter
     delimiter = Str
 
@@ -455,6 +459,11 @@ class SchemaValidator(HasTraits):
         return False
 
     @cached_property
+    def _get_sheetname(self):
+        if self.is_spreadsheet:
+            return self.specification.get('sheetname', self.name)
+
+    @cached_property
     def _get_parser_args(self):
         if self.md5:
             if self.md5 != get_md5_checksum(self.filepath):
@@ -544,7 +553,7 @@ class SchemaValidator(HasTraits):
             if self.is_spreadsheet:
                 self.pickled_args.pop('sep', None)
                 self.pickled_args.pop('dtype', None)
-                self.pickled_args['sheetname'] = self.name
+                self.pickled_args['sheetname'] = self.sheetname
                 self.pickled_args['io'] = self.pickled_args.pop('filepath_or_buffer')
             return self.pickled_args
 
