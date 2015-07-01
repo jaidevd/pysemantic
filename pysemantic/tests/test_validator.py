@@ -76,6 +76,16 @@ class TestSchemaValidator(BaseTestCase):
         # are messing up the base specifications.
         self.basespecs = deepcopy(self.specs)
 
+    def test_multiindex(self):
+        """Test if validator accepts list of index columns for
+        multiindexing."""
+        specs = deepcopy(self.basespecs['person_activity'])
+        index_cols = ['tag', 'sequence_name']
+        specs['index_col'] = index_cols
+        validator = SchemaValidator(specification=specs)
+        parser_args = validator.get_parser_args()
+        self.assertItemsEqual(parser_args['index_col'], index_cols)
+
     def test_random_rows_selection(self):
         """Test if the validator correctly produces the function argument
         required for selecting a range of rows from a dataset."""

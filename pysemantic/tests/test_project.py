@@ -130,6 +130,26 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_multiindex(self):
+        """Test if providing a list of indices in the schema returns a proper
+        multiindexed dataframe."""
+        pa_fpath = self.expected_specs['person_activity']['filepath_or_buffer']
+        index_cols = ['sequence_name', 'tag']
+        specs = {'path': pa_fpath, 'delimiter': '\t', 'index_col': index_cols}
+        pr.add_dataset("pysemantic", "pa_multiindex", specs)
+        try:
+            df = pr.Project('pysemantic').load_dataset('pa_multiindex')
+            self.assertTrue(isinstance(df.index, pd.MultiIndex))
+            self.assertEqual(len(df.index.levels), 2)
+            seq_name, tags = df.index.levels
+            org_df = pd.read_table(specs['path'])
+            for col in index_cols:
+                x = org_df[col].unique().tolist()
+                y = df.index.get_level_values(col).unique().tolist()
+                self.assertItemsEqual(x, y)
+        finally:
+            pr.remove_dataset('pysemantic', 'pa_multiindex')
+
     def test_load_excel_multisheet(self):
         """Test combining multiple sheets into a single dataframe."""
         tempdir = tempfile.mkdtemp()
