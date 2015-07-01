@@ -4,7 +4,7 @@
 #
 # Copyright © 2015 jaidev <jaidev@newton>
 #
-# Distributed under terms of the MIT license.
+# Distributed under terms of the BSD 3 clause license.
 
 """semantic
 
@@ -94,5 +94,5 @@ def cli(arguments):
 
 
 def main():
-    arguments = docopt(__doc__, version="semantic v0.0.1")
+    arguments = docopt(__doc__, version="semantic v0.1.1")
     cli(arguments)
