@@ -216,7 +216,7 @@ class SeriesValidator(HasTraits):
         """Remove all values not included in the `uniques`."""
         if not np.all(self.data.unique() == self.unique_values):
             logger.info("Keeping only the following unique values:")
-            logger.info(json.dumps(self.unique_values))
+            logger.info(json.dumps(self.unique_values, cls=TypeEncoder))
             for value in self.data.unique():
                 if value not in self.unique_values:
                     self.data = self.data[self.data != value]
@@ -363,7 +363,7 @@ class SchemaValidator(HasTraits):
     md5 = Property(Str, depends_on=['filepath'])
 
     # List of values that represent NAs
-    na_values = Property(Dict, depends_on=['specification'])
+    na_values = Property(Any, depends_on=['specification'])
 
     # List of columns to combine
     datetime_cols = Property(Any, depends_on=['specification'])
@@ -598,11 +598,13 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get_na_values(self):
-        na_values = {}
-        col_rules = self.specification.get("column_rules", {})
-        for colname, rules in col_rules.iteritems():
-            if "na_values" in rules:
-                na_values[colname] = rules['na_values']
+        na_values = self.specification.get("na_values", False)
+        if not na_values:
+            na_values = {}
+            col_rules = self.specification.get("column_rules", {})
+            for colname, rules in col_rules.iteritems():
+                if "na_values" in rules:
+                    na_values[colname] = rules['na_values']
         return na_values
 
     @cached_property
