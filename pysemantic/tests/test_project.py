@@ -130,6 +130,28 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_load_excel_multisheet(self):
+        """Test combining multiple sheets into a single dataframe."""
+        tempdir = tempfile.mkdtemp()
+        spreadsheet = op.join(tempdir, "multifile_iris.xlsx")
+        iris = self.project.load_dataset("iris")
+        with pd.ExcelWriter(spreadsheet) as writer:
+            iris.to_excel(writer, "iris1", index=False)
+            iris.to_excel(writer, "iris2", index=False)
+        schema = {'iris': {'path': spreadsheet, 'sheetname': ['iris1', 'iris2'],
+                           'dataframe_rules': {'drop_duplicates': False}}}
+        schema_fpath = op.join(tempdir, "multi_iris.yaml")
+        with open(schema_fpath, "w") as fout:
+            yaml.dump(schema, fout, Dumper=Dumper, default_flow_style=False)
+        pr.add_project("multi_iris", schema_fpath)
+        try:
+            ideal = pd.concat((iris, iris), axis=0)
+            actual = pr.Project('multi_iris').load_dataset("iris")
+            self.assertDataFrameEqual(ideal, actual)
+        finally:
+            pr.remove_project("multi_iris")
+            shutil.rmtree(tempdir)
+
     def test_load_excel_sheetname(self):
         """Test if specifying the sheetname loads the correct dataframe."""
         xl_project = pr.Project("test_excel")

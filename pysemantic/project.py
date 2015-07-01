@@ -554,6 +554,9 @@ class Project(object):
         logger.info(json.dumps(parser_args, cls=TypeEncoder))
         if isinstance(parser_args, dict):
             df = self._load(parser_args)
+            if validator.is_spreadsheet and isinstance(validator.sheetname,
+                                                       list):
+                df = pd.concat(df.itervalues(), axis=0)
             logger.info("Success!")
             df_validator = DataFrameValidator(data=df, rules=df_rules,
                                              column_rules=column_rules)
