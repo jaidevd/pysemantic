@@ -12,6 +12,7 @@ Misecellaneous bells and whistles.
 
 import json
 import pandas as pd
+import numpy as np
 import datetime
 
 DATA_TYPES = {'String': str, 'Date/Time': datetime.date, 'Float': float,
@@ -27,6 +28,8 @@ class TypeEncoder(json.JSONEncoder):
             return list(obj)
         elif callable(obj):
             return ".".join((obj.__module__, obj.__name__))
+        elif isinstance(obj, np.ndarray):
+            return np.array_str(obj)
         else:
             return json.JSONEncoder.default(self, obj)
 
