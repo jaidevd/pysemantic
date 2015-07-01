@@ -351,6 +351,9 @@ class SchemaValidator(HasTraits):
     # number of rows in the dataset
     nrows = Either(NaturalNumber, List(NaturalNumber), Dict, Callable)
 
+    # Index column for the dataset
+    index_col = Property(Any, depends_on=['specification'])
+
     # A dictionary whose keys are the names of the columns in the dataset, and
     # the keys are the datatypes of the corresponding columns
     dtypes = DTypesDict(key_trait=Str, value_trait=Type)
@@ -459,6 +462,10 @@ class SchemaValidator(HasTraits):
         return False
 
     @cached_property
+    def _get_index_col(self):
+        return self.specification.get('index_col', False)
+
+    @cached_property
     def _get_sheetname(self):
         if self.is_spreadsheet:
             return self.specification.get('sheetname', self.name)
@@ -478,6 +485,8 @@ class SchemaValidator(HasTraits):
             args['error_bad_lines'] = False
         if self._delimiter:
             args['sep'] = self._delimiter
+        if self.index_col:
+            args['index_col'] = self.index_col
 
         # Columns to use
         if len(self.colnames) > 0:

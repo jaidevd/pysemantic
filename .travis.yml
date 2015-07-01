@@ -12,6 +12,6 @@ addons:
 # command to install dependencies
 install: source continuous_integration/install.sh
 # command to run tests
-script: nosetests --with-coverage --cover-package=pysemantic
+script: nosetests -sv --with-coverage --cover-package=pysemantic
 after_success:
   coveralls
