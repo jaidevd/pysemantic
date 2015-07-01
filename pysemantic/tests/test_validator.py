@@ -182,6 +182,26 @@ class TestSchemaValidator(BaseTestCase):
         finally:
             shutil.rmtree(tempdir)
 
+    def test_global_na_values(self):
+        """Test if specifying a global NA value for a dataset works."""
+        tempdir = tempfile.mkdtemp()
+        df = pd.DataFrame(np.random.rand(10, 10))
+        ix = np.random.randint(0, df.shape[0], size=(5,))
+        ix = np.unique(ix)
+        for i in xrange(ix.shape[0]):
+            df.iloc[ix[i], ix[i]] = "foobar"
+        fpath = op.join(tempdir, "test_na.csv")
+        df.to_csv(fpath, index=False)
+        schema = {'path': fpath, 'na_values': "foobar"}
+        try:
+            validator = SchemaValidator(specification=schema)
+            parser_args = validator.get_parser_args()
+            self.assertEqual(parser_args['na_values'], "foobar")
+            df = pd.read_csv(**parser_args)
+            self.assertEqual(pd.isnull(df).sum().sum(), ix.shape[0])
+        finally:
+            shutil.rmtree(tempdir)
+
     def test_na_values(self):
         """Test if adding NA values in the schema works properly."""
         bad_iris_path = op.join(op.abspath(op.dirname(__file__)), "testdata",
