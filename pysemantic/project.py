@@ -4,7 +4,7 @@
 #
 # Copyright © 2015 jaidev <jaidev@newton>
 #
-# Distributed under terms of the MIT license.
+# Distributed under terms of the BSD 3-clause license.
 
 """The Project class."""
 

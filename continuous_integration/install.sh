@@ -3,7 +3,7 @@
 # integration. This is meant to "install" all the packages required for installing
 # semantic.
 
-# License: The MIT License (MIT)
+# License: The BSD 3-clause License
 
 set -e
 

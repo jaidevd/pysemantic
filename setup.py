@@ -12,9 +12,9 @@ NAME = "pysemantic"
 
 setup(
     name=NAME,
-    version='0.0.1',
+    version='0.1.1',
     author='Jaidev Deshpande',
-    author_email='jaidev@dataculture.in',
+    author_email='deshpande.jaidev@gmail.com',
     entry_points={
         'console_scripts': ['semantic = pysemantic.cli:main'],
                },
