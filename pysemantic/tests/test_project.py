@@ -130,6 +130,13 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_load_excel_sheetname(self):
+        """Test if specifying the sheetname loads the correct dataframe."""
+        xl_project = pr.Project("test_excel")
+        ideal_iris = self.project.load_dataset("iris")
+        actual_iris = xl_project.load_dataset("iris_renamed")
+        self.assertDataFrameEqual(ideal_iris, actual_iris)
+
     def test_load_excel(self):
         """Test if excel spreadsheets are read properly from the schema."""
         xl_project = pr.Project("test_excel")
