@@ -5,7 +5,7 @@ iris:
 iris_renamed:
   dataframe_rules:
     drop_duplicates: false
-  path: /home/jaidev/src/pysemantic/pysemantic/tests/testdata/test_spreadsheet.xlsx
+  path: testdata/test_spreadsheet.xlsx
   sheetname: iris
 person_activity:
   dataframe_rules:
