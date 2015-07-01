@@ -15,8 +15,12 @@ setup(
     version='0.1.1',
     author='Jaidev Deshpande',
     author_email='deshpande.jaidev@gmail.com',
+    description="A traits based data validation module for pandas data structures.",
+    url="https://github.com/motherbox/pysemantic",
+    long_description=open("README.rst").read(),
     entry_points={
         'console_scripts': ['semantic = pysemantic.cli:main'],
                },
     packages=find_packages(),
+    install_requires=['pyyaml', 'traits', 'pandas', 'docopt']
 )
