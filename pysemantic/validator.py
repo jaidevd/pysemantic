@@ -463,7 +463,7 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get_index_col(self):
-        return self.specification.get('index_col')
+        return self.specification.get('index_col', False)
 
     @cached_property
     def _get_sheetname(self):
@@ -485,7 +485,8 @@ class SchemaValidator(HasTraits):
             args['error_bad_lines'] = False
         if self._delimiter:
             args['sep'] = self._delimiter
-        args['index_col'] = self.index_col
+        if self.index_col:
+            args['index_col'] = self.index_col
 
         # Columns to use
         if len(self.colnames) > 0:
