@@ -10,7 +10,7 @@
 
 import os.path as op
 
-from traits.api import TraitError, BaseInt, File, List
+from traits.api import File, List
 
 
 class ValidTraitList(List):
@@ -37,22 +37,4 @@ class AbsFile(File):
         if op.isabs(validated_value) and op.isfile(value):
             return validated_value
 
-        self.error(obj, name, value)
-
-
-class NaturalNumber(BaseInt):
-
-    """An integer trait whose value is a natural number."""
-
-    default_value = 1
-
-    def error(self, obj, name, value):
-        msg = "The {0} trait of a {1} has to be a".format(name, obj) + \
-              " value greater than zero"
-        raise TraitError(args=(msg,))
-
-    def validate(self, obj, name, value):
-        value = super(NaturalNumber, self).validate(obj, name, value)
-        if value > 0:
-            return value
         self.error(obj, name, value)
