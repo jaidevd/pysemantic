@@ -346,7 +346,7 @@ class SchemaValidator(HasTraits):
     sheetname = Property(Str, depends_on=['is_spreadsheet', 'specification'])
 
     # Delimiter
-    delimiter = Str
+    delimiter = Property(Str, depends_on=['specification'])
 
     # number of rows in the dataset
     nrows = Either(NaturalNumber, List(NaturalNumber), Dict, Callable)
@@ -412,8 +412,6 @@ class SchemaValidator(HasTraits):
 
     _dtypes = Property(Dict(key_trait=Str, value_trait=Type),
                        depends_on=['specification'])
-
-    _delimiter = Property(Str, depends_on=['specification'])
 
     _nrows = Property(Any, depends_on=['specification'])
 
@@ -487,8 +485,8 @@ class SchemaValidator(HasTraits):
         args = {}
         if not self.is_spreadsheet:
             args['error_bad_lines'] = False
-        if self._delimiter:
-            args['sep'] = self._delimiter
+        if self.delimiter:
+            args['sep'] = self.delimiter
         if self.index_col:
             args['index_col'] = self.index_col
 
@@ -633,7 +631,7 @@ class SchemaValidator(HasTraits):
         return self.specification.get('dtypes', {})
 
     @cached_property
-    def _get__delimiter(self):
+    def _get_delimiter(self):
         return self.specification.get('delimiter', '')
 
     # Trait change handlers
@@ -650,9 +648,6 @@ class SchemaValidator(HasTraits):
 
     def __dtypes_items_changed(self):
         self.dtypes = self._dtypes
-
-    def __delimiter_changed(self):
-        self.delimiter = self._delimiter
 
     def __nrows_changed(self):
         self.nrows = self._nrows
