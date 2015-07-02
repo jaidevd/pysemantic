@@ -21,11 +21,10 @@ import numpy as np
 import pandas as pd
 from traits.api import (HasTraits, File, Property, Str, Dict, List, Type,
                         Bool, Either, push_exception_handler, cached_property,
-                        Array, Instance, Float, Any, Callable)
+                        Array, Instance, Float, Any)
 
 from pysemantic.utils import TypeEncoder, get_md5_checksum, colnames
-from pysemantic.custom_traits import (DTypesDict, NaturalNumber, AbsFile,
-                                      ValidTraitList)
+from pysemantic.custom_traits import AbsFile, ValidTraitList
 
 try:
     from yaml import CDumper as Dumper
@@ -333,7 +332,8 @@ class SchemaValidator(HasTraits):
     specification = Dict
 
     # Path to the file containing the data
-    filepath = Either(AbsFile, List(AbsFile))
+    filepath = Property(Either(AbsFile, List(AbsFile)),
+                        depends_on=['specification'])
 
     # Whether the dataset spans multiple files
     is_multifile = Property(Bool, depends_on=['filepath'])
@@ -346,17 +346,17 @@ class SchemaValidator(HasTraits):
     sheetname = Property(Str, depends_on=['is_spreadsheet', 'specification'])
 
     # Delimiter
-    delimiter = Str
+    delimiter = Property(Str, depends_on=['specification'])
 
     # number of rows in the dataset
-    nrows = Either(NaturalNumber, List(NaturalNumber), Dict, Callable)
+    nrows = Property(Any, depends_on=['specification'])
 
     # Index column for the dataset
     index_col = Property(Any, depends_on=['specification'])
 
     # A dictionary whose keys are the names of the columns in the dataset, and
     # the keys are the datatypes of the corresponding columns
-    dtypes = DTypesDict(key_trait=Str, value_trait=Type)
+    dtypes = Dict(key_trait=Str, value_trait=Type)
 
     # Names of the columns in the dataset. This is just a convenience trait,
     # it's value is just a list of the keys of `dtypes`
@@ -410,14 +410,8 @@ class SchemaValidator(HasTraits):
 
     # Protected traits
 
-    _dtypes = Property(DTypesDict(key_trait=Str, value_trait=Type),
+    _dtypes = Property(Dict(key_trait=Str, value_trait=Type),
                        depends_on=['specification'])
-
-    _filepath = Property(AbsFile, depends_on=['specification'])
-
-    _delimiter = Property(Str, depends_on=['specification'])
-
-    _nrows = Property(Any, depends_on=['specification'])
 
     # Public interface
 
@@ -446,6 +440,12 @@ class SchemaValidator(HasTraits):
         return True
 
     # Property getters and setters
+
+    @cached_property
+    def _get_filepath(self):
+        if not self.is_pickled:
+            return self.specification.get('path', "")
+        return self.pickled_args['filepath_or_buffer']
 
     @cached_property
     def _get_is_multifile(self):
@@ -483,8 +483,8 @@ class SchemaValidator(HasTraits):
         args = {}
         if not self.is_spreadsheet:
             args['error_bad_lines'] = False
-        if self._delimiter:
-            args['sep'] = self._delimiter
+        if self.delimiter:
+            args['sep'] = self.delimiter
         if self.index_col:
             args['index_col'] = self.index_col
 
@@ -494,7 +494,7 @@ class SchemaValidator(HasTraits):
 
         # Columns to exclude
         if len(self.exclude_columns) > 0:
-            usecols = colnames(self._filepath, sep=args.get('sep', ','))
+            usecols = colnames(self.filepath, sep=args.get('sep', ','))
             for colname in self.exclude_columns:
                 usecols.remove(colname)
             args['usecols'] = usecols
@@ -537,27 +537,27 @@ class SchemaValidator(HasTraits):
 
         if self.is_multifile:
             arglist = []
-            for i in range(len(self._filepath)):
+            for i in range(len(self.filepath)):
                 argset = copy.deepcopy(args)
-                argset.update({'filepath_or_buffer': self._filepath[i]})
-                argset.update({'nrows': self._nrows[i]})
+                argset.update({'filepath_or_buffer': self.filepath[i]})
+                argset.update({'nrows': self.nrows[i]})
                 arglist.append(argset)
             return arglist
         else:
-            if self._filepath:
-                args.update({'filepath_or_buffer': self._filepath})
+            if self.filepath:
+                args.update({'filepath_or_buffer': self.filepath})
             if "nrows" in self.specification:
-                if isinstance(self._nrows, int):
-                    args.update({'nrows': self._nrows})
-                elif isinstance(self._nrows, dict):
-                    if self._nrows.get('random', False):
-                        self.df_rules.update({'nrows': self._nrows})
-                    if "range" in self._nrows:
-                        start, stop = self._nrows['range']
+                if isinstance(self.nrows, int):
+                    args.update({'nrows': self.nrows})
+                elif isinstance(self.nrows, dict):
+                    if self.nrows.get('random', False):
+                        self.df_rules.update({'nrows': self.nrows})
+                    if "range" in self.nrows:
+                        start, stop = self.nrows['range']
                         args['skiprows'] = start
                         args['nrows'] = stop - start
-                elif callable(self._nrows):
-                    self.df_rules.update({'nrows': self._nrows})
+                elif callable(self.nrows):
+                    self.df_rules.update({'nrows': self.nrows})
             self.pickled_args.update(args)
             if self.is_spreadsheet:
                 self.pickled_args.pop('sep', None)
@@ -621,11 +621,7 @@ class SchemaValidator(HasTraits):
         return self.specification.get('use_columns', [])
 
     @cached_property
-    def _get__filepath(self):
-        return self.specification.get('path', "")
-
-    @cached_property
-    def _get__nrows(self):
+    def _get_nrows(self):
         return self.specification.get('nrows', 1)
 
     @cached_property
@@ -633,7 +629,7 @@ class SchemaValidator(HasTraits):
         return self.specification.get('dtypes', {})
 
     @cached_property
-    def _get__delimiter(self):
+    def _get_delimiter(self):
         return self.specification.get('delimiter', '')
 
     # Trait change handlers
@@ -650,15 +646,6 @@ class SchemaValidator(HasTraits):
 
     def __dtypes_items_changed(self):
         self.dtypes = self._dtypes
-
-    def __filepath_changed(self):
-        self.filepath = self._filepath
-
-    def __delimiter_changed(self):
-        self.delimiter = self._delimiter
-
-    def __nrows_changed(self):
-        self.nrows = self._nrows
 
     # Trait initializers
 
