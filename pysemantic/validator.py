@@ -333,7 +333,8 @@ class SchemaValidator(HasTraits):
     specification = Dict
 
     # Path to the file containing the data
-    filepath = Either(AbsFile, List(AbsFile))
+    filepath = Property(Either(AbsFile, List(AbsFile)),
+                        depends_on=['specification'])
 
     # Whether the dataset spans multiple files
     is_multifile = Property(Bool, depends_on=['filepath'])
@@ -413,8 +414,6 @@ class SchemaValidator(HasTraits):
     _dtypes = Property(DTypesDict(key_trait=Str, value_trait=Type),
                        depends_on=['specification'])
 
-    _filepath = Property(AbsFile, depends_on=['specification'])
-
     _delimiter = Property(Str, depends_on=['specification'])
 
     _nrows = Property(Any, depends_on=['specification'])
@@ -446,6 +445,12 @@ class SchemaValidator(HasTraits):
         return True
 
     # Property getters and setters
+
+    @cached_property
+    def _get_filepath(self):
+        if not self.is_pickled:
+            return self.specification.get('path', "")
+        return self.pickled_args['filepath_or_buffer']
 
     @cached_property
     def _get_is_multifile(self):
@@ -494,7 +499,7 @@ class SchemaValidator(HasTraits):
 
         # Columns to exclude
         if len(self.exclude_columns) > 0:
-            usecols = colnames(self._filepath, sep=args.get('sep', ','))
+            usecols = colnames(self.filepath, sep=args.get('sep', ','))
             for colname in self.exclude_columns:
                 usecols.remove(colname)
             args['usecols'] = usecols
@@ -537,15 +542,15 @@ class SchemaValidator(HasTraits):
 
         if self.is_multifile:
             arglist = []
-            for i in range(len(self._filepath)):
+            for i in range(len(self.filepath)):
                 argset = copy.deepcopy(args)
-                argset.update({'filepath_or_buffer': self._filepath[i]})
+                argset.update({'filepath_or_buffer': self.filepath[i]})
                 argset.update({'nrows': self._nrows[i]})
                 arglist.append(argset)
             return arglist
         else:
-            if self._filepath:
-                args.update({'filepath_or_buffer': self._filepath})
+            if self.filepath:
+                args.update({'filepath_or_buffer': self.filepath})
             if "nrows" in self.specification:
                 if isinstance(self._nrows, int):
                     args.update({'nrows': self._nrows})
@@ -621,10 +626,6 @@ class SchemaValidator(HasTraits):
         return self.specification.get('use_columns', [])
 
     @cached_property
-    def _get__filepath(self):
-        return self.specification.get('path', "")
-
-    @cached_property
     def _get__nrows(self):
         return self.specification.get('nrows', 1)
 
@@ -650,9 +651,6 @@ class SchemaValidator(HasTraits):
 
     def __dtypes_items_changed(self):
         self.dtypes = self._dtypes
-
-    def __filepath_changed(self):
-        self.filepath = self._filepath
 
     def __delimiter_changed(self):
         self.delimiter = self._delimiter
