@@ -11,10 +11,9 @@
 import unittest
 import os.path as op
 
-from traits.api import HasTraits, Either, List, Str, Type, TraitError
+from traits.api import HasTraits, Either, List, Str, TraitError
 
-from pysemantic.custom_traits import (AbsFile, NaturalNumber, DTypesDict,
-                                      ValidTraitList)
+from pysemantic.custom_traits import (AbsFile, NaturalNumber, ValidTraitList)
 from pysemantic.tests.test_base import TEST_DATA_DICT
 
 
@@ -29,25 +28,23 @@ class TestCustomTraits(unittest.TestCase):
         class CustomTraits(HasTraits):
             def __init__(self, **kwargs):
                 super(CustomTraits, self).__init__(**kwargs)
-                self.required = ['filepath', 'number', 'dtype']
+                self.required = ['filepath', 'number']
             filepath = AbsFile
             number = NaturalNumber
             numberlist = Either(List(NaturalNumber), NaturalNumber)
             filelist = Either(List(AbsFile), AbsFile)
-            dtype = DTypesDict(key_trait=Str, value_trait=Type)
             required = ValidTraitList(Str)
 
         cls.custom_traits = CustomTraits
 
     def setUp(self):
         self.traits = self.custom_traits(filepath=op.abspath(__file__),
-                                         number=2, dtype={'a': int})
+                                         number=2)
         self.setter = lambda x, y: setattr(self.traits, x, y)
 
     def test_validtraitlist_trait(self):
         """Test if `pysemantic.self.traits.ValidTraitsList` works properly."""
-        self.assertItemsEqual(self.traits.required, ['filepath', 'number',
-                                                     'dtype'])
+        self.assertItemsEqual(self.traits.required, ['filepath', 'number'])
 
     def test_natural_number_either_list_trait(self):
         """Test of the NaturalNumber trait works within Either and List traits.
@@ -82,13 +79,6 @@ class TestCustomTraits(unittest.TestCase):
         self.traits.number = 1
         self.assertRaises(TraitError, self.setter, "number", 0)
         self.assertRaises(TraitError, self.setter, "number", -1)
-
-    def test_dtypes_dict_trait(self):
-        """Test if the `traits.DTypesDict` trait works correctly."""
-        self.traits.dtype = {'foo': int, 'bar': str, 'baz': float}
-        self.assertRaises(TraitError, self.setter, "dtype", {'foo': 1})
-        self.assertRaises(TraitError, self.setter, "dtype", {1: float})
-        self.assertRaises(TraitError, self.setter, "dtype", {"bar": "foo"})
 
 if __name__ == '__main__':
     unittest.main()

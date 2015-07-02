@@ -24,8 +24,7 @@ from traits.api import (HasTraits, File, Property, Str, Dict, List, Type,
                         Array, Instance, Float, Any, Callable)
 
 from pysemantic.utils import TypeEncoder, get_md5_checksum, colnames
-from pysemantic.custom_traits import (DTypesDict, NaturalNumber, AbsFile,
-                                      ValidTraitList)
+from pysemantic.custom_traits import (NaturalNumber, AbsFile, ValidTraitList)
 
 try:
     from yaml import CDumper as Dumper
@@ -357,7 +356,7 @@ class SchemaValidator(HasTraits):
 
     # A dictionary whose keys are the names of the columns in the dataset, and
     # the keys are the datatypes of the corresponding columns
-    dtypes = DTypesDict(key_trait=Str, value_trait=Type)
+    dtypes = Dict(key_trait=Str, value_trait=Type)
 
     # Names of the columns in the dataset. This is just a convenience trait,
     # it's value is just a list of the keys of `dtypes`
@@ -411,7 +410,7 @@ class SchemaValidator(HasTraits):
 
     # Protected traits
 
-    _dtypes = Property(DTypesDict(key_trait=Str, value_trait=Type),
+    _dtypes = Property(Dict(key_trait=Str, value_trait=Type),
                        depends_on=['specification'])
 
     _delimiter = Property(Str, depends_on=['specification'])
