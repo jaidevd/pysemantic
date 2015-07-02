@@ -21,10 +21,10 @@ import numpy as np
 import pandas as pd
 from traits.api import (HasTraits, File, Property, Str, Dict, List, Type,
                         Bool, Either, push_exception_handler, cached_property,
-                        Array, Instance, Float, Any, Callable)
+                        Array, Instance, Float, Any)
 
 from pysemantic.utils import TypeEncoder, get_md5_checksum, colnames
-from pysemantic.custom_traits import (NaturalNumber, AbsFile, ValidTraitList)
+from pysemantic.custom_traits import AbsFile, ValidTraitList
 
 try:
     from yaml import CDumper as Dumper
@@ -349,7 +349,7 @@ class SchemaValidator(HasTraits):
     delimiter = Property(Str, depends_on=['specification'])
 
     # number of rows in the dataset
-    nrows = Either(NaturalNumber, List(NaturalNumber), Dict, Callable)
+    nrows = Property(Any, depends_on=['specification'])
 
     # Index column for the dataset
     index_col = Property(Any, depends_on=['specification'])
@@ -412,8 +412,6 @@ class SchemaValidator(HasTraits):
 
     _dtypes = Property(Dict(key_trait=Str, value_trait=Type),
                        depends_on=['specification'])
-
-    _nrows = Property(Any, depends_on=['specification'])
 
     # Public interface
 
@@ -542,24 +540,24 @@ class SchemaValidator(HasTraits):
             for i in range(len(self.filepath)):
                 argset = copy.deepcopy(args)
                 argset.update({'filepath_or_buffer': self.filepath[i]})
-                argset.update({'nrows': self._nrows[i]})
+                argset.update({'nrows': self.nrows[i]})
                 arglist.append(argset)
             return arglist
         else:
             if self.filepath:
                 args.update({'filepath_or_buffer': self.filepath})
             if "nrows" in self.specification:
-                if isinstance(self._nrows, int):
-                    args.update({'nrows': self._nrows})
-                elif isinstance(self._nrows, dict):
-                    if self._nrows.get('random', False):
-                        self.df_rules.update({'nrows': self._nrows})
-                    if "range" in self._nrows:
-                        start, stop = self._nrows['range']
+                if isinstance(self.nrows, int):
+                    args.update({'nrows': self.nrows})
+                elif isinstance(self.nrows, dict):
+                    if self.nrows.get('random', False):
+                        self.df_rules.update({'nrows': self.nrows})
+                    if "range" in self.nrows:
+                        start, stop = self.nrows['range']
                         args['skiprows'] = start
                         args['nrows'] = stop - start
-                elif callable(self._nrows):
-                    self.df_rules.update({'nrows': self._nrows})
+                elif callable(self.nrows):
+                    self.df_rules.update({'nrows': self.nrows})
             self.pickled_args.update(args)
             if self.is_spreadsheet:
                 self.pickled_args.pop('sep', None)
@@ -623,7 +621,7 @@ class SchemaValidator(HasTraits):
         return self.specification.get('use_columns', [])
 
     @cached_property
-    def _get__nrows(self):
+    def _get_nrows(self):
         return self.specification.get('nrows', 1)
 
     @cached_property
@@ -648,9 +646,6 @@ class SchemaValidator(HasTraits):
 
     def __dtypes_items_changed(self):
         self.dtypes = self._dtypes
-
-    def __nrows_changed(self):
-        self.nrows = self._nrows
 
     # Trait initializers
 
