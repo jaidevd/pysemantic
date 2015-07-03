@@ -297,10 +297,10 @@ class TestSchemaValidator(BaseTestCase):
         """Test if the required arguments for the validator are working
         properly.
         """
+        # Remove the path and delimiter from the scehma
         filepath = self.basespecs['iris'].pop('path')
         delimiter = self.basespecs['iris'].pop('delimiter')
         try:
-            # Remove the path and delimiter from the scehma
             self.assertRaises(TraitError, SchemaValidator,
                               specification=self.basespecs['iris'])
         finally:

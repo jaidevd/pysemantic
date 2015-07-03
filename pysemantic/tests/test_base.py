@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 
 from pysemantic import project as pr
+from pysemantic.utils import colnames
 
 try:
     from yaml import CLoader as Loader
@@ -293,20 +294,25 @@ def _dummy_postproc(series):
 def _get_iris_args():
     """Get the ideal parser arguments for the iris dataset."""
     filepath = op.join(op.dirname(__file__), "testdata", "iris.csv")
+    names = colnames(filepath)
     return dict(filepath_or_buffer=op.abspath(filepath),
                 sep=",", nrows=150, error_bad_lines=False,
                 dtype={'Petal Length': float,
                        'Petal Width': float,
                        'Sepal Length': float,
                        'Sepal Width': float,
-                       'Species': str})
+                       'Species': str},
+                usecols=names, na_values=None, parse_dates=False,
+                converters=None, names=None, header='infer', index_col=None)
 
 
 def _get_person_activity_args():
     """Get the ideal parser arguments for the activity dataset."""
     filepath = op.join(op.dirname(__file__), "testdata", "person_activity.tsv")
+    names = colnames(filepath, sep='\t')
     return dict(filepath_or_buffer=op.abspath(filepath),
-                error_bad_lines=False,
+                error_bad_lines=False, usecols=names, na_values=None,
+                converters=None, names=None, header='infer', index_col=None,
                 sep="\t", nrows=100, dtype={'sequence_name': str,
                                             'tag': str,
                                             'x': float,
