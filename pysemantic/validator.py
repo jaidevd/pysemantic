@@ -291,6 +291,21 @@ class SeriesValidator(HasTraits):
         return self.rules.get("regex", "")
 
 
+TRAIT_NAME_MAP = {
+        "filepath": "filepath_or_buffer",
+        "nrows": "nrows",
+        "index_col": "index_col",
+        "delimiter": "sep",
+        "dtypes": "dtype",
+        "colnames": "usecols",
+        "na_values": "na_values",
+        "converters": "converters",
+        "column_names": "names",
+        "header": "header",
+        "error_bad_lines": "error_bad_lines"
+       }
+
+
 class SchemaValidator(HasTraits):
 
     """A validator class for schema in the data dictionary."""
@@ -392,6 +407,13 @@ class SchemaValidator(HasTraits):
     # Whether pickled arguments exist in the schema
     is_pickled = Bool
 
+    # Whether to raise errors on malformed lines
+    error_bad_lines = Property(Bool, depends_on=['specification'])
+
+    @cached_property
+    def _get_error_bad_lines(self):
+        return self.specification.get('error_bad_lines', False)
+
     # Path to pickle file containing parser arguments
     pickle_file = Property(AbsFile, depends_on=['specification'])
 
@@ -463,7 +485,7 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get_index_col(self):
-        return self.specification.get('index_col', False)
+        return self.specification.get('index_col', None)
 
     @cached_property
     def _get_sheetname(self):
@@ -481,32 +503,30 @@ class SchemaValidator(HasTraits):
                 logger.warn(msg.format(self.filepath))
                 warnings.warn(msg.format(self.filepath), UserWarning)
         args = {}
-        if not self.is_spreadsheet:
-            args['error_bad_lines'] = False
-        if self.delimiter:
-            args['sep'] = self.delimiter
-        if self.index_col:
-            args['index_col'] = self.index_col
-
-        # Columns to use
-        if len(self.colnames) > 0:
-            args['usecols'] = self.colnames
-
-        # Columns to exclude
-        if len(self.exclude_columns) > 0:
-            usecols = colnames(self.filepath, sep=args.get('sep', ','))
-            for colname in self.exclude_columns:
-                usecols.remove(colname)
-            args['usecols'] = usecols
-
+#        if not self.is_spreadsheet:
+#            args['error_bad_lines'] = False
+#        if self.delimiter:
+#            args['sep'] = self.delimiter
+#        if self.index_col:
+#            args['index_col'] = self.index_col
+#
+#        # Columns to use
+#        if len(self.colnames) > 0:
+#            args['usecols'] = self.colnames
+#
         # NA values
-        if len(self.na_values) > 0:
-            args['na_values'] = self.na_values
+#        if len(self.na_values) > 0:
+#            args['na_values'] = self.na_values
+
+# Testing mapping
+        for traitname, argname in TRAIT_NAME_MAP.iteritems():
+            args[argname] = getattr(self, traitname)
 
         # Date/Time arguments
         # FIXME: Allow for a mix of datetime column groupings and individual
         # columns
-        if len(self.datetime_cols) > 0:
+        args['parse_dates'] = False
+        if self.datetime_cols and len(self.datetime_cols) > 0:
             if isinstance(self.datetime_cols, dict):
                 args['parse_dates'] = self.datetime_cols
             elif isinstance(self.datetime_cols, list):
@@ -518,22 +538,36 @@ class SchemaValidator(HasTraits):
                     parse_dates.append(k)
             for k in parse_dates:
                 del self._dtypes[k]
+                del self.dtypes[k]
             args['dtype'] = self.dtypes
             if len(parse_dates) > 0:
                 args['parse_dates'] = parse_dates
 
-        if len(self.converters) > 0:
-            args['converters'] = self.converters
+#        if len(self.converters) > 0:
+#            args['converters'] = self.converters
+#
+#        if self.header != 0:
+#            args['header'] = self.header
 
-        if self.header != 0:
-            args['header'] = self.header
+        # Columns to exclude
+        if len(self.exclude_columns) > 0:
+            usecols = colnames(self.filepath, sep=args.get('sep', ','))
+            for colname in self.exclude_columns:
+                usecols.remove(colname)
+            args['usecols'] = usecols
+
         if self.column_names is not None:
+            del args['usecols']
             if isinstance(self.column_names, list):
                 args['names'] = self.column_names
                 # Force include the header argument
                 args['header'] = self.header
             elif isinstance(self.column_names, dict) or callable(self.column_names):
+                del args['names']
                 self.df_rules['column_names'] = self.column_names
+
+        if self.header not in (0, 'infer'):
+            del args['usecols']
 
         if self.is_multifile:
             arglist = []
@@ -587,11 +621,11 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get_datetime_cols(self):
-        return self.specification.get("combine_dt_columns", {})
+        return self.specification.get("combine_dt_columns", [])
 
     @cached_property
     def _get_header(self):
-        return self.specification.get("header", 0)
+        return self.specification.get("header", 'infer')
 
     @cached_property
     def _get_column_names(self):
@@ -599,7 +633,7 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get_converters(self):
-        return self.specification.get("converters", [])
+        return self.specification.get("converters", None)
 
     @cached_property
     def _get_md5(self):
@@ -607,22 +641,29 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get_na_values(self):
-        na_values = self.specification.get("na_values", False)
-        if not na_values:
+        na_values = self.specification.get("na_values", None)
+        if na_values is None:
             na_values = {}
             col_rules = self.specification.get("column_rules", {})
             for colname, rules in col_rules.iteritems():
                 if "na_values" in rules:
                     na_values[colname] = rules['na_values']
+            if len(na_values) == 0:
+                na_values = None
         return na_values
 
     @cached_property
     def _get_colnames(self):
-        return self.specification.get('use_columns', [])
+        usecols = self.specification.get('use_columns')
+        if usecols is None:
+            if self.filepath and not self.is_multifile:
+                return colnames(self.filepath, sep=self.delimiter)
+            return None
+        return usecols
 
     @cached_property
     def _get_nrows(self):
-        return self.specification.get('nrows', 1)
+        return self.specification.get('nrows', None)
 
     @cached_property
     def _get__dtypes(self):
@@ -630,7 +671,7 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get_delimiter(self):
-        return self.specification.get('delimiter', '')
+        return self.specification.get('delimiter', ',')
 
     # Trait change handlers
 
