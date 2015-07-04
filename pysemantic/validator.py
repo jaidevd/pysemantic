@@ -595,16 +595,25 @@ class SchemaValidator(HasTraits):
                 elif isinstance(self.nrows, dict):
                     if self.nrows.get('random', False):
                         self.df_rules.update({'nrows': self.nrows})
+                        del args['nrows']
                     if "range" in self.nrows:
                         start, stop = self.nrows['range']
                         args['skiprows'] = start
                         args['nrows'] = stop - start
                 elif callable(self.nrows):
                     self.df_rules.update({'nrows': self.nrows})
+                    del args['nrows']
             self.pickled_args.update(args)
             if self.is_spreadsheet:
                 self.pickled_args.pop('sep', None)
+                self.pickled_args.pop('parse_dates', None)
+                self.pickled_args.pop('nrows', None)
+                self.pickled_args.pop('names', None)
+                self.pickled_args.pop('usecols', None)
+                self.pickled_args.pop('error_bad_lines', None)
                 self.pickled_args.pop('dtype', None)
+                if self.pickled_args['header'] == "infer":
+                    self.pickled_args['header'] = 0
                 self.pickled_args['sheetname'] = self.sheetname
                 self.pickled_args['io'] = self.pickled_args.pop('filepath_or_buffer')
             return self.pickled_args

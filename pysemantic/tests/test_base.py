@@ -192,32 +192,13 @@ class BaseProjectTestCase(BaseTestCase):
             os.unlink(cls.copied_iris_path)
 
     def setUp(self):
-        iris_specs = {'sep': ',', 'dtype': {'Petal Length': float,
-                                            'Sepal Width': float,
-                                            'Petal Width': float,
-                                            'Sepal Length': float,
-                                            'Species': str},
-                      'nrows': 150,
-                      'error_bad_lines': False,
-                      'filepath_or_buffer': op.join(
-                                              op.abspath(op.dirname(__file__)),
-                                              "testdata", "iris.csv")}
+        iris_specs = _get_iris_args()
         copied_iris_specs = deepcopy(iris_specs)
         copied_iris_specs.update(
                {'filepath_or_buffer': iris_specs['filepath_or_buffer'].replace(
                                                         "iris", "iris2")})
         multi_iris_specs = [iris_specs, copied_iris_specs]
-        person_activity_specs = {'sep': '\t', 'dtype': {'activity': str,
-                                                        'sequence_name': str,
-                                                        'tag': str, 'x': float,
-                                                        'y': float, 'z': float,
-                                                        },
-                                 'parse_dates': ['date'], 'nrows': 100,
-                                 'error_bad_lines': False,
-                                 'filepath_or_buffer': op.join(
-                                              op.abspath(op.dirname(__file__)),
-                                              "testdata",
-                                              "person_activity.tsv")}
+        person_activity_specs = _get_person_activity_args()
         random_row_iris_specs = {'nrows': {'random': True, 'count': 50},
                                  'error_bad_lines': False,
                                  'filepath_or_buffer': op.join(

@@ -21,6 +21,7 @@ import yaml
 import pandas as pd
 import numpy as np
 from pandas.parser import CParserError
+from pandas.io.parsers import ParserWarning
 
 from pysemantic.validator import SchemaValidator, DataFrameValidator
 from pysemantic.errors import MissingProject, MissingConfigError
@@ -629,7 +630,7 @@ class Project(object):
                         """)
                 logger.warn(msg)
                 logger.info("Removing the dtype argument")
-                warnings.warn(msg, UserWarning)
+                warnings.warn(msg, ParserWarning)
                 if "error_bad_lines" in parser_args:
                     del parser_args['error_bad_lines']
                 return self.parser(**parser_args)

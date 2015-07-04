@@ -588,13 +588,9 @@ class TestProjectClass(BaseProjectTestCase):
         specs = self.project.get_project_specs()
         del specs['bad_iris']
         del specs['random_row_iris']
+        del specs['multi_iris']
         for name, argdict in specs.iteritems():
-            if isinstance(argdict, list):
-                for i in range(len(argdict)):
-                    self.assertKwargsEqual(argdict[i],
-                                           self.expected_specs[name][i])
-            else:
-                self.assertKwargsEqual(argdict, self.expected_specs[name])
+            self.assertKwargsEqual(argdict, self.expected_specs[name])
 
     def test_get_dataset_specs(self):
         """Check if the project manager produces specifications for each
@@ -607,6 +603,8 @@ class TestProjectClass(BaseProjectTestCase):
     def test_get_multifile_dataset_specs(self):
         """Test if the multifile dataset specifications are valid."""
         outargs = self.project.get_dataset_specs("multi_iris")
+        for argset in outargs:
+            argset['usecols'] = colnames(argset['filepath_or_buffer'])
         self.assertTrue(isinstance(outargs, list))
         self.assertEqual(len(outargs), len(self.expected_specs['multi_iris']))
         for i in range(len(outargs)):
