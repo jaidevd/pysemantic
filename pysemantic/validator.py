@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 from traits.api import (HasTraits, File, Property, Str, Dict, List, Type,
                         Bool, Either, push_exception_handler, cached_property,
-                        Array, Instance, Float, Any)
+                        Array, Instance, Float, Any, TraitError)
 
 from pysemantic.utils import TypeEncoder, get_md5_checksum, colnames
 from pysemantic.custom_traits import AbsFile, ValidTraitList
@@ -466,8 +466,17 @@ class SchemaValidator(HasTraits):
     @cached_property
     def _get_filepath(self):
         if not self.is_pickled:
-            return self.specification.get('path', "")
-        return self.pickled_args['filepath_or_buffer']
+            fpath = self.specification.get('path', "")
+        else:
+            fpath = self.pickled_args['filepath_or_buffer']
+        if isinstance(fpath, list):
+            for path in fpath:
+                if not (op.exists(path) and op.isabs(path)):
+                    raise TraitError("filepaths must be absolute.")
+        elif isinstance(fpath, str):
+            if not (op.exists(fpath) and op.isabs(fpath)):
+                raise TraitError("filepaths must be absolute.")
+        return fpath
 
     @cached_property
     def _get_is_multifile(self):
