@@ -26,6 +26,7 @@ import pysemantic.project as pr
 from pysemantic.tests.test_base import (BaseProjectTestCase, TEST_DATA_DICT,
                                         TEST_CONFIG_FILE_PATH, _dummy_postproc)
 from pysemantic.errors import MissingProject
+from pysemantic.utils import colnames
 
 try:
     from yaml import CLoader as Loader
@@ -214,6 +215,9 @@ class TestProjectClass(BaseProjectTestCase):
         """Check if randomly selecting rows within a range works."""
         iris_specs = pr.get_schema_specs("pysemantic", "iris")
         iris_specs['nrows'] = {'range': [25, 75], 'count': 10, 'random': True}
+        iris_specs['header'] = 0
+        del iris_specs['dtypes']
+        iris_specs['column_names'] = colnames(iris_specs['path'])
         project = pr.Project(schema={'iris': iris_specs})
         loaded = project.load_dataset('iris')
         self.assertEqual(loaded.shape[0], 10)
@@ -224,6 +228,9 @@ class TestProjectClass(BaseProjectTestCase):
         """Check if a range of rows can be selected from the dataset."""
         iris_specs = pr.get_schema_specs("pysemantic", "iris")
         iris_specs['nrows'] = {'range': [25, 75]}
+        iris_specs['header'] = 0
+        del iris_specs['dtypes']
+        iris_specs['column_names'] = colnames(iris_specs['path'])
         project = pr.Project(schema={'iris': iris_specs})
         loaded = project.load_dataset('iris')
         self.assertEqual(loaded.shape[0], 50)
@@ -234,6 +241,9 @@ class TestProjectClass(BaseProjectTestCase):
         """Check if a range of rows can be selected from the dataset."""
         iris_specs = pr.get_schema_specs("pysemantic", "iris")
         iris_specs['nrows'] = {'range': [25, 75], 'random': True}
+        iris_specs['header'] = 0
+        del iris_specs['dtypes']
+        iris_specs['column_names'] = colnames(iris_specs['path'])
         project = pr.Project(schema={'iris': iris_specs})
         loaded = project.load_dataset('iris')
         self.assertEqual(loaded.shape[0], 50)
@@ -481,8 +491,8 @@ class TestProjectClass(BaseProjectTestCase):
         specs = dict(path=outfile, delimiter=r'\n', dtypes={'col1': int})
         pr.add_dataset("pysemantic", "sample_dataset", specs)
         try:
-            _pr = pr.Project("pysemantic")
             with warnings.catch_warnings(record=True) as catcher:
+                _pr = pr.Project("pysemantic")
                 dframe = _pr.load_dataset("sample_dataset")
                 assert len(catcher) == 2
                 assert issubclass(catcher[1].category, ParserWarning)
@@ -578,13 +588,9 @@ class TestProjectClass(BaseProjectTestCase):
         specs = self.project.get_project_specs()
         del specs['bad_iris']
         del specs['random_row_iris']
+        del specs['multi_iris']
         for name, argdict in specs.iteritems():
-            if isinstance(argdict, list):
-                for i in range(len(argdict)):
-                    self.assertKwargsEqual(argdict[i],
-                                           self.expected_specs[name][i])
-            else:
-                self.assertKwargsEqual(argdict, self.expected_specs[name])
+            self.assertKwargsEqual(argdict, self.expected_specs[name])
 
     def test_get_dataset_specs(self):
         """Check if the project manager produces specifications for each
@@ -597,6 +603,8 @@ class TestProjectClass(BaseProjectTestCase):
     def test_get_multifile_dataset_specs(self):
         """Test if the multifile dataset specifications are valid."""
         outargs = self.project.get_dataset_specs("multi_iris")
+        for argset in outargs:
+            argset['usecols'] = colnames(argset['filepath_or_buffer'])
         self.assertTrue(isinstance(outargs, list))
         self.assertEqual(len(outargs), len(self.expected_specs['multi_iris']))
         for i in range(len(outargs)):

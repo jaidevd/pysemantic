@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 
 from pysemantic import project as pr
+from pysemantic.utils import colnames
 
 try:
     from yaml import CLoader as Loader
@@ -191,32 +192,13 @@ class BaseProjectTestCase(BaseTestCase):
             os.unlink(cls.copied_iris_path)
 
     def setUp(self):
-        iris_specs = {'sep': ',', 'dtype': {'Petal Length': float,
-                                            'Sepal Width': float,
-                                            'Petal Width': float,
-                                            'Sepal Length': float,
-                                            'Species': str},
-                      'nrows': 150,
-                      'error_bad_lines': False,
-                      'filepath_or_buffer': op.join(
-                                              op.abspath(op.dirname(__file__)),
-                                              "testdata", "iris.csv")}
+        iris_specs = _get_iris_args()
         copied_iris_specs = deepcopy(iris_specs)
         copied_iris_specs.update(
                {'filepath_or_buffer': iris_specs['filepath_or_buffer'].replace(
                                                         "iris", "iris2")})
         multi_iris_specs = [iris_specs, copied_iris_specs]
-        person_activity_specs = {'sep': '\t', 'dtype': {'activity': str,
-                                                        'sequence_name': str,
-                                                        'tag': str, 'x': float,
-                                                        'y': float, 'z': float,
-                                                        },
-                                 'parse_dates': ['date'], 'nrows': 100,
-                                 'error_bad_lines': False,
-                                 'filepath_or_buffer': op.join(
-                                              op.abspath(op.dirname(__file__)),
-                                              "testdata",
-                                              "person_activity.tsv")}
+        person_activity_specs = _get_person_activity_args()
         random_row_iris_specs = {'nrows': {'random': True, 'count': 50},
                                  'error_bad_lines': False,
                                  'filepath_or_buffer': op.join(
@@ -293,20 +275,25 @@ def _dummy_postproc(series):
 def _get_iris_args():
     """Get the ideal parser arguments for the iris dataset."""
     filepath = op.join(op.dirname(__file__), "testdata", "iris.csv")
+    names = colnames(filepath)
     return dict(filepath_or_buffer=op.abspath(filepath),
                 sep=",", nrows=150, error_bad_lines=False,
                 dtype={'Petal Length': float,
                        'Petal Width': float,
                        'Sepal Length': float,
                        'Sepal Width': float,
-                       'Species': str})
+                       'Species': str},
+                usecols=names, na_values=None, parse_dates=False,
+                converters=None, names=None, header='infer', index_col=None)
 
 
 def _get_person_activity_args():
     """Get the ideal parser arguments for the activity dataset."""
     filepath = op.join(op.dirname(__file__), "testdata", "person_activity.tsv")
+    names = colnames(filepath, sep='\t')
     return dict(filepath_or_buffer=op.abspath(filepath),
-                error_bad_lines=False,
+                error_bad_lines=False, usecols=names, na_values=None,
+                converters=None, names=None, header='infer', index_col=None,
                 sep="\t", nrows=100, dtype={'sequence_name': str,
                                             'tag': str,
                                             'x': float,
