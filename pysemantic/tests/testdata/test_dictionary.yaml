@@ -72,13 +72,14 @@ person_activity:
   delimiter: "\t"
   dtypes:
     activity: *id002
-    date: !!python/name:datetime.date 
     sequence_name: *id002
     tag: *id002
     x: *id001
     y: *id001
     z: *id001
   nrows: 100
+  parse_dates:
+  - date
   path: testdata/person_activity.tsv
 random_row_iris:
   column_rules:

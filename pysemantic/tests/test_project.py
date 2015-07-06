@@ -684,10 +684,10 @@ class TestProjectClass(BaseProjectTestCase):
 
     def test_dataset_colnames(self):
         """Check if the column names read by the Loader are correct."""
-        for name in ['iris', 'person_activity']:
+        for name, sep in {'iris': ',', 'person_activity': '\t'}.iteritems():
             loaded = self.project.load_dataset(name)
             columns = loaded.columns.tolist()
-            spec_colnames = self.data_specs[name]['dtypes'].keys()
+            spec_colnames = colnames(self.data_specs[name]['path'], sep=sep)
             self.assertItemsEqual(spec_colnames, columns)
 
     def test_dataset_coltypes(self):
@@ -699,8 +699,7 @@ class TestProjectClass(BaseProjectTestCase):
                     self.assertEqual(self.data_specs[name]['dtypes'][colname],
                                      str)
                 elif loaded[colname].dtype == np.dtype('<M8[ns]'):
-                    self.assertEqual(self.data_specs[name]['dtypes'][colname],
-                                     datetime.date)
+                    self.assertIn(colname, self.data_specs[name]['parse_dates'])
                 else:
                     self.assertEqual(loaded[colname].dtype,
                                      self.data_specs[name]['dtypes'][colname])

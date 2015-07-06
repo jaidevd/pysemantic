@@ -302,7 +302,8 @@ TRAIT_NAME_MAP = {
         "converters": "converters",
         "column_names": "names",
         "header": "header",
-        "error_bad_lines": "error_bad_lines"
+        "error_bad_lines": "error_bad_lines",
+        "parse_dates": "parse_dates"
        }
 
 
@@ -386,8 +387,8 @@ class SchemaValidator(HasTraits):
     # List of values that represent NAs
     na_values = Property(Any, depends_on=['specification'])
 
-    # List of columns to combine
-    datetime_cols = Property(Any, depends_on=['specification'])
+    # Default value of the `parse_dates` argument
+    parse_dates = Property(Any, depends_on=['specification'])
 
     # List of converters to be applied to the columns. All converters are
     # assumed to be callables, which take the series as input and return a
@@ -475,6 +476,9 @@ class SchemaValidator(HasTraits):
                 warnings.warn(msg.format(self.filepath), UserWarning)
 
     # Property getters and setters
+    @cached_property
+    def _get_parse_dates(self):
+        return self.specification.get("parse_dates", False)
 
     @cached_property
     def _get_filepath(self):
@@ -525,23 +529,6 @@ class SchemaValidator(HasTraits):
         # Date/Time arguments
         # FIXME: Allow for a mix of datetime column groupings and individual
         # columns
-        args['parse_dates'] = False
-        if self.datetime_cols and len(self.datetime_cols) > 0:
-            if isinstance(self.datetime_cols, dict):
-                args['parse_dates'] = self.datetime_cols
-            elif isinstance(self.datetime_cols, list):
-                args['parse_dates'] = [self.datetime_cols]
-        else:
-            parse_dates = []
-            for k, v in self._dtypes.iteritems():
-                if v is datetime.date:
-                    parse_dates.append(k)
-            for k in parse_dates:
-                del self._dtypes[k]
-                del self.dtypes[k]
-            args['dtype'] = self.dtypes
-            if len(parse_dates) > 0:
-                args['parse_dates'] = parse_dates
 
         # Columns to exclude
         if len(self.exclude_columns) > 0:
@@ -618,10 +605,6 @@ class SchemaValidator(HasTraits):
     @cached_property
     def _get_exclude_columns(self):
         return self.specification.get("exclude_columns", [])
-
-    @cached_property
-    def _get_datetime_cols(self):
-        return self.specification.get("combine_dt_columns", [])
 
     @cached_property
     def _get_header(self):

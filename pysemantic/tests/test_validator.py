@@ -191,7 +191,7 @@ class TestSchemaValidator(BaseTestCase):
         data = pd.DataFrame({'Date': date, 'Time': time,
                              'X': np.random.rand(len(date),)})
         data.to_csv(outpath, index=False)
-        specs = dict(path=outpath, combine_dt_columns=['Date', 'Time'])
+        specs = dict(path=outpath, parse_dates={'Date_Time': ['Date', 'Time']})
         validator = SchemaValidator(specification=specs)
         try:
             loaded = pd.read_csv(**validator.get_parser_args())
