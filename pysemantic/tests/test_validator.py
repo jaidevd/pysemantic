@@ -76,6 +76,18 @@ class TestSchemaValidator(BaseTestCase):
         # are messing up the base specifications.
         self.basespecs = deepcopy(self.specs)
 
+    def test_usecols(self):
+        """Test if inferring the usecols argument works."""
+        specs = deepcopy(self.basespecs['iris'])
+        specs['use_columns'] = ['Petal Length', 'Sepal Width', 'Species']
+        validator = SchemaValidator(specification=specs)
+        df = pd.read_csv(**validator.get_parser_args())
+        for colname in specs['use_columns']:
+            self.assertIn(colname, df)
+        self.assertNotIn("Petal Width", df)
+        self.assertNotIn("Sepal Length", df)
+        self.assertEqual(df.shape[1], 3)
+
     def test_index(self):
         """Test if specifying the index_col works."""
         specs = deepcopy(self.basespecs['iris'])
@@ -139,16 +151,6 @@ class TestSchemaValidator(BaseTestCase):
         loaded = pd.read_csv(**validator.get_parser_args())
         self.assertItemsEqual(loaded.columns,
                               ['5.1', '3.5', '1.4', '0.2', 'setosa'])
-
-    def test_colnames_as_list(self):
-        """Test if the column names option works when provided as a list."""
-        schema = deepcopy(self.basespecs['iris'])
-        schema['header'] = 0
-        ideal = ['a', 'b', 'c', 'd', 'e']
-        schema['column_names'] = ideal
-        validator = SchemaValidator(specification=schema)
-        loaded = pd.read_csv(**validator.get_parser_args())
-        self.assertItemsEqual(loaded.columns, ideal)
 
     def test_colnames_as_dict(self):
         """Test if the column names work when specified as a dictionary."""
@@ -572,6 +574,20 @@ class TestDataFrameValidator(BaseTestCase):
 
     def setUp(self):
         self.basespecs = deepcopy(self._basespecs)
+
+    def test_colnames_as_list(self):
+        """Test if the column names option works when provided as a list."""
+        schema = deepcopy(self.basespecs['iris'])
+        schema['header'] = 0
+        ideal = ['a', 'b', 'c', 'd', 'e']
+        schema['column_names'] = ideal
+        validator = SchemaValidator(specification=schema)
+        df = pd.read_csv(**validator.get_parser_args())
+        rules = {}
+        rules.update(validator.df_rules)
+        df_val = DataFrameValidator(data=df, rules=rules)
+        data = df_val.clean()
+        self.assertItemsEqual(data.columns, ideal)
 
     def test_colnames_as_dict(self):
         """Test if column names gotten from SchemaValidator are implemented."""
