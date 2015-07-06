@@ -464,6 +464,16 @@ class SchemaValidator(HasTraits):
         logger.info(json.dumps(specs, cls=TypeEncoder))
         return True
 
+    def _check_md5(self):
+        if self.md5:
+            if self.md5 != get_md5_checksum(self.filepath):
+                msg = \
+                    """The MD5 checksum of the file {} does not match the one
+                     specified in the schema. This may not be the file you are
+                     looking for."""
+                logger.warn(msg.format(self.filepath))
+                warnings.warn(msg.format(self.filepath), UserWarning)
+
     # Property getters and setters
 
     @cached_property
@@ -506,14 +516,7 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get_parser_args(self):
-        if self.md5:
-            if self.md5 != get_md5_checksum(self.filepath):
-                msg = \
-                    """The MD5 checksum of the file {} does not match the one
-                     specified in the schema. This may not be the file you are
-                     looking for."""
-                logger.warn(msg.format(self.filepath))
-                warnings.warn(msg.format(self.filepath), UserWarning)
+        self._check_md5()
         args = {}
 
         for traitname, argname in TRAIT_NAME_MAP.iteritems():
