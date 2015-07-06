@@ -94,6 +94,8 @@ class DataFrameValidator(HasTraits):
                 for old_name in columns:
                     new_name = self.column_names(old_name)
                     self.data[new_name] = self.data.pop(old_name)
+            elif isinstance(self.column_names, list):
+                self.data.columns = self.column_names
 
     def clean(self):
         """Return the converted dataframe after enforcing all rules."""
@@ -300,7 +302,6 @@ TRAIT_NAME_MAP = {
         "colnames": "usecols",
         "na_values": "na_values",
         "converters": "converters",
-        "column_names": "names",
         "header": "header",
         "error_bad_lines": "error_bad_lines",
         "parse_dates": "parse_dates"
@@ -379,7 +380,8 @@ class SchemaValidator(HasTraits):
 
     # Names of the columns in the dataset. This is just a convenience trait,
     # it's value is just a list of the keys of `dtypes`
-    colnames = Property(List, depends_on=['specification'])
+    colnames = Property(List, depends_on=['specification', 'exclude_columns',
+                                          'filepath', 'is_multifile'])
 
     # md5 checksum of the dataset file
     md5 = Property(Str, depends_on=['filepath'])
@@ -518,6 +520,9 @@ class SchemaValidator(HasTraits):
         if self.is_spreadsheet:
             return self.specification.get('sheetname', self.name)
 
+    def _set_colnames(self, colnames):
+        self.colnames = colnames
+
     @cached_property
     def _get_parser_args(self):
         self._check_md5()
@@ -529,23 +534,9 @@ class SchemaValidator(HasTraits):
         # Date/Time arguments
         # FIXME: Allow for a mix of datetime column groupings and individual
         # columns
-
-        # Columns to exclude
-        if len(self.exclude_columns) > 0:
-            usecols = colnames(self.filepath, sep=args.get('sep', ','))
-            for colname in self.exclude_columns:
-                usecols.remove(colname)
-            args['usecols'] = usecols
-
+        # All column renaming delegated to df_validtor
         if self.column_names is not None:
-            del args['usecols']
-            if isinstance(self.column_names, list):
-                args['names'] = self.column_names
-                # Force include the header argument
-                args['header'] = self.header
-            elif isinstance(self.column_names, dict) or callable(self.column_names):
-                del args['names']
-                self.df_rules['column_names'] = self.column_names
+            self.df_rules['column_names'] = self.column_names
 
         if self.header not in (0, 'infer'):
             del args['usecols']
@@ -571,6 +562,7 @@ class SchemaValidator(HasTraits):
                     if "range" in self.nrows:
                         start, stop = self.nrows['range']
                         args['skiprows'] = start
+                        args['names'] = args.pop('usecols')
                         args['nrows'] = stop - start
                 elif callable(self.nrows):
                     self.df_rules.update({'nrows': self.nrows})
@@ -580,7 +572,7 @@ class SchemaValidator(HasTraits):
                 self.pickled_args['sheetname'] = self.sheetname
                 self.pickled_args['io'] = self.pickled_args.pop('filepath_or_buffer')
                 for argname in self.non_spreadsheet_args:
-                    self.pickled_args.pop(argname)
+                    self.pickled_args.pop(argname, None)
             return self.pickled_args
 
     def _non_spreadsheet_args_default(self):
@@ -638,11 +630,21 @@ class SchemaValidator(HasTraits):
     @cached_property
     def _get_colnames(self):
         usecols = self.specification.get('use_columns')
-        if usecols is None:
-            if self.filepath and not self.is_multifile:
-                return colnames(self.filepath, sep=self.delimiter)
-            return None
-        return usecols
+        if len(self.exclude_columns) > 0:
+            if usecols:
+                for colname in self.exclude_columns:
+                    usecols.remove(colname)
+            else:
+                usecols = colnames(self.filepath, sep=self.delimiter)
+                for colname in self.exclude_columns:
+                    usecols.remove(colname)
+            return usecols
+        else:
+            if usecols is None:
+                if self.filepath and not self.is_multifile:
+                    return colnames(self.filepath, sep=self.delimiter)
+                return None
+            return usecols
 
     @cached_property
     def _get_nrows(self):

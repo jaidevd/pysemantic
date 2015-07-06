@@ -12,7 +12,6 @@ import os.path as op
 import tempfile
 import shutil
 import warnings
-import datetime
 import unittest
 from ConfigParser import RawConfigParser, NoSectionError
 from copy import deepcopy

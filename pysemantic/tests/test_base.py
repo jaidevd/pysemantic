@@ -284,7 +284,7 @@ def _get_iris_args():
                        'Sepal Width': float,
                        'Species': str},
                 usecols=names, na_values=None, parse_dates=False,
-                converters=None, names=None, header='infer', index_col=None)
+                converters=None, header='infer', index_col=None)
 
 
 def _get_person_activity_args():
@@ -293,7 +293,7 @@ def _get_person_activity_args():
     names = colnames(filepath, sep='\t')
     return dict(filepath_or_buffer=op.abspath(filepath),
                 error_bad_lines=False, usecols=names, na_values=None,
-                converters=None, names=None, header='infer', index_col=None,
+                converters=None, header='infer', index_col=None,
                 sep="\t", nrows=100, dtype={'sequence_name': str,
                                             'tag': str,
                                             'x': float,
