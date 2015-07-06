@@ -356,6 +356,9 @@ class SchemaValidator(HasTraits):
     # Whether the dataset is contained in a spreadsheet
     is_spreadsheet = Property(Bool, depends_on=['filepath'])
 
+    # Default arguments for spreadsheets
+    non_spreadsheet_args = List
+
     # Name of the sheet containing the dataframe. Only relevant when
     # is_spreadsheet is True
     sheetname = Property(Str, depends_on=['is_spreadsheet', 'specification'])
@@ -512,22 +515,7 @@ class SchemaValidator(HasTraits):
                 logger.warn(msg.format(self.filepath))
                 warnings.warn(msg.format(self.filepath), UserWarning)
         args = {}
-#        if not self.is_spreadsheet:
-#            args['error_bad_lines'] = False
-#        if self.delimiter:
-#            args['sep'] = self.delimiter
-#        if self.index_col:
-#            args['index_col'] = self.index_col
-#
-#        # Columns to use
-#        if len(self.colnames) > 0:
-#            args['usecols'] = self.colnames
-#
-        # NA values
-#        if len(self.na_values) > 0:
-#            args['na_values'] = self.na_values
 
-# Testing mapping
         for traitname, argname in TRAIT_NAME_MAP.iteritems():
             args[argname] = getattr(self, traitname)
 
@@ -551,12 +539,6 @@ class SchemaValidator(HasTraits):
             args['dtype'] = self.dtypes
             if len(parse_dates) > 0:
                 args['parse_dates'] = parse_dates
-
-#        if len(self.converters) > 0:
-#            args['converters'] = self.converters
-#
-#        if self.header != 0:
-#            args['header'] = self.header
 
         # Columns to exclude
         if len(self.exclude_columns) > 0:
@@ -605,18 +587,15 @@ class SchemaValidator(HasTraits):
                     del args['nrows']
             self.pickled_args.update(args)
             if self.is_spreadsheet:
-                self.pickled_args.pop('sep', None)
-                self.pickled_args.pop('parse_dates', None)
-                self.pickled_args.pop('nrows', None)
-                self.pickled_args.pop('names', None)
-                self.pickled_args.pop('usecols', None)
-                self.pickled_args.pop('error_bad_lines', None)
-                self.pickled_args.pop('dtype', None)
-                if self.pickled_args['header'] == "infer":
-                    self.pickled_args['header'] = 0
                 self.pickled_args['sheetname'] = self.sheetname
                 self.pickled_args['io'] = self.pickled_args.pop('filepath_or_buffer')
+                for argname in self.non_spreadsheet_args:
+                    self.pickled_args.pop(argname)
             return self.pickled_args
+
+    def _non_spreadsheet_args_default(self):
+        return ['sep', 'parse_dates', 'nrows', 'names', 'usecols',
+                'error_bad_lines', 'dtype', 'header']
 
     def _set_parser_args(self, specs):
         self.parser_args.update(specs)
