@@ -302,7 +302,8 @@ TRAIT_NAME_MAP = {
         "converters": "converters",
         "column_names": "names",
         "header": "header",
-        "error_bad_lines": "error_bad_lines"
+        "error_bad_lines": "error_bad_lines",
+        "parse_dates": "parse_dates"
        }
 
 
@@ -356,6 +357,9 @@ class SchemaValidator(HasTraits):
     # Whether the dataset is contained in a spreadsheet
     is_spreadsheet = Property(Bool, depends_on=['filepath'])
 
+    # Default arguments for spreadsheets
+    non_spreadsheet_args = List
+
     # Name of the sheet containing the dataframe. Only relevant when
     # is_spreadsheet is True
     sheetname = Property(Str, depends_on=['is_spreadsheet', 'specification'])
@@ -383,8 +387,8 @@ class SchemaValidator(HasTraits):
     # List of values that represent NAs
     na_values = Property(Any, depends_on=['specification'])
 
-    # List of columns to combine
-    datetime_cols = Property(Any, depends_on=['specification'])
+    # Default value of the `parse_dates` argument
+    parse_dates = Property(Any, depends_on=['specification'])
 
     # List of converters to be applied to the columns. All converters are
     # assumed to be callables, which take the series as input and return a
@@ -461,7 +465,20 @@ class SchemaValidator(HasTraits):
         logger.info(json.dumps(specs, cls=TypeEncoder))
         return True
 
+    def _check_md5(self):
+        if self.md5:
+            if self.md5 != get_md5_checksum(self.filepath):
+                msg = \
+                    """The MD5 checksum of the file {} does not match the one
+                     specified in the schema. This may not be the file you are
+                     looking for."""
+                logger.warn(msg.format(self.filepath))
+                warnings.warn(msg.format(self.filepath), UserWarning)
+
     # Property getters and setters
+    @cached_property
+    def _get_parse_dates(self):
+        return self.specification.get("parse_dates", False)
 
     @cached_property
     def _get_filepath(self):
@@ -503,60 +520,15 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get_parser_args(self):
-        if self.md5:
-            if self.md5 != get_md5_checksum(self.filepath):
-                msg = \
-                    """The MD5 checksum of the file {} does not match the one
-                     specified in the schema. This may not be the file you are
-                     looking for."""
-                logger.warn(msg.format(self.filepath))
-                warnings.warn(msg.format(self.filepath), UserWarning)
+        self._check_md5()
         args = {}
-#        if not self.is_spreadsheet:
-#            args['error_bad_lines'] = False
-#        if self.delimiter:
-#            args['sep'] = self.delimiter
-#        if self.index_col:
-#            args['index_col'] = self.index_col
-#
-#        # Columns to use
-#        if len(self.colnames) > 0:
-#            args['usecols'] = self.colnames
-#
-        # NA values
-#        if len(self.na_values) > 0:
-#            args['na_values'] = self.na_values
 
-# Testing mapping
         for traitname, argname in TRAIT_NAME_MAP.iteritems():
             args[argname] = getattr(self, traitname)
 
         # Date/Time arguments
         # FIXME: Allow for a mix of datetime column groupings and individual
         # columns
-        args['parse_dates'] = False
-        if self.datetime_cols and len(self.datetime_cols) > 0:
-            if isinstance(self.datetime_cols, dict):
-                args['parse_dates'] = self.datetime_cols
-            elif isinstance(self.datetime_cols, list):
-                args['parse_dates'] = [self.datetime_cols]
-        else:
-            parse_dates = []
-            for k, v in self._dtypes.iteritems():
-                if v is datetime.date:
-                    parse_dates.append(k)
-            for k in parse_dates:
-                del self._dtypes[k]
-                del self.dtypes[k]
-            args['dtype'] = self.dtypes
-            if len(parse_dates) > 0:
-                args['parse_dates'] = parse_dates
-
-#        if len(self.converters) > 0:
-#            args['converters'] = self.converters
-#
-#        if self.header != 0:
-#            args['header'] = self.header
 
         # Columns to exclude
         if len(self.exclude_columns) > 0:
@@ -605,18 +577,15 @@ class SchemaValidator(HasTraits):
                     del args['nrows']
             self.pickled_args.update(args)
             if self.is_spreadsheet:
-                self.pickled_args.pop('sep', None)
-                self.pickled_args.pop('parse_dates', None)
-                self.pickled_args.pop('nrows', None)
-                self.pickled_args.pop('names', None)
-                self.pickled_args.pop('usecols', None)
-                self.pickled_args.pop('error_bad_lines', None)
-                self.pickled_args.pop('dtype', None)
-                if self.pickled_args['header'] == "infer":
-                    self.pickled_args['header'] = 0
                 self.pickled_args['sheetname'] = self.sheetname
                 self.pickled_args['io'] = self.pickled_args.pop('filepath_or_buffer')
+                for argname in self.non_spreadsheet_args:
+                    self.pickled_args.pop(argname)
             return self.pickled_args
+
+    def _non_spreadsheet_args_default(self):
+        return ['sep', 'parse_dates', 'nrows', 'names', 'usecols',
+                'error_bad_lines', 'dtype', 'header']
 
     def _set_parser_args(self, specs):
         self.parser_args.update(specs)
@@ -636,10 +605,6 @@ class SchemaValidator(HasTraits):
     @cached_property
     def _get_exclude_columns(self):
         return self.specification.get("exclude_columns", [])
-
-    @cached_property
-    def _get_datetime_cols(self):
-        return self.specification.get("combine_dt_columns", [])
 
     @cached_property
     def _get_header(self):

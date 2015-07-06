@@ -236,24 +236,24 @@ the following:
     x = type(foo) # where foo is the object who's type is to be yamlized
     print yaml.dump(x)
 
-* ``combine_dt_columns`` (Optional) Columns containing Date/Time values can be combined into one column by using the following schema:
+* ``parse_dates`` (Optional) Columns containing Date/Time values can be parsed into native NumPy datetime objects. This argument can be a list, or a ditionary. If it is a dictionary of the following form: 
 
   .. code-block:: yaml
 
-    combine_dt_columns:
+    parse_dates:
       output_col_name:
         - col_a
         - col_b
 
-This will parse columns ``col_a`` and ``col_b`` as datetime columns, and put the result in a column named ``output_col_name``. Specifying the output name is optional. You may declare the schema as:
+it will parse columns ``col_a`` and ``col_b`` as datetime columns, and put the result in a column named ``output_col_name``. Specifying the output name is optional. You may declare the schema as a list, as follows:
 
   .. code-block:: yaml
 
-    combine_dt_columns:
+    parse_dates:
       - col_a
       - col_b
 
-In this case the parser will simply name the output column as ``col_a_col_b``, as is the default with Pandas.
+In this case the parser will independently parse columns ``col_a`` and ``col_b`` into datetime.
 
 *NOTE*: Specifying this column will make PySemantic ignore any columns that have been declared as having the datetime type in the ``dtypes`` parameter.
 

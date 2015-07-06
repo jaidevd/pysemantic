@@ -552,6 +552,8 @@ class Project(object):
         df_rules.update(validator.df_rules)
         logger.info("Attempting to load dataset {} with args:".format(
                                                                  dataset_name))
+        if validator.is_spreadsheet:
+            parser_args.pop('usecols', None)
         logger.info(json.dumps(parser_args, cls=TypeEncoder))
         if isinstance(parser_args, dict):
             df = self._load(parser_args)
