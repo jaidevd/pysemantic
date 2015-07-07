@@ -34,6 +34,24 @@ except ImportError:
     from yaml import Loader
     from yaml import Dumper
 
+try:
+    import tables
+    PYTABLES_NOT_INSTALLED = False
+except ImportError:
+    PYTABLES_NOT_INSTALLED = True
+
+try:
+    import xlrd
+    XLRD_NOT_INSTALLED = False
+except ImportError:
+    XLRD_NOT_INSTALLED = True
+
+try:
+    import openpyxl
+    OPENPYXL_NOT_INSTALLED = False
+except ImportError:
+    OPENPYXL_NOT_INSTALLED = True
+
 
 class TestProjectModule(BaseProjectTestCase):
 
@@ -163,6 +181,7 @@ class TestProjectClass(BaseProjectTestCase):
         finally:
             pr.remove_dataset('pysemantic', 'pa_multiindex')
 
+    @unittest.skipIf(OPENPYXL_NOT_INSTALLED, "Loading Excel files requires openpyxl.")
     def test_load_excel_multisheet(self):
         """Test combining multiple sheets into a single dataframe."""
         tempdir = tempfile.mkdtemp()
@@ -185,6 +204,7 @@ class TestProjectClass(BaseProjectTestCase):
             pr.remove_project("multi_iris")
             shutil.rmtree(tempdir)
 
+    @unittest.skipIf(XLRD_NOT_INSTALLED, "Reading Excel files requires xlrd.")
     def test_load_excel_sheetname(self):
         """Test if specifying the sheetname loads the correct dataframe."""
         xl_project = pr.Project("test_excel")
@@ -192,6 +212,7 @@ class TestProjectClass(BaseProjectTestCase):
         actual_iris = xl_project.load_dataset("iris_renamed")
         self.assertDataFrameEqual(ideal_iris, actual_iris)
 
+    @unittest.skipIf(XLRD_NOT_INSTALLED, "Reading Excel files requires xlrd.")
     def test_load_excel(self):
         """Test if excel spreadsheets are read properly from the schema."""
         xl_project = pr.Project("test_excel")
@@ -387,6 +408,7 @@ class TestProjectClass(BaseProjectTestCase):
             shutil.rmtree(tempdir)
             pr.remove_project('dummy_project')
 
+    @unittest.skipIf(PYTABLES_NOT_INSTALLED, "HDF export requires PyTables.")
     def test_export_dataset_hdf(self):
         """Test if exporting the dataset to hdf works."""
         tempdir = tempfile.mkdtemp()

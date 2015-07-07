@@ -1,6 +1,5 @@
 pyyaml
 traits
 pandas
-tables
 docopt
 nose
