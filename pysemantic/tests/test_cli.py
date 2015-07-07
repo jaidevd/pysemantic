@@ -32,6 +32,12 @@ except ImportError:
     from yaml import Loader as Loader
     from yaml import Dumper as Dumper
 
+try:
+    import tables
+    PYTABLES_NOT_INSTALLED = False
+except ImportError:
+    PYTABLES_NOT_INSTALLED = True
+
 
 class TestCLI(BaseTestCase):
 
@@ -191,6 +197,7 @@ class TestCLI(BaseTestCase):
         self.assertEqual(pr.get_default_specfile('dummy_project'),
                          '/tmp/baz.yaml')
 
+    @unittest.skipIf(PYTABLES_NOT_INSTALLED, "HDF export needs PyTables.")
     def test_export_hdf(self):
         """Test if exporting a dataset to hdf works."""
         tempdir = tempfile.mkdtemp()
