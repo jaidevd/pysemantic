@@ -638,13 +638,14 @@ class SchemaValidator(HasTraits):
                 usecols = colnames(self.filepath, sep=self.delimiter)
                 for colname in self.exclude_columns:
                     usecols.remove(colname)
-            return usecols
         else:
             if usecols is None:
                 if self.filepath and not self.is_multifile:
                     return colnames(self.filepath, sep=self.delimiter)
-                return None
-            return usecols
+        if self.index_col is not None:
+            if self.index_col not in usecols:
+                usecols.append(self.index_col)
+        return usecols
 
     @cached_property
     def _get_nrows(self):
