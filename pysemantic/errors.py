@@ -17,3 +17,9 @@ class MissingProject(Exception):
 class MissingConfigError(Exception):
 
     """Error raised when the pysemantic configuration file is not found."""
+
+
+class ParserArgumentError(Exception):
+
+    """Error raised when no valid parser arguments are inferred from the
+    schema."""

@@ -24,7 +24,7 @@ from pandas.parser import CParserError
 from pandas.io.parsers import ParserWarning
 
 from pysemantic.validator import SchemaValidator, DataFrameValidator
-from pysemantic.errors import MissingProject, MissingConfigError
+from pysemantic.errors import MissingProject, MissingConfigError, ParserArgumentError
 from pysemantic.loggers import setup_logging
 from pysemantic.utils import TypeEncoder, colnames
 from pysemantic.exporters import AerospikeExporter
@@ -557,6 +557,9 @@ class Project(object):
         logger.info(json.dumps(parser_args, cls=TypeEncoder))
         if isinstance(parser_args, dict):
             df = self._load(parser_args)
+            if df is None:
+                raise ParserArgumentError("No valid parser arguments were ",
+                                          "inferred from the schema.")
             if validator.is_spreadsheet and isinstance(validator.sheetname,
                                                        list):
                 df = pd.concat(df.itervalues(), axis=0)
