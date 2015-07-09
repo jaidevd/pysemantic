@@ -9,6 +9,7 @@
 """Tests for the project class."""
 
 import os.path as op
+import os
 import tempfile
 import shutil
 import warnings
@@ -148,7 +149,27 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_indexcol_not_in_usecols(self):
+        """
+        Test if the specified index column is added to the usecols
+        argument."""
+        schema = {'iris': {'path': self.data_specs['iris']['path'],
+                           'index_col': 'Species',
+                           'use_columns': ['Sepal Length', 'Petal Width']}}
+        with tempfile.NamedTemporaryFile(delete=False) as f_schema:
+            yaml.dump(schema, f_schema, Dumper=Dumper, default_flow_style=False)
+        pr.add_project("testindex_usecols", f_schema.name)
+        try:
+            project = pr.Project("testindex_usecols")
+            df = project.load_dataset("iris")
+            self.assertEqual(df.index.name, "Species")
+            self.assertItemsEqual(df.columns, ['Sepal Length', 'Petal Width'])
+        finally:
+            pr.remove_project("testindex_usecols")
+            os.unlink(f_schema.name)
+
     def test_invalid_literals(self):
+        """Test if columns containing invalid literals are parsed safely."""
         tempdir = tempfile.mkdtemp()
         schema_fpath = op.join(tempdir, "schema.yml")
         data_fpath = op.join(tempdir, "data.csv")
