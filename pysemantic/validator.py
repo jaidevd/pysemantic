@@ -49,6 +49,9 @@ class DataFrameValidator(HasTraits):
     # rules related to the dataset itself
     rules = Dict
 
+    # Contraints applied to the index
+    index = Property(Any, depends_on=['rules'])
+
     # whether to drop duplicates
     is_drop_duplicates = Property(Bool, depends_on=['rules'])
 
@@ -63,6 +66,10 @@ class DataFrameValidator(HasTraits):
 
     def _rules_default(self):
         return {}
+
+    @cached_property
+    def _get_index(self):
+        return self.rules.get('index', False)
 
     @cached_property
     def _get_nrows(self):
@@ -99,6 +106,12 @@ class DataFrameValidator(HasTraits):
 
     def clean(self):
         """Return the converted dataframe after enforcing all rules."""
+        if self.index:
+            ix_series = pd.Series(data=self.data.index)
+            ix_validator = SeriesValidator(data=ix_series, rules=self.index)
+            ix_cleaned = ix_validator.clean()
+            self.data = self.data.ix[ix_cleaned.unique()]
+
         if isinstance(self.nrows, dict):
             if len(self.nrows) > 0:
                 if self.nrows.get('random', False):
@@ -509,7 +522,14 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get_index_col(self):
-        return self.specification.get('index_col', None)
+        ix_col = self.specification.get('index_col', None)
+        if not isinstance(ix_col, list):
+            if ix_col is not None:
+                col_rules = self.specification.get("column_rules")
+                if col_rules is not None:
+                    if ix_col in col_rules:
+                        self.df_rules["index"] = col_rules[ix_col]
+        return ix_col
 
     @cached_property
     def _get_sheetname(self):
