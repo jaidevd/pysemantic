@@ -149,6 +149,25 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_index_column_rules(self):
+        """Test if column rules specified for index columns are enforced."""
+        schema = {'iris': {'path': self.data_specs['iris']['path'],
+                           'index_col': 'Species',
+                           'dataframe_rules': {'drop_duplicates': False},
+                           'column_rules': {'Species': {'regex': '.*e.*'}}}}
+        with tempfile.NamedTemporaryFile(delete=False) as f_schema:
+            yaml.dump(schema, f_schema, Dumper=Dumper, default_flow_style=False)
+        pr.add_project("index_col_rules", f_schema.name)
+        try:
+            project = pr.Project("index_col_rules")
+            df = project.load_dataset("iris")
+            self.assertEqual(df.index.name.lower(), 'species')
+            self.assertNotIn("virginica", df.index.unique())
+            self.assertItemsEqual(df.shape, (100, 4))
+        finally:
+            pr.remove_project("index_col_rules")
+            os.unlink(f_schema.name)
+
     def test_indexcol_not_in_usecols(self):
         """
         Test if the specified index column is added to the usecols
