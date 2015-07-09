@@ -148,6 +148,24 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_invalid_literals(self):
+        tempdir = tempfile.mkdtemp()
+        schema_fpath = op.join(tempdir, "schema.yml")
+        data_fpath = op.join(tempdir, "data.csv")
+        data = pd.DataFrame.from_dict(dict(col_a=range(10)))
+        data['col_b'] = ["x"] * 10
+        data.to_csv(data_fpath, index=False)
+        schema = {'dataset': {'path': data_fpath, 'dtypes': {'col_a': int,
+                                                             'col_b': int}}}
+        with open(schema_fpath, "w") as fin:
+            yaml.dump(schema, fin, Dumper=Dumper, default_flow_style=False)
+        pr.add_project("invalid_literal", schema_fpath)
+        try:
+            pr.Project("invalid_literal").load_dataset('dataset')
+        finally:
+            shutil.rmtree(tempdir)
+            pr.remove_project("invalid_literal")
+
     def test_index_col(self):
         """Test if specifying the index_col works."""
         iris_fpath = self.expected_specs['iris']['filepath_or_buffer']

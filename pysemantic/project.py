@@ -24,7 +24,7 @@ from pandas.parser import CParserError
 from pandas.io.parsers import ParserWarning
 
 from pysemantic.validator import SchemaValidator, DataFrameValidator
-from pysemantic.errors import MissingProject, MissingConfigError
+from pysemantic.errors import MissingProject, MissingConfigError, ParserArgumentError
 from pysemantic.loggers import setup_logging
 from pysemantic.utils import TypeEncoder, colnames
 from pysemantic.exporters import AerospikeExporter
@@ -557,6 +557,9 @@ class Project(object):
         logger.info(json.dumps(parser_args, cls=TypeEncoder))
         if isinstance(parser_args, dict):
             df = self._load(parser_args)
+            if df is None:
+                raise ParserArgumentError("No valid parser arguments were " +
+                                          "inferred from the schema.")
             if validator.is_spreadsheet and isinstance(validator.sheetname,
                                                        list):
                 df = pd.concat(df.itervalues(), axis=0)
@@ -614,6 +617,18 @@ class Project(object):
         io = parser_args.pop('io')
         return pd.read_excel(io, sheetname=sheetname, **parser_args)
 
+    def _detect_column_with_invalid_literals(self, parser_args):
+        dtypes = parser_args.pop('dtype')
+        df = self.parser(**parser_args)
+        bad_cols = []
+        for colname, dtype in dtypes.iteritems():
+            try:
+                df[colname].astype(dtype)
+            except (ValueError, TypeError):
+                bad_cols.append(colname)
+        parser_args['dtype'] = dtypes
+        return bad_cols
+
     def _load(self, parser_args):
         """The actual loader function that does the heavy lifting.
 
@@ -623,7 +638,19 @@ class Project(object):
         try:
             return self.parser(**parser_args)
         except ValueError as e:
-            if e.message.startswith("Falling back to the 'python' engine"):
+            if e.message.startswith("invalid literal"):
+                bad_cols = self._detect_column_with_invalid_literals(parser_args)
+                msg = textwrap.dedent("""\
+                        Columns {} designated as type integer could not
+                        be safely cast as integers. Attempting to load as
+                        string data. Consider changing the type in the schema.
+                        """.format(bad_cols))
+                logger.warn(msg)
+                warnings.warn(msg, ParserWarning)
+                for col in bad_cols:
+                    del parser_args['dtype'][col]
+                return self.parser(**parser_args)
+            elif e.message.startswith("Falling back to the 'python' engine"):
                 del parser_args['dtype']
                 msg = textwrap.dedent("""\
                         Dtypes are not supported regex delimiters. Ignoring the

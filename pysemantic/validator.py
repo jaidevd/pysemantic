@@ -416,10 +416,6 @@ class SchemaValidator(HasTraits):
     # Whether to raise errors on malformed lines
     error_bad_lines = Property(Bool, depends_on=['specification'])
 
-    @cached_property
-    def _get_error_bad_lines(self):
-        return self.specification.get('error_bad_lines', False)
-
     # Path to pickle file containing parser arguments
     pickle_file = Property(AbsFile, depends_on=['specification'])
 
@@ -581,6 +577,10 @@ class SchemaValidator(HasTraits):
 
     def _set_parser_args(self, specs):
         self.parser_args.update(specs)
+
+    @cached_property
+    def _get_error_bad_lines(self):
+        return self.specification.get('error_bad_lines', False)
 
     @cached_property
     def _get_pickle_file(self):
