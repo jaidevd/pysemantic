@@ -9,7 +9,6 @@
 """The Project class."""
 
 import os
-import warnings
 import textwrap
 import pprint
 import logging
@@ -20,10 +19,8 @@ import os.path as op
 import yaml
 import pandas as pd
 import numpy as np
-from pandas.parser import CParserError
-from pandas.io.parsers import ParserWarning
 
-from pysemantic.validator import SchemaValidator, DataFrameValidator
+from pysemantic.validator import SchemaValidator, DataFrameValidator, ParseErrorHandler
 from pysemantic.errors import MissingProject, MissingConfigError, ParserArgumentError
 from pysemantic.loggers import setup_logging
 from pysemantic.utils import TypeEncoder, colnames
@@ -556,7 +553,9 @@ class Project(object):
             parser_args.pop('usecols', None)
         logger.info(json.dumps(parser_args, cls=TypeEncoder))
         if isinstance(parser_args, dict):
-            df = self._load(parser_args)
+            # df = self._load(parser_args)
+            with ParseErrorHandler(parser_args, self) as handler:
+                df = handler.load()
             if df is None:
                 raise ParserArgumentError("No valid parser arguments were " +
                                           "inferred from the schema.")
@@ -575,8 +574,10 @@ class Project(object):
         else:
             dfs = []
             for argset in parser_args:
-                self._update_parser(argset)
-                _df = self.parser(**argset)
+                # self._update_parser(argset)
+                with ParseErrorHandler(argset, self) as handler:
+                # _df = self.parser(**argset)
+                    _df = handler.load()
                 df_validator = DataFrameValidator(data=_df,
                                                   column_rules=column_rules)
                 dfs.append(df_validator.clean())
@@ -593,124 +594,6 @@ class Project(object):
         for name in self.validators.iterkeys():
             datasets[name] = self.load_dataset(name)
         return datasets
-
-    def _update_parser(self, argdict):
-        """Update the pandas parser based on the delimiter.
-
-        :param argdict: Dictionary containing parser arguments.
-        :return None:
-        """
-        fpath = argdict.get('filepath_or_buffer', argdict.get('io'))
-        xls = fpath.endswith(".xlsx") or fpath.endswith("xls")
-        if not self.user_specified_parser:
-            if not xls:
-                sep = argdict.get('sep', ",")
-                if sep == ",":
-                    self.parser = pd.read_csv
-                else:
-                    self.parser = pd.read_table
-            else:
-                self.parser = self._load_excel_sheet
-
-    def _load_excel_sheet(self, **parser_args):
-        sheetname = parser_args.pop("sheetname")
-        io = parser_args.pop('io')
-        return pd.read_excel(io, sheetname=sheetname, **parser_args)
-
-    def _detect_column_with_invalid_literals(self, parser_args):
-        dtypes = parser_args.pop('dtype')
-        df = self.parser(**parser_args)
-        bad_cols = []
-        for colname, dtype in dtypes.iteritems():
-            try:
-                df[colname].astype(dtype)
-            except (ValueError, TypeError):
-                bad_cols.append(colname)
-        parser_args['dtype'] = dtypes
-        return bad_cols
-
-    def _load(self, parser_args):
-        """The actual loader function that does the heavy lifting.
-
-        :param parser_args: Dictionary containing parser arguments.
-        """
-        self._update_parser(parser_args)
-        try:
-            return self.parser(**parser_args)
-        except ValueError as e:
-            if e.message.startswith("invalid literal"):
-                bad_cols = self._detect_column_with_invalid_literals(parser_args)
-                msg = textwrap.dedent("""\
-                        Columns {} designated as type integer could not
-                        be safely cast as integers. Attempting to load as
-                        string data. Consider changing the type in the schema.
-                        """.format(bad_cols))
-                logger.warn(msg)
-                warnings.warn(msg, ParserWarning)
-                for col in bad_cols:
-                    del parser_args['dtype'][col]
-                return self.parser(**parser_args)
-            elif e.message.startswith("Falling back to the 'python' engine"):
-                del parser_args['dtype']
-                msg = textwrap.dedent("""\
-                        Dtypes are not supported regex delimiters. Ignoring the
-                        dtypes in the schema. Consider fixing this by editing
-                        the schema for better performance.
-                        """)
-                logger.warn(msg)
-                logger.info("Removing the dtype argument")
-                warnings.warn(msg, ParserWarning)
-                if "error_bad_lines" in parser_args:
-                    del parser_args['error_bad_lines']
-                return self.parser(**parser_args)
-            elif e.message.startswith("cannot safely convert"):
-                bad_col = int(e.message.split(' ')[-1])
-                bad_col = parser_args['dtype'].keys()[bad_col]
-                specified_dtype = parser_args['dtype'][bad_col]
-                del parser_args['dtype'][bad_col]
-                msg = textwrap.dedent("""\
-                The specified dtype for the column '{0}' ({1}) seems to be
-                incorrect. This has been ignored for now.
-                Consider fixing this by editing the schema.""".format(bad_col,
-                                                              specified_dtype))
-                logger.warn(msg)
-                logger.info("dtype for column {} removed.".format(bad_col))
-                warnings.warn(msg, UserWarning)
-                return self.parser(**parser_args)
-            elif e.message.startswith('could not convert string to float'):
-                bad_cols = self._detect_mismatched_dtype_row(float, parser_args)
-                for col in bad_cols:
-                    del parser_args['dtype'][col]
-                msg = textwrap.dedent("""\
-                The specified dtype for the column '{0}' ({1}) seems to be
-                incorrect. This has been ignored for now.
-                Consider fixing this by editing the schema.""".format(bad_cols,
-                                                              float))
-                logger.warn(msg)
-                logger.info("dtype removed for columns:".format(bad_cols))
-                return self.parser(**parser_args)
-        except AttributeError as e:
-            if e.message == "'NoneType' object has no attribute 'dtype'":
-                bad_rows = self._detect_mismatched_dtype_row(int, parser_args)
-                for col in bad_rows:
-                    del parser_args['dtype'][col]
-                logger.warn(msg)
-                logger.info("dtype removed for columns:".format(bad_rows))
-                return self.parser(**parser_args)
-        except CParserError as e:
-            parser_args['error_bad_lines'] = False
-            msg = 'Adding the "error_bad_lines=False" argument to the ' + \
-                  'list of parser arguments.'
-            logger.info(msg)
-            return self.parser(**parser_args)
-        except Exception as e:
-            if "Integer column has NA values" in e.message:
-                bad_rows = self._detect_row_with_na(parser_args)
-                new_types = [(col, float) for col in bad_rows]
-                self._update_dtypes(parser_args['dtype'], new_types)
-                logger.info("Dtypes for following columns changed:")
-                logger.info(json.dumps(new_types, cls=TypeEncoder))
-            return self.parser(**parser_args)
 
     def _update_dtypes(self, dtypes, typelist):
         """Update the dtypes parameter of the parser arguments.
@@ -752,33 +635,3 @@ class Project(object):
             if np.any(pd.isnull(df[col])):
                 bad_rows.append(col)
         return bad_rows
-
-    def _detect_mismatched_dtype_row(self, specified_dtype, parser_args):
-        """Check the dataframe for rows that have a badly specified dtype.
-
-        :param specfified_dtype: The datatype specified in the schema
-        :param parser_args: Dictionary containing parser arguments.
-        """
-        to_read = []
-        dtypes = parser_args.get("dtype")
-        for key, value in dtypes.iteritems():
-            if value is specified_dtype:
-                to_read.append(key)
-        fpath = parser_args['filepath_or_buffer']
-        sep = parser_args.get('sep', ',')
-        nrows = parser_args.get('nrows')
-        df = self.parser(fpath, sep=sep, usecols=to_read, nrows=nrows,
-                error_bad_lines=False)
-        bad_cols = []
-        for col in df:
-            try:
-                df[col] = df[col].astype(specified_dtype)
-            except ValueError:
-                bad_cols.append(col)
-                msg = textwrap.dedent("""\
-                The specified dtype for the column '{0}' ({1}) seems to be
-                incorrect. This has been ignored for now.
-                Consider fixing this by editing the schema.""".format(col,
-                                                              specified_dtype))
-                warnings.warn(msg, UserWarning)
-        return bad_cols
