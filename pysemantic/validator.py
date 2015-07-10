@@ -241,7 +241,7 @@ class ParseErrorHandler(object):
                 self._update_dtypes(self.parser_args['dtype'], new_types)
                 logger.info("Dtypes for following columns changed:")
                 logger.info(json.dumps(new_types, cls=TypeEncoder))
-            return self.parser(**self.parser_args)
+                return self.parser(**self.parser_args)
 
 
 class DataFrameValidator(HasTraits):

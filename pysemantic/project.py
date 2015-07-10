@@ -23,7 +23,7 @@ import numpy as np
 from pysemantic.validator import SchemaValidator, DataFrameValidator, ParseErrorHandler
 from pysemantic.errors import MissingProject, MissingConfigError, ParserArgumentError
 from pysemantic.loggers import setup_logging
-from pysemantic.utils import TypeEncoder, colnames
+from pysemantic.utils import TypeEncoder
 from pysemantic.exporters import AerospikeExporter
 
 try:
@@ -553,7 +553,6 @@ class Project(object):
             parser_args.pop('usecols', None)
         logger.info(json.dumps(parser_args, cls=TypeEncoder))
         if isinstance(parser_args, dict):
-            # df = self._load(parser_args)
             with ParseErrorHandler(parser_args, self) as handler:
                 df = handler.load()
             if df is None:
@@ -574,9 +573,7 @@ class Project(object):
         else:
             dfs = []
             for argset in parser_args:
-                # self._update_parser(argset)
                 with ParseErrorHandler(argset, self) as handler:
-                # _df = self.parser(**argset)
                     _df = handler.load()
                 df_validator = DataFrameValidator(data=_df,
                                                   column_rules=column_rules)
@@ -594,44 +591,3 @@ class Project(object):
         for name in self.validators.iterkeys():
             datasets[name] = self.load_dataset(name)
         return datasets
-
-    def _update_dtypes(self, dtypes, typelist):
-        """Update the dtypes parameter of the parser arguments.
-
-        :param dtypes: The original column types
-        :param typelist: List of tuples [(column_name, new_dtype), ...]
-        """
-        for colname, coltype in typelist:
-            dtypes[colname] = coltype
-
-    def _detect_row_with_na(self, parser_args):
-        """Return the list of columns in the dataframe, for which the data type
-        has been marked as integer, but which contain NAs.
-
-        :param parser_args: Dictionary containing parser arguments.
-        """
-        dtypes = parser_args.get("dtype")
-        usecols = parser_args.get("usecols")
-        if usecols is None:
-            usecols = colnames(parser_args['filepath_or_buffer'])
-        int_cols = [col for col in usecols if dtypes.get(col) is int]
-        fpath = parser_args['filepath_or_buffer']
-        sep = parser_args.get('sep', ',')
-        nrows = parser_args.get('nrows')
-        na_reps = {}
-        if parser_args.get('na_values', False):
-            for colname, na_vals in parser_args.get('na_values').iteritems():
-                if colname in int_cols:
-                    na_reps[colname] = na_vals
-        converters = {}
-        if parser_args.get('converters', False):
-            for cname, cnv in parser_args.get('converters').iteritems():
-                if cname in int_cols:
-                    converters[cname] = cnv
-        df = self.parser(fpath, sep=sep, usecols=int_cols, nrows=nrows,
-                         na_values=na_reps, converters=converters)
-        bad_rows = []
-        for col in df:
-            if np.any(pd.isnull(df[col])):
-                bad_rows.append(col)
-        return bad_rows
