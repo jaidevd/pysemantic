@@ -9,7 +9,6 @@
 """The Project class."""
 
 import os
-import warnings
 import textwrap
 import pprint
 import logging
@@ -575,8 +574,10 @@ class Project(object):
         else:
             dfs = []
             for argset in parser_args:
-                self._update_parser(argset)
-                _df = self.parser(**argset)
+                # self._update_parser(argset)
+                with ParseErrorHandler(argset, self) as handler:
+                # _df = self.parser(**argset)
+                    _df = handler.load()
                 df_validator = DataFrameValidator(data=_df,
                                                   column_rules=column_rules)
                 dfs.append(df_validator.clean())
@@ -593,11 +594,6 @@ class Project(object):
         for name in self.validators.iterkeys():
             datasets[name] = self.load_dataset(name)
         return datasets
-
-    def _load_excel_sheet(self, **parser_args):
-        sheetname = parser_args.pop("sheetname")
-        io = parser_args.pop('io')
-        return pd.read_excel(io, sheetname=sheetname, **parser_args)
 
     def _update_dtypes(self, dtypes, typelist):
         """Update the dtypes parameter of the parser arguments.
@@ -639,33 +635,3 @@ class Project(object):
             if np.any(pd.isnull(df[col])):
                 bad_rows.append(col)
         return bad_rows
-
-    def _detect_mismatched_dtype_row(self, specified_dtype, parser_args):
-        """Check the dataframe for rows that have a badly specified dtype.
-
-        :param specfified_dtype: The datatype specified in the schema
-        :param parser_args: Dictionary containing parser arguments.
-        """
-        to_read = []
-        dtypes = parser_args.get("dtype")
-        for key, value in dtypes.iteritems():
-            if value is specified_dtype:
-                to_read.append(key)
-        fpath = parser_args['filepath_or_buffer']
-        sep = parser_args.get('sep', ',')
-        nrows = parser_args.get('nrows')
-        df = self.parser(fpath, sep=sep, usecols=to_read, nrows=nrows,
-                error_bad_lines=False)
-        bad_cols = []
-        for col in df:
-            try:
-                df[col] = df[col].astype(specified_dtype)
-            except ValueError:
-                bad_cols.append(col)
-                msg = textwrap.dedent("""\
-                The specified dtype for the column '{0}' ({1}) seems to be
-                incorrect. This has been ignored for now.
-                Consider fixing this by editing the schema.""".format(col,
-                                                              specified_dtype))
-                warnings.warn(msg, UserWarning)
-        return bad_cols
