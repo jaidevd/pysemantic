@@ -24,7 +24,7 @@ from pandas.io.parsers import ParserWarning
 from pandas.parser import CParserError
 from traits.api import (HasTraits, File, Property, Str, Dict, List, Type,
                         Bool, Either, push_exception_handler, cached_property,
-                        Array, Instance, Float, Any, TraitError)
+                        Instance, Float, Any, TraitError)
 
 from pysemantic.utils import TypeEncoder, get_md5_checksum, colnames
 from pysemantic.custom_traits import AbsFile, ValidTraitList
@@ -298,6 +298,9 @@ class DataFrameValidator(HasTraits):
     # Specifications relating to the selection of rows.
     nrows = Property(Any, depends_on=['rules'])
 
+    # Unique values to maintain per column
+    unique_values = Property(Dict, depends_on=['column_rules'])
+
     def _rules_default(self):
         return {}
 
@@ -320,6 +323,24 @@ class DataFrameValidator(HasTraits):
     @cached_property
     def _get_column_names(self):
         return self.rules.get("column_names")
+
+    @cached_property
+    def _get_unique_values(self):
+        uvals = {}
+        if self.column_rules is not None:
+            for colname, rules in self.column_rules.iteritems():
+                uvals[colname] = rules.get('unique_values', [])
+        return uvals
+
+    def apply_uniques(self):
+        for colname, uniques in self.unique_values.iteritems():
+            if colname in self.data:
+                org_vals = self.data[colname].unique()
+                for val in org_vals:
+                    if len(uniques) > 0:
+                        if val not in uniques:
+                            drop_ix = self.data.index[self.data[colname] == val]
+                            self.data.drop(drop_ix, axis=0, inplace=True)
 
     def rename_columns(self):
         """Rename columns in dataframe as per the schema."""
@@ -345,6 +366,8 @@ class DataFrameValidator(HasTraits):
             ix_validator = SeriesValidator(data=ix_series, rules=self.index)
             ix_cleaned = ix_validator.clean()
             self.data = self.data.ix[ix_cleaned.unique()]
+
+        self.apply_uniques()
 
         if isinstance(self.nrows, dict):
             if len(self.nrows) > 0:
@@ -405,9 +428,6 @@ class SeriesValidator(HasTraits):
     # Whether to drop duplicates from the series.
     is_drop_duplicates = Property(Bool, depends_on=['rules'])
 
-    # Unique values encountered in the series
-    unique_values = Property(Array, depends_on=['rules'])
-
     # List of values to exclude
     exclude_values = Property(List, depends_on=['rules'])
 
@@ -460,14 +480,16 @@ class SeriesValidator(HasTraits):
 #                logger.info("Applying converter {0}".format(converter))
 #                self.data = converter(self.data)
 
-    def apply_uniques(self):
-        """Remove all values not included in the `uniques`."""
-        if not np.all(self.data.unique() == self.unique_values):
-            logger.info("Keeping only the following unique values:")
-            logger.info(json.dumps(self.unique_values, cls=TypeEncoder))
-            for value in self.data.unique():
-                if value not in self.unique_values:
-                    self.data = self.data[self.data != value]
+#    def apply_uniques(self):
+#        """Remove all values not included in the `uniques`."""
+#        if not np.all(self.data.unique() == self.unique_values):
+#            from IPython.core.debugger import Tracer
+#            Tracer()()
+#            logger.info("Keeping only the following unique values:")
+#            logger.info(json.dumps(self.unique_values, cls=TypeEncoder))
+#            for value in self.data.unique():
+#                if value not in self.unique_values:
+#                    self.data = self.data[self.data != value]
 
     def drop_excluded(self):
         """Remove all values specified in `exclude_values`."""
@@ -501,7 +523,6 @@ class SeriesValidator(HasTraits):
         """Return the converted dataframe after enforcing all rules."""
         self.do_drop_duplicates()
         self.do_drop_na()
-        self.apply_uniques()
         self.do_postprocessing()
         self.apply_minmax_rules()
         self.apply_regex()
@@ -514,10 +535,6 @@ class SeriesValidator(HasTraits):
     @cached_property
     def _get_exclude_values(self):
         return self.rules.get("exclude", [])
-
-    @cached_property
-    def _get_unique_values(self):
-        return self.rules.get("unique_values", self.data.unique())
 
     @cached_property
     def _get_is_drop_na(self):
