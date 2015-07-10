@@ -729,7 +729,11 @@ class SchemaValidator(HasTraits):
     # Property getters and setters
     @cached_property
     def _get_parse_dates(self):
-        return self.specification.get("parse_dates", False)
+        parse_dates = self.specification.get("parse_dates", False)
+        if parse_dates:
+            if isinstance(parse_dates, str):
+                parse_dates = [parse_dates]
+        return parse_dates
 
     @cached_property
     def _get_filepath(self):

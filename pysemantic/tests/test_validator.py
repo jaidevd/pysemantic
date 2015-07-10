@@ -76,6 +76,16 @@ class TestSchemaValidator(BaseTestCase):
         # are messing up the base specifications.
         self.basespecs = deepcopy(self.specs)
 
+    def test_parse_dates_list(self):
+        """Test if arguments to `parse_dates` are put into a list."""
+        specs = deepcopy(self.basespecs['person_activity'])
+        specs['parse_dates'] = specs['parse_dates'][0]
+        validator = SchemaValidator(specification=specs)
+        parser_args = validator.get_parser_args()
+        self.assertTrue(isinstance(parser_args['parse_dates'], list))
+        df = pd.read_csv(**parser_args)
+        self.assertEqual(df['date'].dtype, np.dtype('<M8[ns]'))
+
     def test_usecols(self):
         """Test if inferring the usecols argument works."""
         specs = deepcopy(self.basespecs['iris'])
