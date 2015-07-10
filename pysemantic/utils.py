@@ -110,7 +110,6 @@ def get_md5_checksum(filepath):
     '9b3ecf3031979169c0ecc5e03cfe20a6'
 
     """
-    import hashlib
-    with open(filepath, "rb") as fid:
-        checksum = hashlib.md5(fid.read()).hexdigest()
-    return checksum
+    import subprocess
+    cmd = "md5sum {}".format(filepath).split()
+    return subprocess.check_output(cmd).rstrip().split()[0]
