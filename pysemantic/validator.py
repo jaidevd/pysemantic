@@ -41,9 +41,21 @@ logger = logging.getLogger(__name__)
 
 class ParseErrorHandler(object):
 
-    def __init__(self, parser_args, project):
+    def __init__(self, parser_args, project, maxiter=None):
         self.parser_args = parser_args
         self.project = project
+        fpath = self.parser_args.get('filepath_or_buffer',
+                                     self.parser_args.get('io'))
+        sep = self.parser_args.get('sep', False)
+        if sep:
+            self.colnames = colnames(fpath, sep=sep)
+        else:
+            self.colnames = colnames(fpath)
+            self.parser_args['sep'] = sep
+        if maxiter is not None:
+            self.maxiter = maxiter
+        else:
+            self.maxiter = len(self.colnames)
 
     def __enter__(self):
         return self
@@ -145,6 +157,10 @@ class ParseErrorHandler(object):
                 warnings.warn(msg, UserWarning)
         return bad_cols
 
+    def _remove_unsafe_integer_columns(self, loc):
+        bad_col = self.colnames[loc]
+        del self.parser_args['dtype'][bad_col]
+
     def _detect_column_with_invalid_literals(self):
         dtypes = self.parser_args.pop('dtype')
         df = self.parser(**self.parser_args)
@@ -161,6 +177,17 @@ class ParseErrorHandler(object):
         return bad_cols
 
     def load(self):
+        """The main recursion loop."""
+        self.c_iter = 0
+        df = None
+        while True:
+            df = self._load()
+            self.c_iter += 1
+            if (self.c_iter > self.maxiter) or (df is not None):
+                break
+        return df
+
+    def _load(self):
         """The actual loader function that does the heavy lifting.
 
         :param parser_args: Dictionary containing parser arguments.
@@ -195,19 +222,18 @@ class ParseErrorHandler(object):
                     del self.parser_args['error_bad_lines']
                 return self.parser(**self.parser_args)
             elif e.message.startswith("cannot safely convert"):
-                bad_cols = self._detect_column_with_invalid_literals()
-                for bad_col in bad_cols:
-                    specified_dtype = self.parser_args['dtype'][bad_col]
-                    del self.parser_args['dtype'][bad_col]
-                    msg = textwrap.dedent("""\
-                    The specified dtype for the column '{0}' ({1}) seems to be
-                    incorrect. This has been ignored for now.
-                    Consider fixing this by editing the schema.""".format(bad_col,
-                                                                  specified_dtype))
-                    logger.warn(msg)
-                    logger.info("dtype for column {} removed.".format(bad_col))
-                    warnings.warn(msg, UserWarning)
-                return self.parser(**self.parser_args)
+                loc = int(e.message.split()[-1])
+                bad_colname = self.colnames[loc]
+                specified_dtype = self.parser_args['dtype'][bad_colname]
+                self._remove_unsafe_integer_columns(loc)
+                msg = textwrap.dedent("""\
+                The specified dtype for the column '{0}' ({1}) seems to be
+                incorrect. This has been ignored for now.
+                Consider fixing this by editing the
+                schema.""".format(bad_colname, specified_dtype))
+                logger.warn(msg)
+                logger.info("dtype for column {} removed.".format(bad_colname))
+                warnings.warn(msg, UserWarning)
             elif e.message.startswith('could not convert string to float'):
                 bad_cols = self._detect_mismatched_dtype_row(float)
                 for col in bad_cols:
@@ -241,7 +267,7 @@ class ParseErrorHandler(object):
                 self._update_dtypes(self.parser_args['dtype'], new_types)
                 logger.info("Dtypes for following columns changed:")
                 logger.info(json.dumps(new_types, cls=TypeEncoder))
-            return self.parser(**self.parser_args)
+                return self.parser(**self.parser_args)
 
 
 class DataFrameValidator(HasTraits):
