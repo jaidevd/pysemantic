@@ -76,6 +76,16 @@ class TestSchemaValidator(BaseTestCase):
         # are messing up the base specifications.
         self.basespecs = deepcopy(self.specs)
 
+    def test_parse_dates_list(self):
+        """Test if arguments to `parse_dates` are put into a list."""
+        specs = deepcopy(self.basespecs['person_activity'])
+        specs['parse_dates'] = specs['parse_dates'][0]
+        validator = SchemaValidator(specification=specs)
+        parser_args = validator.get_parser_args()
+        self.assertTrue(isinstance(parser_args['parse_dates'], list))
+        df = pd.read_csv(**parser_args)
+        self.assertEqual(df['date'].dtype, np.dtype('<M8[ns]'))
+
     def test_usecols(self):
         """Test if inferring the usecols argument works."""
         specs = deepcopy(self.basespecs['iris'])
@@ -455,27 +465,6 @@ class TestSeriesValidator(BaseTestCase):
         finally:
             del self.species_rules['postprocessors']
 
-    def test_unique_values(self):
-        """Test if the validator checks for the unique values."""
-        validator = SeriesValidator(data=self.species,
-                                    rules=self.species_rules)
-        cleaned = validator.clean()
-        self.assertItemsEqual(cleaned.unique(),
-                              self.dataframe['Species'].unique())
-
-    def test_bad_unique_values(self):
-        """Test if the validator drops values not specified in the schema."""
-        # Add some bogus values
-        noise = np.random.choice(['lily', 'petunia'], size=(50,))
-        species = np.hstack((self.species.values, noise))
-        np.random.shuffle(species)
-        species = pd.Series(species)
-
-        validator = SeriesValidator(data=species, rules=self.species_rules)
-        cleaned = validator.clean()
-        self.assertItemsEqual(cleaned.unique(),
-                              self.dataframe['Species'].unique())
-
     def test_drop_duplicates(self):
         """Check if the SeriesValidator drops duplicates in the series."""
         self.species_rules['drop_duplicates'] = True
@@ -493,7 +482,7 @@ class TestSeriesValidator(BaseTestCase):
         """Check if the SeriesValidator drops NAs in the series."""
         self.species_rules['drop_na'] = True
         try:
-            unqs = np.random.choice(self.species.unique().tolist() + [np.nan],
+            unqs = np.random.choice(self.species.unique().tolist() + [None],
                                     size=(100,))
             unqs = pd.Series(unqs)
             validator = SeriesValidator(data=unqs,
@@ -571,9 +560,34 @@ class TestDataFrameValidator(BaseTestCase):
         pa_dframe = pd.read_csv(**pa_validator.get_parser_args())
         cls.iris_dframe = iris_dframe
         cls.pa_dframe = pa_dframe
+        cls.species_rules = {'unique_values': ['setosa', 'virginica',
+                                               'versicolor'],
+                             'drop_duplicates': False, 'drop_na': False}
 
     def setUp(self):
         self.basespecs = deepcopy(self._basespecs)
+
+    def test_unique_values(self):
+        """Test if the validator checks for the unique values."""
+        validator = DataFrameValidator(data=self.iris_dframe,
+                column_rules={'Species': self.species_rules})
+        cleaned = validator.clean()
+        self.assertItemsEqual(cleaned.Species.unique(),
+                              ['setosa', 'versicolor', 'virginica'])
+
+    def test_bad_unique_values(self):
+        """Test if the validator drops values not specified in the schema."""
+        # Add some bogus values
+        noise = np.random.choice(['lily', 'petunia'], size=(50,))
+        species = np.hstack((self.iris_dframe.Species.values, noise))
+        np.random.shuffle(species)
+        species = pd.Series(species)
+
+        validator = DataFrameValidator(data=pd.DataFrame({'Species': species}),
+                                  column_rules={'Species': self.species_rules})
+        cleaned = validator.clean()
+        self.assertItemsEqual(cleaned.Species.unique(),
+                              ['setosa', 'versicolor', 'virginica'])
 
     def test_colnames_as_list(self):
         """Test if the column names option works when provided as a list."""

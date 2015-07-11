@@ -690,41 +690,6 @@ class TestProjectClass(BaseProjectTestCase):
             self.assertKwargsEqual(outargs[i],
                                    self.expected_specs['multi_iris'][i])
 
-    def test_set_dataset_specs(self):
-        """Check if setting dataset specifications through the Project object
-        works.
-        """
-        path = op.join(op.abspath(op.dirname(__file__)), "testdata",
-                       "iris.csv")
-        specs = dict(filepath_or_buffer=path,
-                     usecols=['Sepal Length', 'Petal Width', 'Species'],
-                     dtype={'Sepal Length': str})
-        self.assertTrue(self.project.set_dataset_specs("iris", specs))
-        expected = pd.read_csv(**specs)
-        loaded = self.project.load_dataset("iris")
-        self.assertDataFrameEqual(expected, loaded)
-
-    def test_set_dataset_specs_to_file(self):
-        """Check if newly set dataset specifications are written to file
-        properly."""
-        try:
-            with open(TEST_DATA_DICT, "r") as fileobj:
-                oldspecs = yaml.load(fileobj, Loader=Loader)
-            path = op.join(op.abspath(op.dirname(__file__)), "testdata",
-                           "iris.csv")
-            specs = dict(filepath_or_buffer=path,
-                         usecols=['Sepal Length', 'Petal Width', 'Species'],
-                         dtype={'Sepal Length': str})
-            self.assertTrue(self.project.set_dataset_specs("iris", specs,
-                                                           write_to_file=True))
-            with open(TEST_DATA_DICT, "r") as fileobj:
-                newspecs = yaml.load(fileobj, Loader=Loader)
-            self.assertKwargsEqual(newspecs['iris'], specs)
-        finally:
-            with open(TEST_DATA_DICT, "w") as fileobj:
-                yaml.dump(oldspecs, fileobj, Dumper=Dumper,
-                          default_flow_style=False)
-
     def test_load_all(self):
         """Test if loading all datasets in a project works as expected."""
         loaded = self.project.load_datasets()

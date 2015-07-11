@@ -465,30 +465,6 @@ class Project(object):
         specs = self.get_dataset_specs(dataset_name)
         pprint.pprint(specs)
 
-    def set_dataset_specs(self, dataset_name, specs, write_to_file=False):
-        """Sets the specifications to the dataset. Using this is not
-        recommended. All specifications for datasets should be handled through
-        the data dictionary.
-
-        :param dataset_name: Name of the dataset for which specifications \
-                need to be modified.
-        :param specs: A dictionary containing the new specifications for the \
-                dataset.
-        :param write_to_file: If true, the data dictionary will be updated to \
-                the new specifications. If False (the default), the new \
-                specifications are used for the respective dataset only for \
-                the lifetime of the `Project` object.
-        :type dataset_name: str
-        :type specs: dict
-        :type write_to_file: bool
-        :return: None
-        """
-        validator = self.validators[dataset_name]
-        logger.info("Attempting to set parser args for dataset {} to:".format(
-                                                                 dataset_name))
-        logger.info(json.dumps(specs, cls=TypeEncoder))
-        return validator.set_parser_args(specs, write_to_file)
-
     def update_dataset(self, dataset_name, dataframe, path=None, **kwargs):
         """This is tricky."""
         org_specs = self.get_dataset_specs(dataset_name)
