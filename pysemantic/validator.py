@@ -283,8 +283,8 @@ class DataFrameValidator(HasTraits):
     # rules related to the dataset itself
     rules = Dict
 
-    # Contraints applied to the index
-    index = Property(Any, depends_on=['rules'])
+    # Column to set as index
+    index_col = Property(Any, depends_on=['rules'])
 
     # whether to drop duplicates
     is_drop_duplicates = Property(Bool, depends_on=['rules'])
@@ -305,8 +305,8 @@ class DataFrameValidator(HasTraits):
         return {}
 
     @cached_property
-    def _get_index(self):
-        return self.rules.get('index', False)
+    def _get_index_col(self):
+        return self.rules.get('index_col', False)
 
     @cached_property
     def _get_nrows(self):
@@ -361,11 +361,6 @@ class DataFrameValidator(HasTraits):
 
     def clean(self):
         """Return the converted dataframe after enforcing all rules."""
-        if self.index:
-            ix_series = pd.Series(data=self.data.index)
-            ix_validator = SeriesValidator(data=ix_series, rules=self.index)
-            ix_cleaned = ix_validator.clean()
-            self.data = self.data.ix[ix_cleaned.unique()]
 
         self.apply_uniques()
 
@@ -408,6 +403,12 @@ class DataFrameValidator(HasTraits):
                 logger.info(json.dumps(validator.exclude_values))
             # self.data.dropna(inplace=True)
         self.rename_columns()
+
+        if self.index_col:
+            self.data.set_index(self.index_col, drop=True, inplace=True)
+            un_ix = self.data.index.unique()
+            na_ix = pd.isnull(un_ix)
+            self.data.drop(un_ix[na_ix], axis=0, inplace=True)
 
         return self.data
 
@@ -472,24 +473,6 @@ class SeriesValidator(HasTraits):
             logger.info("Following rows containing NAs were dropped:")
             logger.info(json.dumps(na_rows))
             self.data.dropna(inplace=True)
-
-#    def apply_converters(self):
-#        """Apply the converter functions on the series."""
-#        if len(self.converters) > 0:
-#            for converter in self.converters:
-#                logger.info("Applying converter {0}".format(converter))
-#                self.data = converter(self.data)
-
-#    def apply_uniques(self):
-#        """Remove all values not included in the `uniques`."""
-#        if not np.all(self.data.unique() == self.unique_values):
-#            from IPython.core.debugger import Tracer
-#            Tracer()()
-#            logger.info("Keeping only the following unique values:")
-#            logger.info(json.dumps(self.unique_values, cls=TypeEncoder))
-#            for value in self.data.unique():
-#                if value not in self.unique_values:
-#                    self.data = self.data[self.data != value]
 
     def drop_excluded(self):
         """Remove all values specified in `exclude_values`."""
@@ -789,7 +772,8 @@ class SchemaValidator(HasTraits):
                 col_rules = self.specification.get("column_rules")
                 if col_rules is not None:
                     if ix_col in col_rules:
-                        self.df_rules["index"] = col_rules[ix_col]
+                        self.df_rules["index_col"] = ix_col
+                        return
         return ix_col
 
     @cached_property

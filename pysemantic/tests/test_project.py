@@ -149,6 +149,29 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_index_column_exclude(self):
+        """Test if values are excluded from index column if so specified."""
+        tempdir = tempfile.mkdtemp()
+        schema_fpath = op.join(tempdir, "schema.yml")
+        data_fpath = op.join(tempdir, "data.csv")
+        df = pd.DataFrame.from_dict({'index': np.arange(10), 'col_a':
+                                     np.arange(10)})
+        df.to_csv(data_fpath, index=False)
+        schema = {'data': {'path': data_fpath, 'index_col': 'index',
+                           'column_rules': {'index': {'exclude': [1, 2]}}}}
+        with open(schema_fpath, "w") as fin:
+            yaml.dump(schema, fin, Dumper=Dumper, default_flow_style=False)
+        pr.add_project("index_exclude", schema_fpath)
+        try:
+            df = pr.Project("index_exclude").load_dataset("data")
+            self.assertItemsEqual(df.shape, (8, 1))
+            self.assertEqual(df.index.name, "index")
+            self.assertNotIn(1, df.index)
+            self.assertNotIn(2, df.index)
+        finally:
+            pr.remove_project("index_exclude")
+            shutil.rmtree(tempdir)
+
     def test_index_column_rules(self):
         """Test if column rules specified for index columns are enforced."""
         schema = {'iris': {'path': self.data_specs['iris']['path'],
