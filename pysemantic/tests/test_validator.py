@@ -103,6 +103,7 @@ class TestSchemaValidator(BaseTestCase):
         specs = deepcopy(self.basespecs['iris'])
         index_col = "Species"
         specs['index_col'] = index_col
+        del specs['column_rules']['Species']
         validator = SchemaValidator(specification=specs)
         parser_args = validator.get_parser_args()
         self.assertItemsEqual(parser_args['index_col'], index_col)
