@@ -68,7 +68,7 @@ def generate_questionnaire(filepath):
     return qdict
 
 
-def colnames(filename, **kwargs):
+def colnames(filename, parser=None, **kwargs):
     """
     Read the column names of a delimited file, without actually reading the
     whole file. This is simply a wrapper around `pandas.read_csv`, which reads
@@ -93,8 +93,18 @@ def colnames(filename, **kwargs):
         UserWarning("The nrows parameter is pointless here. This function only"
                     "reads one row.")
         kwargs.pop('nrows')
-    import pandas as pd
-    return pd.read_csv(filename, nrows=1, **kwargs).columns.tolist()
+    if parser is None:
+        if "sep" in kwargs:
+            sep = kwargs.get('sep')
+            if sep == r"\t":
+                parser = pd.read_table
+            else:
+                parser = pd.read_csv
+        elif filename.endswith('.tsv'):
+            parser = pd.read_table
+        else:
+            parser = pd.read_csv
+    return parser(filename, nrows=1, **kwargs).columns.tolist()
 
 
 def get_md5_checksum(filepath):
