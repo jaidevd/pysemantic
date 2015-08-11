@@ -27,6 +27,28 @@ class TestUtils(unittest.TestCase):
         actual = colnames(self.filepath)
         self.assertItemsEqual(actual, ideal)
 
+    def test_colnames_infer_parser_from_extension(self):
+        filepath = op.join(op.abspath(op.dirname(__file__)), "testdata",
+                           "person_activity.tsv")
+        ideal = "sequence_name tag date x y z activity".split()
+        actual = colnames(filepath)
+        self.assertItemsEqual(actual, ideal)
+
+    def test_colnames_parser_arg(self):
+        filepath = op.join(op.abspath(op.dirname(__file__)), "testdata",
+                           "person_activity.tsv")
+        ideal = "sequence_name tag date x y z activity".split()
+        from pandas import read_table
+        actual = colnames(filepath, parser=read_table)
+        self.assertItemsEqual(actual, ideal)
+
+    def test_colnames_infer_parser_from_sep(self):
+        filepath = op.join(op.abspath(op.dirname(__file__)), "testdata",
+                           "person_activity.tsv")
+        ideal = "sequence_name tag date x y z activity".split()
+        actual = colnames(filepath, sep='\\t')
+        self.assertItemsEqual(actual, ideal)
+
     def test_md5(self):
         ideal = "9b3ecf3031979169c0ecc5e03cfe20a6"
         actual = get_md5_checksum(self.filepath)
