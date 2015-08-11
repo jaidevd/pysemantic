@@ -100,10 +100,10 @@ def colnames(filename, parser=None, **kwargs):
                 parser = pd.read_table
             else:
                 parser = pd.read_csv
-        elif filename.endswith('.csv'):
-            parser = pd.read_csv
         elif filename.endswith('.tsv'):
             parser = pd.read_table
+        else:
+            parser = pd.read_csv
     return parser(filename, nrows=1, **kwargs).columns.tolist()
 
 
