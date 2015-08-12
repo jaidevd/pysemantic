@@ -78,6 +78,8 @@ class ParseErrorHandler(object):
                     self.parser = pd.read_csv
                 else:
                     self.parser = pd.read_table
+                    if sep == r'\\t':
+                        argdict.pop('sep', None)
             else:
                 self.parser = self._load_excel_sheet
 

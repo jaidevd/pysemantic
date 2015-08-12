@@ -88,7 +88,6 @@ def colnames(filename, parser=None, **kwargs):
     ['Sepal Length', 'Petal Length', 'Sepal Width', 'Petal Width', 'Species']
 
     """
-
     if 'nrows' in kwargs:
         UserWarning("The nrows parameter is pointless here. This function only"
                     "reads one row.")
@@ -98,6 +97,7 @@ def colnames(filename, parser=None, **kwargs):
             sep = kwargs.get('sep')
             if sep == r"\t":
                 parser = pd.read_table
+                kwargs.pop('sep')
             else:
                 parser = pd.read_csv
         elif filename.endswith('.tsv'):
