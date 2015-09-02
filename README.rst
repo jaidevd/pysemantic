@@ -2,8 +2,8 @@
 
 |Travis|_ |Coveralls|_ |Landscape|_ |RTFD|_
 
-.. |Travis| image:: https://travis-ci.org/motherbox/pysemantic.svg?branch=master
-.. _Travis: https://travis-ci.org/motherbox/pysemantic
+.. |Travis| image:: https://travis-ci.org/dataculture/pysemantic.svg?branch=master
+.. _Travis: https://travis-ci.org/dataculture/pysemantic
 
 .. |Coveralls| image:: https://coveralls.io/repos/motherbox/pysemantic/badge.svg?branch=master
 .. _Coveralls: https://coveralls.io/r/motherbox/pysemantic?branch=master
