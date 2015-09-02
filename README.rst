@@ -8,8 +8,8 @@
 .. |Coveralls| image:: https://coveralls.io/repos/motherbox/pysemantic/badge.svg?branch=master
 .. _Coveralls: https://coveralls.io/r/motherbox/pysemantic?branch=master
 
-.. |Landscape| image:: https://landscape.io/github/motherbox/pysemantic/master/landscape.svg?style=flat
-.. _Landscape: https://landscape.io/github/motherbox/pysemantic/master
+.. |Landscape| image:: https://landscape.io/github/dataculture/pysemantic/master/landscape.svg?style=flat
+.. _Landscape: https://landscape.io/github/dataculture/pysemantic/master
 
 .. |RTFD| image:: https://readthedocs.org/projects/pysemantic/badge/?version=latest
 .. _RTFD: https://readthedocs.org/projects/pysemantic/?badge=latest
