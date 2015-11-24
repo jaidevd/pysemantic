@@ -9,8 +9,8 @@ omit =
     */dist-packages/pyyaml/*
     */dist-packages/traits/*
     */dist-packages/docopt/*
-    */pgmpy/extern/*
 
+[report]
 exclude_lines =
     # Have to re-enable the standard pragma
     pragma: no cover
