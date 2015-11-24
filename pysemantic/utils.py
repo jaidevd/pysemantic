@@ -10,6 +10,7 @@
 Misecellaneous bells and whistles.
 """
 
+import sys
 import json
 import pandas as pd
 import numpy as np
@@ -121,5 +122,8 @@ def get_md5_checksum(filepath):
 
     """
     import subprocess
-    cmd = "md5sum {}".format(filepath).split()
+    if sys.platform == "darwin":
+        cmd = "md5 -q {}".format(filepath).split()
+    else:
+        cmd = "md5sum {}".format(filepath).split()
     return subprocess.check_output(cmd).rstrip().split()[0]

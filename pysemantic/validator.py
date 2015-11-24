@@ -714,7 +714,7 @@ class SchemaValidator(HasTraits):
 
     def _check_md5(self):
         import sys
-        if sys.platform != 'linux2':
+        if sys.platform == 'win32':
             msg = "Verifying md5 checksums is not yet supported for your OS."
             logger.warn(msg)
             warnings.warn(msg, UserWarning)

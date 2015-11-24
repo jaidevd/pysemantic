@@ -596,8 +596,9 @@ class TestProjectClass(BaseProjectTestCase):
             with warnings.catch_warnings(record=True) as catcher:
                 _pr = pr.Project("pysemantic")
                 dframe = _pr.load_dataset("sample_dataset")
-                assert len(catcher) == 2
-                assert issubclass(catcher[1].category, ParserWarning)
+                assert len(catcher) == 3
+                for i in range(3):
+                    assert issubclass(catcher[i].category, ParserWarning)
             data.remove("col1")
             self.assertItemsEqual(map(int, data), dframe['col1'].tolist())
         finally:
