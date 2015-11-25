@@ -7,4 +7,4 @@ Examples
     
 * Introduction_ to PySemantic.
 
-.. _Introduction: http://nbviewer.ipython.org/github/motherbox/pysemantic/blob/master/docs/examples/introduction.ipynb
+.. _Introduction: http://nbviewer.ipython.org/github/jaidevd/pysemantic/blob/master/docs/examples/introduction.ipynb

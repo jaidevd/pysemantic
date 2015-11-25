@@ -2,14 +2,14 @@
 
 |Travis|_ |Coveralls|_ |Landscape|_ |RTFD|_
 
-.. |Travis| image:: https://travis-ci.org/dataculture/pysemantic.svg?branch=master
-.. _Travis: https://travis-ci.org/dataculture/pysemantic
+.. |Travis| image:: https://travis-ci.org/jaidevd/pysemantic.svg?branch=master
+.. _Travis: https://travis-ci.org/jaidevd/pysemantic
 
-.. |Coveralls| image:: https://coveralls.io/repos/motherbox/pysemantic/badge.svg?branch=master
-.. _Coveralls: https://coveralls.io/r/motherbox/pysemantic?branch=master
+.. |Coveralls| image:: https://coveralls.io/repos/jaidevd/pysemantic/badge.svg?branch=master
+.. _Coveralls: https://coveralls.io/r/jaidevd/pysemantic?branch=master
 
-.. |Landscape| image:: https://landscape.io/github/dataculture/pysemantic/master/landscape.svg?style=flat
-.. _Landscape: https://landscape.io/github/dataculture/pysemantic/master
+.. |Landscape| image:: https://landscape.io/github/jaidevd/pysemantic/master/landscape.svg?style=flat
+.. _Landscape: https://landscape.io/github/jaidevd/pysemantic/master
 
 .. |RTFD| image:: https://readthedocs.org/projects/pysemantic/badge/?version=latest
 .. _RTFD: https://readthedocs.org/projects/pysemantic/?badge=latest
@@ -80,7 +80,7 @@ We additionally need a file containing the specifications for this project.
 the documentation interchangeably as a *specfile* or a *data dictionary*.)
 Before we create this file, let's download the well known Fisher iris datset,
 which we will use as the sample dataset for this demo. You can download it
-`here <https://raw.githubusercontent.com/motherbox/pysemantic/master/pysemantic/tests/testdata/iris.csv>`_.
+`here <https://raw.githubusercontent.com/jaidevd/pysemantic/master/pysemantic/tests/testdata/iris.csv>`_.
 
 Once the dataset is downloaded, fire up your favourite text editor and create a
 file named ``demo_specs.yaml``. Fill it up with the following content.

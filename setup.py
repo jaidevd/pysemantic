@@ -16,7 +16,7 @@ setup(
     author='Jaidev Deshpande',
     author_email='deshpande.jaidev@gmail.com',
     description="A traits based data validation module for pandas data structures.",
-    url="https://github.com/motherbox/pysemantic",
+    url="https://github.com/jaidevd/pysemantic",
     long_description=open("README.rst").read(),
     entry_points={
         'console_scripts': ['semantic = pysemantic.cli:main'],
