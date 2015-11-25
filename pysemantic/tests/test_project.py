@@ -162,8 +162,6 @@ class TestProjectClass(BaseProjectTestCase):
         with open(schema_fpath, "w") as fin:
             yaml.dump(schema, fin, Dumper=Dumper, default_flow_style=False)
         pr.add_project("test_nan_min", schema_fpath)
-        from IPython.core.debugger import Tracer
-        Tracer()()
         try:
             df = pr.Project("test_nan_min").load_dataset("data")
             print df
