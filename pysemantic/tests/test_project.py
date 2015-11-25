@@ -149,6 +149,29 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_min_nan(self):
+        """Test if the minimum rules work when data contains NaNs."""
+        tempdir = tempfile.mkdtemp()
+        schema_fpath = op.join(tempdir, "schema.yaml")
+        data_fpath = op.join(tempdir, "data.csv")
+        s = pd.Series(np.random.rand(10,))
+        s.loc[3] = np.nan
+        s.to_csv(data_fpath, index=False)
+        schema = {'data': {'path': data_fpath, 'header': None,
+                           'column_rules': {'0': {'min': 0.2}}}}
+        with open(schema_fpath, "w") as fin:
+            yaml.dump(schema, fin, Dumper=Dumper, default_flow_style=False)
+        pr.add_project("test_nan_min", schema_fpath)
+        from IPython.core.debugger import Tracer
+        Tracer()()
+        try:
+            df = pr.Project("test_nan_min").load_dataset("data")
+            print df
+            self.assertFalse(np.any(pd.isnull(df[0])))
+        finally:
+            pr.remove_project("test_nan_min")
+            shutil.rmtree(tempdir)
+
     def test_index_column_exclude(self):
         """Test if values are excluded from index column if so specified."""
         tempdir = tempfile.mkdtemp()
