@@ -300,11 +300,18 @@ class DataFrameValidator(HasTraits):
     # Specifications relating to the selection of rows.
     nrows = Property(Any, depends_on=['rules'])
 
+    # Whether to shuffle the rows of the dataframe before returning
+    shuffle = Property(Bool, depends_on=['rules'])
+
     # Unique values to maintain per column
     unique_values = Property(Dict, depends_on=['column_rules'])
 
     def _rules_default(self):
         return {}
+
+    @cached_property
+    def _get_shuffle(self):
+        return self.rules.get("shuffle", False)
 
     @cached_property
     def _get_index_col(self):
@@ -411,6 +418,10 @@ class DataFrameValidator(HasTraits):
             un_ix = self.data.index.unique()
             na_ix = pd.isnull(un_ix)
             self.data.drop(un_ix[na_ix], axis=0, inplace=True)
+
+        if self.shuffle:
+            print "data shuffled"
+            self.data = self.data.sample(self.data.shape[0])
 
         return self.data
 
@@ -827,6 +838,10 @@ class SchemaValidator(HasTraits):
                         args['skiprows'] = start
                         args['names'] = args.pop('usecols')
                         args['nrows'] = stop - start
+                    if self.nrows.get("count", False) and \
+                            self.nrows.get("shuffle", False):
+                        args['nrows'] = self.nrows.get('count')
+                        self.df_rules['shuffle'] = True
                 elif callable(self.nrows):
                     self.df_rules.update({'nrows': self.nrows})
                     del args['nrows']
