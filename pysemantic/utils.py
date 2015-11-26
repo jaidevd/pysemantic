@@ -32,6 +32,8 @@ class TypeEncoder(json.JSONEncoder):
         elif isinstance(obj, np.ndarray):
             return np.array_str(obj)
         else:
+            if "Engine" in str(obj):
+                return str(obj)
             return json.JSONEncoder.default(self, obj)
 
 

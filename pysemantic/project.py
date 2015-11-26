@@ -529,8 +529,11 @@ class Project(object):
             parser_args.pop('usecols', None)
         logger.info(json.dumps(parser_args, cls=TypeEncoder))
         if isinstance(parser_args, dict):
-            with ParseErrorHandler(parser_args, self) as handler:
-                df = handler.load()
+            if validator.is_mysql:
+                df = pd.read_sql_table(**parser_args)
+            else:
+                with ParseErrorHandler(parser_args, self) as handler:
+                    df = handler.load()
             if df is None:
                 raise ParserArgumentError("No valid parser arguments were " +
                                           "inferred from the schema.")

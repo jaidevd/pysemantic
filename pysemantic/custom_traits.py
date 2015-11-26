@@ -34,7 +34,7 @@ class AbsFile(File):
 
     def validate(self, obj, name, value):
         validated_value = super(AbsFile, self).validate(obj, name, value)
-        if op.isabs(validated_value) and op.isfile(value):
+        if validated_value and op.isabs(validated_value) and op.isfile(value):
             return validated_value
 
         self.error(obj, name, value)
