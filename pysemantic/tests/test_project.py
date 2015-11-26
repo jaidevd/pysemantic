@@ -149,6 +149,29 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_nrows_shuffling(self):
+        """Test if the shuffle parameter works with the nrows parameter."""
+        tempdir = tempfile.mkdtemp()
+        schema_fpath = op.join(tempdir, "schema.yml")
+        data_fpath = op.join(tempdir, "data.csv")
+        X = np.c_[np.arange(10), np.arange(10)]
+        ix = range(5) + "a b c d e".split()
+        df = pd.DataFrame(X, index=ix)
+        df.to_csv(data_fpath, index_label="index")
+        schema = {'data': {'path': data_fpath, "index_col": "index",
+                           'nrows': {'count': 5, "shuffle": True}}}
+        with open(schema_fpath, "w") as fin:
+            yaml.dump(schema, fin, Dumper=Dumper, default_flow_style=False)
+        pr.add_project("nrows_shuffle", schema_fpath)
+        try:
+            df = pr.Project("nrows_shuffle").load_dataset("data")
+            for row_label in "a b c d e".split():
+                self.assertNotIn(row_label, df.index)
+            self.assertFalse(np.all(df.index == range(5)))
+        finally:
+            pr.remove_project("nrows_shuffle")
+            shutil.rmtree(tempdir)
+
     def test_index_column_exclude(self):
         """Test if values are excluded from index column if so specified."""
         tempdir = tempfile.mkdtemp()

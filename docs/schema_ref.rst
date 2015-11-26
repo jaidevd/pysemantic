@@ -159,6 +159,17 @@ to:
         The lines shown above will direct PySemantic to load 10 rows at
         random between the 10th and the 50th rows of a dataset.
 
+       * ``shuffle``: A boolean to be used with ``count`` to shuffle the top ``count`` rows before returning the dataframe.
+
+         .. code-block:: yaml
+ 
+          nrows:
+              count: 10
+              shuffle: True
+
+        The above schema will read the first ten rows from the dataset and
+        shuffle them.
+
     3. A callable which returns a logical array which has the same number of elements as the number of rows in the dataset. The output of this callable is used as a logical index for slicing the dataset. For example, suppose we wanted to extract all even numbered rows from a dataset, then we could make a callable as follows:
 
       .. code-block:: python
