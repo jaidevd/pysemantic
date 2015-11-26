@@ -421,7 +421,6 @@ class DataFrameValidator(HasTraits):
             self.data.drop(un_ix[na_ix], axis=0, inplace=True)
 
         if self.shuffle:
-            print "data shuffled"
             self.data = self.data.sample(self.data.shape[0])
 
         return self.data
