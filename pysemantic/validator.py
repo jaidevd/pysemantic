@@ -1005,7 +1005,7 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get_colnames(self):
-        usecols = self.specification.get('use_columns', [])
+        usecols = self.specification.get('use_columns')
         if len(self.exclude_columns) > 0:
             if usecols:
                 for colname in self.exclude_columns:
@@ -1019,8 +1019,9 @@ class SchemaValidator(HasTraits):
                 if self.filepath and not self.is_multifile:
                     return colnames(self.filepath, sep=self.delimiter)
         if self.index_col is not None:
-            if self.index_col not in usecols:
-                usecols.append(self.index_col)
+            if usecols is not None:
+                if self.index_col not in usecols:
+                    usecols.append(self.index_col)
         return usecols
 
     @cached_property
