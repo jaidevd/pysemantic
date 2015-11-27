@@ -10,6 +10,8 @@
 
 import os
 import unittest
+import tempfile
+import shutil
 import os.path as op
 from copy import deepcopy
 from ConfigParser import RawConfigParser
@@ -62,6 +64,24 @@ def _path_fixer(filepath, root=None):
             parser.set(section, "specfile", op.join(root, path))
         with open(filepath, "w") as fileobj:
             parser.write(fileobj)
+
+
+class DummyProject(object):
+
+    def __init__(self, project_name, schema, df):
+        self.tempdir = tempfile.mkdtemp()
+        schema_fpath = op.join(self.tempdir, "schema.yml")
+        with open(schema_fpath, "w") as f_schema:
+            yaml.dump(schema, f_schema, Dumper=yaml.CDumper)
+        self.schema_fpath = schema_fpath
+
+    def __enter__(self):
+        pr.add_project(self.project_name, self.schema_fpath)
+        return pr.Project(self.project_name)
+
+    def __exit__(self):
+        pr.remove_project(self.project_name)
+        shutil.rmtree(self.tempdir)
 
 
 class BaseTestCase(unittest.TestCase):
