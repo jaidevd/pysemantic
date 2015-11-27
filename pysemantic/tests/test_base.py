@@ -68,8 +68,12 @@ def _path_fixer(filepath, root=None):
 
 class DummyProject(object):
 
-    def __init__(self, project_name, schema, df):
+    def __init__(self, project_name, schema, df, exporter, **kwargs):
+        self.project_name = project_name
         self.tempdir = tempfile.mkdtemp()
+        data_fpath = op.join(self.tempdir, "data.dat")
+        getattr(df, exporter)(data_fpath, **kwargs)
+        schema['data']['path'] = data_fpath
         schema_fpath = op.join(self.tempdir, "schema.yml")
         with open(schema_fpath, "w") as f_schema:
             yaml.dump(schema, f_schema, Dumper=yaml.CDumper)
@@ -79,7 +83,7 @@ class DummyProject(object):
         pr.add_project(self.project_name, self.schema_fpath)
         return pr.Project(self.project_name)
 
-    def __exit__(self):
+    def __exit__(self, type, value, traceback):
         pr.remove_project(self.project_name)
         shutil.rmtree(self.tempdir)
 
@@ -113,6 +117,7 @@ class BaseTestCase(unittest.TestCase):
         self.assertTrue(np.all(dframe1.index.values == dframe2.index.values))
         self.assertTrue(np.all(dframe1.columns == dframe2.columns))
         for col in dframe1:
+            #np.testing.assert_allclose(dframe1[col], dframe2[col])
             self.assertTrue(np.all(dframe1[col] == dframe2[col]))
             self.assertEqual(dframe1[col].dtype, dframe2[col].dtype)
 

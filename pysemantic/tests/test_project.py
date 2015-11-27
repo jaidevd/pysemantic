@@ -24,7 +24,8 @@ from pandas.io.parsers import ParserWarning
 
 import pysemantic.project as pr
 from pysemantic.tests.test_base import (BaseProjectTestCase, TEST_DATA_DICT,
-                                        TEST_CONFIG_FILE_PATH, _dummy_postproc)
+                                        TEST_CONFIG_FILE_PATH, _dummy_postproc,
+                                        DummyProject)
 from pysemantic.errors import MissingProject
 from pysemantic.utils import colnames
 
@@ -152,6 +153,17 @@ class TestProjectClass(BaseProjectTestCase):
     def remove_project(self, project_name, project_dir):
         pr.remove_project(project_name)
         shutil.rmtree(project_dir)
+
+    def test_dummy_project(self):
+        df = pd.DataFrame(np.random.rand(5, 3))
+        schema = {"data": {"header": None}}
+        dummy = DummyProject("dummy_project", schema, df, "to_csv",
+                             header=False, index=False)
+        with dummy as project:
+            newdf = project.load_dataset("data")
+            from IPython.core.debugger import Tracer
+            Tracer()()
+            self.assertDataFrameEqual(df, newdf)
 
     def test_nrows_shuffling(self):
         """Test if the shuffle parameter works with the nrows parameter."""
