@@ -149,6 +149,10 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def remove_project(self, project_name, project_dir):
+        pr.remove_project(project_name)
+        shutil.rmtree(project_dir)
+
     def test_nrows_shuffling(self):
         """Test if the shuffle parameter works with the nrows parameter."""
         tempdir = tempfile.mkdtemp()
@@ -169,8 +173,7 @@ class TestProjectClass(BaseProjectTestCase):
                 self.assertNotIn(row_label, df.index)
             self.assertFalse(np.all(df.index == range(5)))
         finally:
-            pr.remove_project("nrows_shuffle")
-            shutil.rmtree(tempdir)
+            self.remove_project("nrows_shuffle", tempdir)
 
     def test_index_column_exclude(self):
         """Test if values are excluded from index column if so specified."""
@@ -192,8 +195,7 @@ class TestProjectClass(BaseProjectTestCase):
             self.assertNotIn(1, df.index)
             self.assertNotIn(2, df.index)
         finally:
-            pr.remove_project("index_exclude")
-            shutil.rmtree(tempdir)
+            self.remove_project("index_exclude", tempdir)
 
     def test_index_column_rules(self):
         """Test if column rules specified for index columns are enforced."""
@@ -249,8 +251,7 @@ class TestProjectClass(BaseProjectTestCase):
         try:
             pr.Project("invalid_literal").load_dataset('dataset')
         finally:
-            shutil.rmtree(tempdir)
-            pr.remove_project("invalid_literal")
+            self.remove_project("invalid_literal", tempdir)
 
     def test_index_col(self):
         """Test if specifying the index_col works."""
@@ -305,8 +306,7 @@ class TestProjectClass(BaseProjectTestCase):
             actual = pr.Project('multi_iris').load_dataset("iris")
             self.assertDataFrameEqual(ideal, actual)
         finally:
-            pr.remove_project("multi_iris")
-            shutil.rmtree(tempdir)
+            self.remove_project("multi_iris", tempdir)
 
     @unittest.skipIf(XLRD_NOT_INSTALLED, "Reading Excel files requires xlrd.")
     def test_load_excel_sheetname(self):
@@ -460,8 +460,7 @@ class TestProjectClass(BaseProjectTestCase):
             df = pr.Project("test_na").load_dataset("test_na")
             self.assertEqual(pd.isnull(df).sum().sum(), ix.shape[0] * 2)
         finally:
-            pr.remove_project("test_na")
-            shutil.rmtree(tempdir)
+            self.remove_project("test_na", tempdir)
 
     def test_global_na_reps(self):
         """Test is specifying a global NA value for a dataset works."""
@@ -485,8 +484,7 @@ class TestProjectClass(BaseProjectTestCase):
             df = pr.Project("test_na").load_dataset("test_na")
             self.assertEqual(pd.isnull(df).sum().sum(), ix.shape[0])
         finally:
-            pr.remove_project("test_na")
-            shutil.rmtree(tempdir)
+            self.remove_project("test_na", tempdir)
 
     def test_error_bad_lines_correction(self):
         """test if the correction for bad lines works."""
@@ -509,8 +507,7 @@ class TestProjectClass(BaseProjectTestCase):
             df = project.load_dataset('bad_iris')
             self.assertItemsEqual(df.shape, (146, 5))
         finally:
-            shutil.rmtree(tempdir)
-            pr.remove_project('dummy_project')
+            self.remove_project("dummy_project", tempdir)
 
     @unittest.skipIf(PYTABLES_NOT_INSTALLED, "HDF export requires PyTables.")
     def test_export_dataset_hdf(self):
@@ -654,8 +651,7 @@ class TestProjectClass(BaseProjectTestCase):
                 assert len(catcher) == 1
                 assert issubclass(catcher[-1].category, UserWarning)
         finally:
-            pr.remove_project("wrong_dtype")
-            shutil.rmtree(tempdir)
+            self.remove_project('wrong_dtype', tempdir)
 
     def test_integer_col_na_values(self):
         """Test if the Loader can load columns with integers and NAs.
@@ -679,8 +675,7 @@ class TestProjectClass(BaseProjectTestCase):
             self.assertEqual(df['a'].dtype, float)
             self.assertEqual(df['b'].dtype, float)
         finally:
-            pr.remove_project("wrong_dtype")
-            shutil.rmtree(tempdir)
+            self.remove_project("wrong_dtype", tempdir)
 
     def test_load_dataset_missing_nrows(self):
         """Test if the project loads datasets properly if the nrows parameter
