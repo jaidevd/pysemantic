@@ -580,12 +580,19 @@ class MySQLTableValidator(HasTraits):
     # name of the database
     db_name = Property(Str, depends_on=['config'])
 
+    # Chunksize
+    chunksize = Property(Any, depends_on=['specs'])
+
     # SQlAlchemy connection object to be used by the parser
     connection = Property(Any, depends_on=['username', 'password', 'hostname',
                                            'db_name'])
 
     # Parser args to be used by the pandas parser
     parser_args = Property(Dict, depends_on=['connection', 'specs'])
+
+    @cached_property
+    def _get_chunksize(self):
+        return self.specs.get("chunksize")
 
     @cached_property
     def _get_config(self):
@@ -943,8 +950,8 @@ class SchemaValidator(HasTraits):
                         self.pickled_args.pop(argname, None)
                 return self.pickled_args
         else:
-            sql_validator = MySQLTableValidator(specs=self.specification)
-            return sql_validator.parser_args
+            self.sql_validator = MySQLTableValidator(specs=self.specification)
+            return self.sql_validator.parser_args
 
     def _non_spreadsheet_args_default(self):
         return ['sep', 'parse_dates', 'nrows', 'names', 'usecols',

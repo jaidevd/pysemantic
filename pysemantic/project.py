@@ -504,6 +504,19 @@ class Project(object):
             yaml.dump(specs, fid, Dumper=Dumper,
                       default_flow_style=False)
 
+    def _mysql_iterator(self, parser_args):
+        dfs = []
+        iterator = pd.read_sql_table(**parser_args)
+        while True:
+            try:
+                dfs.append(iterator.next())
+            except StopIteration:
+                break
+            except Exception as err:
+                logger.debug("MySQL iterator failed: {}".format(err))
+                break
+        return pd.concat(dfs)
+
     def load_dataset(self, dataset_name):
         """Load and return a dataset.
 
@@ -530,7 +543,10 @@ class Project(object):
         logger.info(json.dumps(parser_args, cls=TypeEncoder))
         if isinstance(parser_args, dict):
             if validator.is_mysql:
-                df = pd.read_sql_table(**parser_args)
+                if validator.sql_validator.chunksize is not None:
+                    df = self._mysql_iterator(parser_args)
+                else:
+                    df = pd.read_sql_table(**parser_args)
             else:
                 with ParseErrorHandler(parser_args, self) as handler:
                     df = handler.load()
