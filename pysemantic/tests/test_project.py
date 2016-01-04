@@ -161,8 +161,6 @@ class TestProjectClass(BaseProjectTestCase):
                              header=False, index=False)
         with dummy as project:
             newdf = project.load_dataset("data")
-            from IPython.core.debugger import Tracer
-            Tracer()()
             self.assertDataFrameEqual(df, newdf)
 
     def test_nrows_shuffling(self):
