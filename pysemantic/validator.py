@@ -490,8 +490,8 @@ class SeriesValidator(HasTraits):
     def drop_excluded(self):
         """Remove all values specified in `exclude_values`."""
         if len(self.exclude_values) > 0:
-            logger.info("Removing the following excluded values:")
-            logger.info(json.dumps(self.excluded_values))
+            logger.info("Removing the following exclude values:")
+            logger.info(json.dumps(self.exclude_values))
             for value in self.exclude_values:
                 self.data.drop(self.data.index[self.data == value],
                                inplace=True)
@@ -516,7 +516,7 @@ class SeriesValidator(HasTraits):
                 self.data = self.data[self.data.str.contains(self.regex)]
 
     def clean(self):
-        """Return the converted dataframe after enforcing all rules."""
+        """Return the converted series after enforcing all rules."""
         self.do_drop_duplicates()
         self.do_drop_na()
         self.do_postprocessing()
