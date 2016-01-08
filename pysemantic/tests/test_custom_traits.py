@@ -55,6 +55,12 @@ class TestCustomTraits(unittest.TestCase):
                           op.basename(__file__))
         self.assertRaises(TraitError, self.setter, "filelist", "/foo/bar")
 
+    def test_absolute_filepath_nonexistent(self):
+        """Test if the Absfile trait raises the correct error when the filepath
+        is absolute but doesn't exist."""
+        self.assertRaisesRegexp(TraitError, 'The filepath does not exist.',
+                                self.setter, "filepath", '/foo/bar')
+
     def test_absolute_path_file_trait(self):
         """Test if the `traits.AbsFile` trait works correctly."""
         self.traits.filepath = op.abspath(__file__)
