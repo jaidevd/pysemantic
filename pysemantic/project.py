@@ -356,18 +356,6 @@ class Project(object):
         self.column_rules = {}
         self.df_rules = {}
         for name, specs in specifications.iteritems():
-            logger.info("Schema for dataset {0}:".format(name))
-            logger.info(json.dumps(specs, cls=TypeEncoder))
-            is_pickled = specs.get('pickle', False)
-            if self.specfile is not None:
-                self.validators[name] = SchemaValidator.from_specfile(
-                                                        specfile=self.specfile,
-                                                        name=name,
-                                                        is_pickled=is_pickled)
-            else:
-                self.validators[name] = SchemaValidator(specification=specs,
-                                                        name=name,
-                                                        is_pickled=is_pickled)
             self.column_rules[name] = specs.get('column_rules', {})
             self.df_rules[name] = specs.get('dataframe_rules', {})
         self.specifications = specifications
@@ -432,7 +420,25 @@ class Project(object):
         >>> project.datasets
         ['sarah connor', 'john connor', 'kyle reese']
         """
-        return self.validators.keys()
+        return self.specifications.keys()
+
+    def _init_validate(self, dataset_name):
+        """Given a dataset name, create a SchemaValidator object and add to the
+        cache.
+
+        :param dataset_name: Name of the dataset
+        """
+        specs = self.specifications.get(dataset_name)
+        is_pickled = specs.get("pickle", False)
+        if self.specfile is not None:
+            validator = SchemaValidator.from_specfile(specfile=self.specfile,
+                                                      name=dataset_name,
+                                                      is_pickled=is_pickled)
+        else:
+            validator = SchemaValidator(specification=specs,
+                                        name=dataset_name,
+                                        is_pickled=is_pickled)
+        self.validators[dataset_name] = validator
 
     def get_dataset_specs(self, dataset_name):
         """Returns the specifications for the specified dataset in the project.
@@ -442,6 +448,8 @@ class Project(object):
         :return: Parser arguments required to import the dataset in pandas.
         :rtype: dict
         """
+        if dataset_name not in self.validators:
+            self._init_validate(dataset_name)
         return self.validators[dataset_name].get_parser_args()
 
     def get_project_specs(self):
@@ -452,8 +460,23 @@ class Project(object):
         :rtype: dict
         """
         specs = {}
-        for name, validator in self.validators.iteritems():
-            specs[name] = validator.get_parser_args()
+        for name, basespecs in self.specifications.iteritems():
+            if name in self.validators:
+                validator = self.validators[name]
+                specs[name] = validator.get_parser_args()
+            else:
+                is_pickled = basespecs.get("pickle", False)
+                if self.specfile is not None:
+                    validator = SchemaValidator.from_specfile(
+                                                            specfile=self.specfile,
+                                                            name=name,
+                                                            is_pickled=is_pickled)
+                else:
+                    validator = SchemaValidator(specification=specs,
+                                                name=name,
+                                                is_pickled=is_pickled)
+                self.validators[name] = validator
+                specs[name] = validator.get_parser_args()
         return specs
 
     def view_dataset_specs(self, dataset_name):
@@ -531,7 +554,21 @@ class Project(object):
         >>> type(iris)
         pandas.core.DataFrame
         """
-        validator = self.validators[dataset_name]
+        if dataset_name in self.validators:
+            validator = self.validators[dataset_name]
+        else:
+            specs = self.specifications[dataset_name]
+            is_pickled = specs.get('pickle', False)
+            if self.specfile is not None:
+                validator = SchemaValidator.from_specfile(
+                                                        specfile=self.specfile,
+                                                        name=dataset_name,
+                                                        is_pickled=is_pickled)
+            else:
+                validator = SchemaValidator(specification=specs,
+                                            name=dataset_name,
+                                            is_pickled=is_pickled)
+            self.validators[dataset_name] = validator
         column_rules = self.column_rules.get(dataset_name, {})
         df_rules = self.df_rules.get(dataset_name, {})
         parser_args = validator.get_parser_args()
@@ -583,6 +620,8 @@ class Project(object):
         :rtype: dict
         """
         datasets = {}
-        for name in self.validators.iterkeys():
+        for name in self.specifications.iterkeys():
+            if name not in self.validators:
+                self._init_validate(name)
             datasets[name] = self.load_dataset(name)
         return datasets
