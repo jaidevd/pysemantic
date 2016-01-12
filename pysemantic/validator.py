@@ -695,7 +695,7 @@ class SchemaValidator(HasTraits):
 
     # Path to the file containing the data
     filepath = Property(Either(AbsFile, List(AbsFile), Str),
-                        depends_on=['specification'])
+                        depends_on=['specification', 'specfile'])
 
     # Whether the dataset spans multiple files
     is_multifile = Property(Bool, depends_on=['filepath'])
@@ -854,6 +854,8 @@ class SchemaValidator(HasTraits):
                 if not (op.exists(path) and op.isabs(path)):
                     raise TraitError("filepaths must be absolute.")
         elif isinstance(fpath, str):
+            if not op.isabs(fpath):
+                fpath = op.join(op.dirname(self.specfile), fpath)
             if not self.is_mysql:
                 if not (op.exists(fpath) and op.isabs(fpath)):
                     raise TraitError("filepaths must be absolute.")
