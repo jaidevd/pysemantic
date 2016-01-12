@@ -360,7 +360,7 @@ class Project(object):
             logger.info(json.dumps(specs, cls=TypeEncoder))
             is_pickled = specs.get('pickle', False)
             if self.specfile is not None:
-                self.validators[name] = SchemaValidator(specification=specs,
+                self.validators[name] = SchemaValidator.from_specfile(
                                                         specfile=self.specfile,
                                                         name=name,
                                                         is_pickled=is_pickled)

@@ -25,7 +25,7 @@ Basic Schema Configuration
 Here is a list of different dataset parameters that PySemantic is sensitive
 to:
 
-* ``path`` (Required) The absolute path to the file containing the data. Note that the path must be absolute. This can also be a list of files if the dataset spans multiple files. If that is the case, the path parameter can be specified as:
+* ``path`` (Required) The path to the file containing the data. Note that the path must either be absolute, or relative to the directory containing the schema. This can also be a list of files if the dataset spans multiple files. If that is the case, the path parameter can be specified as:
 
   .. code-block:: yaml
 
@@ -33,6 +33,12 @@ to:
       - absolulte/path/to/file/1
       - absolulte/path/to/file/2
       # etc
+
+    # or
+
+    path:
+      - foo/bar/baz
+    # where foo is a directory in the directory that contains the schema.
 
 * ``demlimiter`` (Optional, default: ``,``) The delimiter used in the file. This has to be a character delimiter, not words like "comma" or "tab".
 

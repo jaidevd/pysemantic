@@ -149,7 +149,30 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_relpath(self):
+        """Test if specifying datapaths relative to schema workds."""
+        df = pd.DataFrame(np.random.randint(low=1, high=10, size=(10, 2)),
+                          columns="a b".split())
+        tempdir = tempfile.mkdtemp()
+        data_dir = op.join(tempdir, "data")
+        os.mkdir(data_dir)
+        schema_fpath = op.join(tempdir, "schema.yml")
+        data_fpath = op.join(data_dir, "data.csv")
+        df.to_csv(data_fpath, index=False)
+        schema = {'data': {'path': op.join("data", "data.csv"),
+                           "dataframe_rules": {"drop_duplicates": False}}}
+        with open(schema_fpath, "w") as fin:
+            yaml.dump(schema, fin, Dumper=Dumper, default_flow_style=False)
+        pr.add_project("relpath", schema_fpath)
+        try:
+            loaded = pr.Project("relpath").load_dataset("data")
+            self.assertDataFrameEqual(loaded, df)
+        finally:
+            pr.remove_project("relpath")
+            shutil.rmtree(tempdir)
+
     def test_nrows_shuffling(self):
+        """test_relpath"""
         """Test if the shuffle parameter works with the nrows parameter."""
         tempdir = tempfile.mkdtemp()
         schema_fpath = op.join(tempdir, "schema.yml")

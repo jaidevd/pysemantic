@@ -409,7 +409,8 @@ class TestSchemaValidator(BaseTestCase):
         """Test if the validator fails when only the path to the specfile is
         provided.
         """
-        self.assertRaises(TraitError, SchemaValidator, specfile=self.specfile)
+        self.assertRaises((TraitError, ValueError), SchemaValidator,
+                          specfile=self.specfile)
 
     def test_error_only_name(self):
         """Test if the validator fails when only the path to the specfile is
