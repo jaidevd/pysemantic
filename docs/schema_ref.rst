@@ -25,7 +25,7 @@ Basic Schema Configuration
 Here is a list of different dataset parameters that PySemantic is sensitive
 to:
 
-* ``path`` (Required) The path to the file containing the data. Note that the path must either be absolute, or relative to the directory containing the schema. This can also be a list of files if the dataset spans multiple files. If that is the case, the path parameter can be specified as:
+* ``path`` (Required, except when the ``source`` parameter is "mysql") The path to the file containing the data. Note that the path must either be absolute, or relative to the directory containing the schema. This can also be a list of files if the dataset spans multiple files. If that is the case, the path parameter can be specified as:
 
   .. code-block:: yaml
 
@@ -358,3 +358,29 @@ level of individual columns in the dataset. Two of them are:
 * ``drop_na`` ([true|false, default true]). This behaves in the same
   way as ``is_drop_na`` for series schema, with the exception that here
   the default is True.
+
+
+---------------------
+Reading a MySQL Table
+---------------------
+
+*Note*: This has not yet been tested.
+
+PySemantic can automatically create the function calls required to download a
+MySQL table as a dataframe - by using a wrapper around the
+``pandas.read_sql_table`` function. The configuration parameters are as
+follows:
+
+* ``source``: This is simply a string saying "mysql", which lets pysemantic
+  know that the dataset is to be downloaded from a MySQL database.
+* ``config``: This is a dictionary that contains the configuration required to
+  connect to the MySQL server. The configuration must have the following
+  elements:
+
+    1. ``hostname``: The IP address or the hostname of the machine hosting the MySQL server.
+    2. ``db_name``: Name of the database from which to read the table.
+    3. ``table_name``: Name of the table to be read.
+    4. ``username``: The MySQL username
+    5. ``password``: The MySQL password
+* ``chunksize``: (Integer, optional) If this is specified, Pandas returns an
+  iterator in which every iteration contains ``chunksize`` rows.
