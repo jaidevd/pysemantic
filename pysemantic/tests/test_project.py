@@ -138,6 +138,10 @@ class TestProjectModule(BaseProjectTestCase):
         test_dict = pr.get_default_specfile(test_project_name)
         self.assertTrue(test_dict, TEST_DATA_DICT)
 
+    def test_add_project_relpath(self):
+        """Check that adding a project with relative path to schemafile fails."""
+        self.assertRaises(ValueError, pr.add_project, "test_relpath", "foo/bar")
+
     def test_remove_project(self):
         """Test if removing a project works properly."""
         self.assertTrue(pr.remove_project("test_project"))
