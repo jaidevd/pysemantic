@@ -534,7 +534,7 @@ class TestProjectClass(BaseProjectTestCase):
         try:
             project = pr.Project('dummy_project')
             df = project.load_dataset('bad_iris')
-            self.assertItemsEqual(df.shape, (146, 5))
+            self.assertItemsEqual(df.shape, (147, 5))
         finally:
             shutil.rmtree(tempdir)
             pr.remove_project('dummy_project')

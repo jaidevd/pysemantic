@@ -199,7 +199,14 @@ class ParseErrorHandler(object):
         try:
             return self.parser(**self.parser_args)
         except ValueError as e:
-            if e.message.startswith("invalid literal"):
+            if "Integer column has NA values" in e.message:
+                bad_rows = self._detect_row_with_na()
+                new_types = [(col, float) for col in bad_rows]
+                self._update_dtypes(self.parser_args['dtype'], new_types)
+                logger.info("Dtypes for following columns changed:")
+                logger.info(json.dumps(new_types, cls=TypeEncoder))
+                return self.parser(**self.parser_args)
+            elif e.message.startswith("invalid literal"):
                 bad_cols = self._detect_column_with_invalid_literals()
                 msg = textwrap.dedent("""\
                         Columns {} designated as type integer could not
