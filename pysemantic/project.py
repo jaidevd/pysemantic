@@ -86,6 +86,8 @@ def add_project(project_name, specfile):
     :type specfile: str
     :return: None
     """
+    if not op.isabs(specfile):
+        raise ValueError("Path to the schema should be absolute.")
     path = locate_config_file()
     parser = RawConfigParser()
     parser.read(path)
