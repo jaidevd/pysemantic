@@ -312,8 +312,6 @@ def remove_project(project_name):
     if result:
         with open(path, "w") as f:
             parser.write(f)
-    else:
-        raise MissingProject("Project {} does not exist.".format(project_name))
     return result
 
 

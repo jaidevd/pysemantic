@@ -59,7 +59,7 @@ def cli(arguments):
         proj_name = arguments.get("PROJECT_NAME")
         if arguments['--dataset'] is None:
             if not pr.remove_project(proj_name):
-                print "Removing the project {0} failed.".format(proj_name)
+                print "The project {0} doesn't exist.".format(proj_name)
         else:
             pr.remove_dataset(proj_name, arguments['--dataset'])
     elif arguments.get("set-schema", False):
