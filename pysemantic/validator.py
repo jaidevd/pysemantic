@@ -638,7 +638,7 @@ class MySQLTableValidator(HasTraits):
                     coerce_float=self.specs.get("coerce_float", True),
                     index_col=self.specs.get("index_col"),
                     parse_dates=self.specs.get("parse_dates"),
-                    columns=self.specs.get("columns"),
+                    columns=self.specs.get("use_columns"),
                     chunksize=self.specs.get("chunksize"))
 
 
