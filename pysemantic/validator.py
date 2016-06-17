@@ -392,13 +392,19 @@ class DataFrameValidator(HasTraits):
 
         if self.is_drop_na:
             x = self.data.shape[0]
-            self.data.dropna(inplace=True)
+            try:
+                self.data.dropna(inplace=True)
+            except TypeError:
+                print "Cannot drop na."
             y = self.data.shape[0]
             logger.info("{0} rows containing NAs were dropped.".format(x - y))
 
         if self.is_drop_duplicates:
             x = self.data.shape[0]
-            self.data.drop_duplicates(inplace=True)
+            try:
+                self.data.drop_duplicates(inplace=True)
+            except TypeError:
+                print "Cannot drop duplicate rows."
             y = self.data.shape[0]
             logger.info("{0} duplicate rows were dropped.".format(x - y))
 
