@@ -360,27 +360,30 @@ level of individual columns in the dataset. Two of them are:
   the default is True.
 
 
----------------------
-Reading a MySQL Table
----------------------
+----------------
+Reading from SQL
+----------------
 
 *Note*: This has not yet been tested.
 
 PySemantic can automatically create the function calls required to download a
-MySQL table as a dataframe - by using a wrapper around the
+SQL table as a dataframe - by using a wrapper around the
 ``pandas.read_sql_table`` function. The configuration parameters are as
 follows:
 
 * ``source``: This is simply a string saying "mysql", which lets pysemantic
   know that the dataset is to be downloaded from a MySQL database.
+* ``table_name``: Name of the table to be read. If this argument is not
+  present, pysemantic expects to find the ``query`` parameter.
+* ``query``: SQL query to run and extract the resulting rows into a pandas
+    dataframe
 * ``config``: This is a dictionary that contains the configuration required to
   connect to the MySQL server. The configuration must have the following
   elements:
 
     1. ``hostname``: The IP address or the hostname of the machine hosting the MySQL server.
     2. ``db_name``: Name of the database from which to read the table.
-    3. ``table_name``: Name of the table to be read.
-    4. ``username``: The MySQL username
-    5. ``password``: The MySQL password
+    3. ``username``: The SQL username
+    4. ``password``: The SQL password
 * ``chunksize``: (Integer, optional) If this is specified, Pandas returns an
   iterator in which every iteration contains ``chunksize`` rows.
