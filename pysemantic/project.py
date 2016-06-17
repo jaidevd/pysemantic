@@ -15,13 +15,13 @@ import logging
 import json
 from ConfigParser import RawConfigParser
 import os.path as op
-
 import yaml
 import pandas as pd
 import numpy as np
-
-from pysemantic.validator import SchemaValidator, DataFrameValidator, ParseErrorHandler
-from pysemantic.errors import MissingProject, MissingConfigError, ParserArgumentError
+from pysemantic.validator import SchemaValidator, DataFrameValidator, \
+    ParseErrorHandler
+from pysemantic.errors import MissingProject, MissingConfigError, \
+    ParserArgumentError
 from pysemantic.loggers import setup_logging
 from pysemantic.utils import TypeEncoder
 from pysemantic.exporters import AerospikeExporter
@@ -316,7 +316,6 @@ def remove_project(project_name):
 
 
 class Project(object):
-
     """The Project class, the entry point for most things in this module."""
 
     def __init__(self, project_name=None, parser=None, schema=None):
@@ -337,12 +336,13 @@ class Project(object):
             setup_logging(project_name)
             self.project_name = project_name
             self.specfile = get_default_specfile(self.project_name)
-            logger.info("Schema for project {0} found at {1}".format(project_name,
-                                                                    self.specfile))
+            logger.info(
+                "Schema for project {0} found at {1}".format(project_name,
+                                                             self.specfile))
         else:
             setup_logging("no_name")
             logger.info("Schema defined by user at runtime. Not reading any "
-                    "specfile.")
+                        "specfile.")
             self.specfile = None
         self.validators = {}
         if parser is not None:
@@ -507,23 +507,31 @@ class Project(object):
             for colname in cols_to_remove:
                 del col_rules[colname]
         logger.info("Attempting to update schema for dataset {0} to:".format(
-                                                                 dataset_name))
+            dataset_name))
         logger.info(json.dumps(dataset_specs, cls=TypeEncoder))
         with open(self.specfile, "w") as fid:
             yaml.dump(specs, fid, Dumper=Dumper,
                       default_flow_style=False)
 
-    def _mysql_iterator(self, parser_args):
+    def _sql_iterator(self, parser_args):
         dfs = []
-        iterator = pd.read_sql_table(**parser_args)
+        if parser_args.get('table_name'):
+            iterator = pd.read_sql_table(
+                table_name=parser_args.get('table_name'),
+                con=parser_args.get('con'), chunksize=parser_args['chunksize'])
+        else:
+            iterator = pd.read_sql_query(sql=parser_args.get('query'),
+                                         con=parser_args['con'],
+                                         chunksize=parser_args['chunksize'])
         while True:
             try:
                 dfs.append(iterator.next())
             except StopIteration:
                 break
             except Exception as err:
-                logger.debug("MySQL iterator failed: {}".format(err))
+                logger.debug("SQL iterator failed: {}".format(err))
                 break
+        dfs.append(None)
         return pd.concat(dfs)
 
     def load_dataset(self, dataset_name):
@@ -548,14 +556,27 @@ class Project(object):
         parser_args = validator.get_parser_args()
         df_rules.update(validator.df_rules)
         logger.info("Attempting to load dataset {} with args:".format(
-                                                                 dataset_name))
+            dataset_name))
         if validator.is_spreadsheet:
             parser_args.pop('usecols', None)
         logger.info(json.dumps(parser_args, cls=TypeEncoder))
         if isinstance(parser_args, dict):
             if validator.is_mysql:
                 if validator.sql_validator.chunksize is not None:
-                    df = self._mysql_iterator(parser_args)
+                    df = self._sql_iterator(parser_args)
+                else:
+                    df = pd.read_sql_table(**parser_args)
+            elif validator.is_postgresql:
+                if not parser_args.get('table_name'):
+                    if not parser_args.get('query'):
+                        raise ParserArgumentError(
+                            "No table_name or query was provided for the "
+                            "postgres configuration.")
+                    if validator.sql_validator.chunksize is None:
+                        df = pd.read_sql_query(sql=parser_args.get('query'),
+                                               con=parser_args.get('con'))
+                if validator.sql_validator.chunksize is not None:
+                    df = self._sql_iterator(parser_args)
                 else:
                     df = pd.read_sql_table(**parser_args)
             else:
@@ -569,7 +590,7 @@ class Project(object):
                 df = pd.concat(df.itervalues(), axis=0)
             logger.info("Success!")
             df_validator = DataFrameValidator(data=df, rules=df_rules,
-                                             column_rules=column_rules)
+                                              column_rules=column_rules)
             logger.info("Commence cleaning dataset:")
             logger.info("DataFrame rules:")
             logger.info(json.dumps(df_rules, cls=TypeEncoder))

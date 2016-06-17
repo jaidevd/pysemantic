@@ -1,0 +1,25 @@
+c26_authenticator:
+ source: postgresql
+ config:
+   username: postgres
+   password:
+   hostname: 97.107.141.188
+   db_name: cube26
+ table_name: messages
+ chunksize: 100
+ index_col: id
+ query: "select * from messages limit 2000"
+ use_columns:
+   - message_id
+   - body
+   - message_timestamp
+   - payload
+   - device_registered_id
+   - is_processed
+ column_rules:
+   is_processed:
+     exclude:
+       - False
+ dataframe_rules:
+   drop_na: False
+   drop_duplicates: False
