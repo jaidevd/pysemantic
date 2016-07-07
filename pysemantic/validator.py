@@ -1074,7 +1074,7 @@ class SchemaValidator(HasTraits):
             if self.is_mysql:
                 self.sql_validator = MySQLTableValidator(
                     specs=self.specification)
-            else:
+            elif self.is_postgresql:
                 self.sql_validator = PostGRETableValidator(
                     specs=self.specification)
             return self.sql_validator.parser_args
@@ -1138,6 +1138,8 @@ class SchemaValidator(HasTraits):
     @cached_property
     def _get_colnames(self):
         usecols = self.specification.get('use_columns')
+        if (usecols is None) and (self.is_mysql or self.is_postgresql):
+            return None
         if len(self.exclude_columns) > 0:
             if usecols:
                 for colname in self.exclude_columns:
