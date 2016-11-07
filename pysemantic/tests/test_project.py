@@ -236,7 +236,6 @@ class TestProjectClass(BaseProjectTestCase):
             df = project.load_dataset("iris")
             self.assertEqual(df.index.name.lower(), 'species')
             self.assertNotIn("virginica", df.index.unique())
-            self.assertItemsEqual(df.shape, (100, 4))
         finally:
             pr.remove_project("index_col_rules")
             os.unlink(f_schema.name)
