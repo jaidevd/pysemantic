@@ -657,7 +657,7 @@ POSTGRE_URL = "postgresql+psycopg2://{username}:{password}@{hostname}/{" \
               "db_name}"
 
 
-class PostGRETableValidator(HasTraits):
+class PostGRESTableValidator(HasTraits):
     """A validator used when the data source is a postgres table."""
 
     # Specifications to use when making parser arguments
@@ -1075,7 +1075,7 @@ class SchemaValidator(HasTraits):
                 self.sql_validator = MySQLTableValidator(
                     specs=self.specification)
             elif self.is_postgresql:
-                self.sql_validator = PostGRETableValidator(
+                self.sql_validator = PostGRESTableValidator(
                     specs=self.specification)
             return self.sql_validator.parser_args
 

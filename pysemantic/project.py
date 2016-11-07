@@ -515,26 +515,34 @@ class Project(object):
 
     def _sql_read(self, parser_args):
         if parser_args.get('table_name'):
+            if parser_args.get('query'):
+                return pd.read_sql_query(sql=parser_args.get('query'),
+                                         con=parser_args['con'])
             return pd.read_sql_table(
                 table_name=parser_args.get('table_name'),
                 con=parser_args.get('con'),
                 columns=parser_args.get('use_columns'),
                 index_col=parser_args.get('index_col')
             )
-        else:
+        elif parser_args.get('query'):
             return pd.read_sql_query(sql=parser_args.get('query'),
                                      con=parser_args['con'])
 
     def _sql_iterator(self, parser_args):
         dfs = []
         if parser_args.get('table_name'):
-            iterator = pd.read_sql_table(
-                table_name=parser_args.get('table_name'),
-                con=parser_args.get('con'),
-                chunksize=parser_args.get('chunksize'),
-                columns=parser_args.get('use_columns'),
-                index_col=parser_args.get('index_col')
-            )
+            if parser_args.get('query'):
+                iterator = pd.read_sql_query(sql=parser_args.get('query'),
+                                             con=parser_args['con'],
+                                             chunksize=parser_args['chunksize'])
+            else:
+                iterator = pd.read_sql_table(
+                    table_name=parser_args.get('table_name'),
+                    con=parser_args.get('con'),
+                    chunksize=parser_args.get('chunksize'),
+                    columns=parser_args.get('use_columns'),
+                    index_col=parser_args.get('index_col')
+                )
         else:
             iterator = pd.read_sql_query(sql=parser_args.get('query'),
                                          con=parser_args['con'],
@@ -579,7 +587,7 @@ class Project(object):
         if isinstance(parser_args, dict):
             if validator.is_mysql or validator.is_postgresql:
                 if not (
-                    parser_args.get('table_name') or parser_args.get('query')):
+                        parser_args.get('table_name') or parser_args.get('query')):
                     raise ParserArgumentError(
                         "No table_name or query was provided for the "
                         "postgres configuration.")
