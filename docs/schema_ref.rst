@@ -304,8 +304,8 @@ The following parameters can be supplied to any column under ``column_rules``:
 * ``is_drop_duplicates`` ([true|false], default false) Setting this to ``true`` causes PySemantic to drop all duplicated values in the column.
 * ``unique_values``: These are the unique values that are expected in a column. The value of this parameter has to be a yaml list. Any value not found in this list will be dropped when cleaning the dataset.
 * ``exclude``: These are the values that are to be explicitly excluded from the column. This comes in handy when a column has too many unique values, and a handful of them have to be dropped. Note that this value has to be a list.
-* ``minimum``: Minimum value allowed in a column if the column holds numerical data. By default, the minimum is -np.inf. Any value less than this one is dropped.
-* ``maximum``: Maximum value allowed in a column if the column holds numerical data. By default, the maximum is np.inf. Any value greater than this one is dropped.
+* ``min``: Minimum value allowed in a column if the column holds numerical data. By default, the minimum is -np.inf. Any value less than this one is dropped.
+* ``max``: Maximum value allowed in a column if the column holds numerical data. By default, the maximum is np.inf. Any value greater than this one is dropped.
 * ``regex``: A regular expression that each element of the column must match, if the column holds text data. Any element of the column not matching this regex is dropped.
 * ``na_values``: A list of values that are considered as NAs by the pandas parsers, applicable to this column.
 * ``postprocessors``: A list of callables that called one by one on the columns. Any python function that accepts a series, and returns a series can be a postprocessor.
@@ -321,9 +321,9 @@ Here is a more extensive example of the usage of this schema.
       Sepal Width: !!python/name:numpy.floor
     column_rules:
       Sepal Length:
-        minimum: 2.0
+        min: 2.0
       Petal Length:
-        maximum: 4.0
+        max: 4.0
       Petal Width:
         exclude:
           - 3.14
