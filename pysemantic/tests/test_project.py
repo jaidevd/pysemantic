@@ -153,6 +153,34 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_min_dropna_on_cols(self):
+        """Test if specifying a minimum value for a column also drops the NaNs."""
+        x1 = np.random.rand(10, 2) / 10
+        x2 = np.random.rand(10, 2)
+        x = np.r_[x1, x2]
+        np.random.shuffle(x)
+        df = pd.DataFrame(x, columns="col_a col_b".split())
+        df.loc[3, "col_a"] = np.nan
+        df.loc[7, "col_b"] = np.nan
+        tempdir = tempfile.mkdtemp()
+        data_dir = op.join(tempdir, "data")
+        os.mkdir(data_dir)
+        schema_fpath = op.join(tempdir, "schema.yml")
+        data_fpath = op.join(data_dir, "data.csv")
+        df.to_csv(data_fpath, index=False)
+        schema = {'data': {'path': op.join("data", "data.csv"),
+            "column_rules": {"col_a": {"min": 0.1}}}}
+        with open(schema_fpath, "w") as fin:
+            yaml.dump(schema, fin, Dumper=Dumper, default_flow_style=False)
+        pr.add_project("min_dropna_col", schema_fpath)
+        try:
+            loaded = pr.Project("min_dropna_col").load_dataset("data")
+            self.assertFalse(np.any(pd.isnull(loaded)))
+            self.assertGreater(loaded['col_a'].min(), 0.1)
+        finally:
+            pr.remove_project("min_dropna_col")
+            shutil.rmtree(tempdir)
+
     def test_relpath(self):
         """Test if specifying datapaths relative to schema workds."""
         df = pd.DataFrame(np.random.randint(low=1, high=10, size=(10, 2)),
