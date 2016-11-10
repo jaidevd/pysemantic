@@ -390,15 +390,6 @@ class DataFrameValidator(HasTraits):
             ix = self.nrows(self.data.index)
             self.data = self.data.ix[self.data.index[ix]]
 
-        if self.is_drop_na:
-            x = self.data.shape[0]
-            try:
-                self.data.dropna(inplace=True)
-            except TypeError:
-                print "Cannot drop na."
-            y = self.data.shape[0]
-            logger.info("{0} rows containing NAs were dropped.".format(x - y))
-
         if self.is_drop_duplicates:
             x = self.data.shape[0]
             try:
@@ -423,6 +414,15 @@ class DataFrameValidator(HasTraits):
                 logger.info(json.dumps(validator.exclude_values))
                 # self.data.dropna(inplace=True)
         self.rename_columns()
+
+        if self.is_drop_na:
+            x = self.data.shape[0]
+            try:
+                self.data.dropna(inplace=True)
+            except TypeError:
+                print "Cannot drop na."
+            y = self.data.shape[0]
+            logger.info("{0} rows containing NAs were dropped.".format(x - y))
 
         if self.index_col:
             self.data.set_index(self.index_col, drop=True, inplace=True)
