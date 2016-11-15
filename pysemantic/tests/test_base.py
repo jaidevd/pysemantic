@@ -66,12 +66,29 @@ def _path_fixer(filepath, root=None):
             parser.write(fileobj)
 
 
-class DummyProject(object):
+def _remove_project(project_name, project_files=None):
+    pr.remove_project(project_name)
+    if project_files is not None:
+        if hasattr(project_files, "__iter__"):
+            for path in project_files:
+                if op.isfile(path):
+                    os.unlink(path)
+                elif op.isdir(path):
+                    shutil.rmtree(path)
+        else:
+            if op.isfile(project_files):
+                os.unlink(project_files)
+            elif op.isdir(project_files):
+                shutil.rmtree(project_files)
 
-    def __init__(self, project_name, schema, df, exporter, **kwargs):
-        self.project_name = project_name
+
+class DummyProjectFactory(object):
+
+    def __init__(self, schema, df, exporter="to_csv", **kwargs):
         self.tempdir = tempfile.mkdtemp()
         data_fpath = op.join(self.tempdir, "data.dat")
+        if ("index" not in kwargs) and ("index_label" not in kwargs):
+            kwargs['index'] = False
         getattr(df, exporter)(data_fpath, **kwargs)
         schema['data']['path'] = data_fpath
         schema_fpath = op.join(self.tempdir, "schema.yml")
@@ -80,12 +97,11 @@ class DummyProject(object):
         self.schema_fpath = schema_fpath
 
     def __enter__(self):
-        pr.add_project(self.project_name, self.schema_fpath)
-        return pr.Project(self.project_name)
+        pr.add_project("dummy_project", self.schema_fpath)
+        return pr.Project("dummy_project")
 
     def __exit__(self, type, value, traceback):
-        pr.remove_project(self.project_name)
-        shutil.rmtree(self.tempdir)
+        _remove_project("dummy_project", self.tempdir)
 
 
 class BaseTestCase(unittest.TestCase):
