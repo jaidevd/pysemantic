@@ -139,6 +139,10 @@ class TestProjectModule(BaseProjectTestCase):
         test_dict = pr.get_default_specfile(test_project_name)
         self.assertTrue(test_dict, TEST_DATA_DICT)
 
+    def test_add_project_relpath(self):
+        """Check that adding a project with relative path to schemafile fails."""
+        self.assertRaises(ValueError, pr.add_project, "test_relpath", "foo/bar")
+
     def test_remove_project(self):
         """Test if removing a project works properly."""
         self.assertTrue(pr.remove_project("test_project"))
@@ -150,9 +154,20 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
-    def remove_project(self, project_name, project_dir):
+    def remove_project(self, project_name, project_files=None):
         pr.remove_project(project_name)
-        shutil.rmtree(project_dir)
+        if project_files is not None:
+            if hasattr(project_files, "__iter__"):
+                for path in project_files:
+                    if op.isfile(path):
+                        os.unlink(path)
+                    elif op.isdir(path):
+                        shutil.rmtree(path)
+            else:
+                if op.isfile(project_files):
+                    os.unlink(project_files)
+                elif op.isdir(project_files):
+                    shutil.rmtree(project_files)
 
     def test_dummy_project(self):
         df = pd.DataFrame(np.random.rand(5, 3))
@@ -163,7 +178,56 @@ class TestProjectClass(BaseProjectTestCase):
             newdf = project.load_dataset("data")
             self.assertDataFrameEqual(df, newdf)
 
+    def test_min_dropna_on_cols(self):
+        """Test if specifying a minimum value for a column also drops the NaNs."""
+        x1 = np.random.rand(10, 2) / 10
+        x2 = np.random.rand(10, 2)
+        x = np.r_[x1, x2]
+        np.random.shuffle(x)
+        df = pd.DataFrame(x, columns="col_a col_b".split())
+        df.loc[3, "col_a"] = np.nan
+        df.loc[7, "col_b"] = np.nan
+        tempdir = tempfile.mkdtemp()
+        data_dir = op.join(tempdir, "data")
+        os.mkdir(data_dir)
+        schema_fpath = op.join(tempdir, "schema.yml")
+        data_fpath = op.join(data_dir, "data.csv")
+        df.to_csv(data_fpath, index=False)
+        schema = {'data': {'path': op.join("data", "data.csv"),
+            "column_rules": {"col_a": {"min": 0.1}}}}
+        with open(schema_fpath, "w") as fin:
+            yaml.dump(schema, fin, Dumper=Dumper, default_flow_style=False)
+        pr.add_project("min_dropna_col", schema_fpath)
+        try:
+            loaded = pr.Project("min_dropna_col").load_dataset("data")
+            self.assertFalse(np.any(pd.isnull(loaded)))
+            self.assertGreater(loaded['col_a'].min(), 0.1)
+        finally:
+            self.remove_project("min_dropna_col", tempdir)
+
+    def test_relpath(self):
+        """Test if specifying datapaths relative to schema workds."""
+        df = pd.DataFrame(np.random.randint(low=1, high=10, size=(10, 2)),
+                          columns="a b".split())
+        tempdir = tempfile.mkdtemp()
+        data_dir = op.join(tempdir, "data")
+        os.mkdir(data_dir)
+        schema_fpath = op.join(tempdir, "schema.yml")
+        data_fpath = op.join(data_dir, "data.csv")
+        df.to_csv(data_fpath, index=False)
+        schema = {'data': {'path': op.join("data", "data.csv"),
+                           "dataframe_rules": {"drop_duplicates": False}}}
+        with open(schema_fpath, "w") as fin:
+            yaml.dump(schema, fin, Dumper=Dumper, default_flow_style=False)
+        pr.add_project("relpath", schema_fpath)
+        try:
+            loaded = pr.Project("relpath").load_dataset("data")
+            self.assertDataFrameEqual(loaded, df)
+        finally:
+            self.remove_project("relpath", tempdir)
+
     def test_nrows_shuffling(self):
+        """test_relpath"""
         """Test if the shuffle parameter works with the nrows parameter."""
         tempdir = tempfile.mkdtemp()
         schema_fpath = op.join(tempdir, "schema.yml")
@@ -221,10 +285,8 @@ class TestProjectClass(BaseProjectTestCase):
             df = project.load_dataset("iris")
             self.assertEqual(df.index.name.lower(), 'species')
             self.assertNotIn("virginica", df.index.unique())
-            self.assertItemsEqual(df.shape, (100, 4))
         finally:
-            pr.remove_project("index_col_rules")
-            os.unlink(f_schema.name)
+            pr.remove_project("index_col_rules", f_schema.name)
 
     def test_indexcol_not_in_usecols(self):
         """
@@ -242,8 +304,7 @@ class TestProjectClass(BaseProjectTestCase):
             self.assertEqual(df.index.name, "Species")
             self.assertItemsEqual(df.columns, ['Sepal Length', 'Petal Width'])
         finally:
-            pr.remove_project("testindex_usecols")
-            os.unlink(f_schema.name)
+            pr.remove_project("testindex_usecols", f_schema.name)
 
     def test_invalid_literals(self):
         """Test if columns containing invalid literals are parsed safely."""
@@ -515,7 +576,7 @@ class TestProjectClass(BaseProjectTestCase):
         try:
             project = pr.Project('dummy_project')
             df = project.load_dataset('bad_iris')
-            self.assertItemsEqual(df.shape, (146, 5))
+            self.assertItemsEqual(df.shape, (147, 5))
         finally:
             self.remove_project("dummy_project", tempdir)
 

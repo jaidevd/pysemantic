@@ -188,7 +188,7 @@ class TestCLI(BaseTestCase):
         """Check if attempting to remove a nonexistent project fails."""
         cmd = ['semantic', 'remove', 'foobar']
         output = subprocess.check_output(cmd, env=self.testenv)
-        self.assertEqual(output.strip(), "Removing the project foobar failed.")
+        self.assertEqual(output.strip(), "The project foobar doesn't exist.")
 
     def test_set_schema(self):
         """Test if the set-schema subcommand works."""

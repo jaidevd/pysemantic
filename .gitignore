@@ -58,3 +58,5 @@ target/
 
 # ipynb checkpoints
 docs/examples/.ipynb_checkpoints/
+.idea/
+venv/

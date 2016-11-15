@@ -25,7 +25,7 @@ Basic Schema Configuration
 Here is a list of different dataset parameters that PySemantic is sensitive
 to:
 
-* ``path`` (Required) The absolute path to the file containing the data. Note that the path must be absolute. This can also be a list of files if the dataset spans multiple files. If that is the case, the path parameter can be specified as:
+* ``path`` (Required, except when the ``source`` parameter is "mysql") The path to the file containing the data. Note that the path must either be absolute, or relative to the directory containing the schema. This can also be a list of files if the dataset spans multiple files. If that is the case, the path parameter can be specified as:
 
   .. code-block:: yaml
 
@@ -33,6 +33,12 @@ to:
       - absolulte/path/to/file/1
       - absolulte/path/to/file/2
       # etc
+
+    # or
+
+    path:
+      - foo/bar/baz
+    # where foo is a directory in the directory that contains the schema.
 
 * ``demlimiter`` (Optional, default: ``,``) The delimiter used in the file. This has to be a character delimiter, not words like "comma" or "tab".
 
@@ -297,9 +303,9 @@ The following parameters can be supplied to any column under ``column_rules``:
 * ``is_drop_na`` ([true|false], default false) Setting this to ``true`` causes PySemantic to drop all NA values in the column.
 * ``is_drop_duplicates`` ([true|false], default false) Setting this to ``true`` causes PySemantic to drop all duplicated values in the column.
 * ``unique_values``: These are the unique values that are expected in a column. The value of this parameter has to be a yaml list. Any value not found in this list will be dropped when cleaning the dataset.
-* ``exclude``: These are the values that are to be explicitly excluded from the column. This comes in handy when a column has too many unique values, and a handful of them have to be dropped.
-* ``minimum``: Minimum value allowed in a column if the column holds numerical data. By default, the minimum is -np.inf. Any value less than this one is dropped.
-* ``maximum``: Maximum value allowed in a column if the column holds numerical data. By default, the maximum is np.inf. Any value greater than this one is dropped.
+* ``exclude``: These are the values that are to be explicitly excluded from the column. This comes in handy when a column has too many unique values, and a handful of them have to be dropped. Note that this value has to be a list.
+* ``min``: Minimum value allowed in a column if the column holds numerical data. By default, the minimum is -np.inf. Any value less than this one is dropped.
+* ``max``: Maximum value allowed in a column if the column holds numerical data. By default, the maximum is np.inf. Any value greater than this one is dropped.
 * ``regex``: A regular expression that each element of the column must match, if the column holds text data. Any element of the column not matching this regex is dropped.
 * ``na_values``: A list of values that are considered as NAs by the pandas parsers, applicable to this column.
 * ``postprocessors``: A list of callables that called one by one on the columns. Any python function that accepts a series, and returns a series can be a postprocessor.
@@ -315,9 +321,9 @@ Here is a more extensive example of the usage of this schema.
       Sepal Width: !!python/name:numpy.floor
     column_rules:
       Sepal Length:
-        minimum: 2.0
+        min: 2.0
       Petal Length:
-        maximum: 4.0
+        max: 4.0
       Petal Width:
         exclude:
           - 3.14
@@ -352,3 +358,32 @@ level of individual columns in the dataset. Two of them are:
 * ``drop_na`` ([true|false, default true]). This behaves in the same
   way as ``is_drop_na`` for series schema, with the exception that here
   the default is True.
+
+
+----------------
+Reading from SQL
+----------------
+
+*Note*: This has not yet been tested.
+
+PySemantic can automatically create the function calls required to download a
+SQL table as a dataframe - by using a wrapper around the
+``pandas.read_sql_table`` function. The configuration parameters are as
+follows:
+
+* ``source``: This is simply a string saying "mysql", which lets pysemantic
+  know that the dataset is to be downloaded from a MySQL database.
+* ``table_name``: Name of the table to be read. If this argument is not
+  present, pysemantic expects to find the ``query`` parameter.
+* ``query``: SQL query to run and extract the resulting rows into a pandas
+    dataframe
+* ``config``: This is a dictionary that contains the configuration required to
+  connect to the MySQL server. The configuration must have the following
+  elements:
+
+    1. ``hostname``: The IP address or the hostname of the machine hosting the MySQL server.
+    2. ``db_name``: Name of the database from which to read the table.
+    3. ``username``: The SQL username
+    4. ``password``: The SQL password
+* ``chunksize``: (Integer, optional) If this is specified, Pandas returns an
+  iterator in which every iteration contains ``chunksize`` rows.
