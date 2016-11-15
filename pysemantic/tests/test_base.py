@@ -117,8 +117,10 @@ class BaseTestCase(unittest.TestCase):
         self.assertTrue(np.all(dframe1.index.values == dframe2.index.values))
         self.assertTrue(np.all(dframe1.columns == dframe2.columns))
         for col in dframe1:
-            #np.testing.assert_allclose(dframe1[col], dframe2[col])
-            self.assertTrue(np.all(dframe1[col] == dframe2[col]))
+            if dframe1[col].dtype in (np.dtype(float), np.dtype(int)):
+                np.testing.assert_allclose(dframe1[col], dframe2[col])
+            else:
+                self.assertTrue(np.all(dframe1[col] == dframe2[col]))
             self.assertEqual(dframe1[col].dtype, dframe2[col].dtype)
 
     def assertSeriesEqual(self, s1, s2):

@@ -286,7 +286,7 @@ class TestProjectClass(BaseProjectTestCase):
             self.assertEqual(df.index.name.lower(), 'species')
             self.assertNotIn("virginica", df.index.unique())
         finally:
-            pr.remove_project("index_col_rules", f_schema.name)
+            self.remove_project("index_col_rules", f_schema.name)
 
     def test_indexcol_not_in_usecols(self):
         """
@@ -304,7 +304,7 @@ class TestProjectClass(BaseProjectTestCase):
             self.assertEqual(df.index.name, "Species")
             self.assertItemsEqual(df.columns, ['Sepal Length', 'Petal Width'])
         finally:
-            pr.remove_project("testindex_usecols", f_schema.name)
+            self.remove_project("testindex_usecols", f_schema.name)
 
     def test_invalid_literals(self):
         """Test if columns containing invalid literals are parsed safely."""
