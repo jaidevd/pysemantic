@@ -10,6 +10,8 @@
 
 import os
 import unittest
+import tempfile
+import shutil
 import os.path as op
 from copy import deepcopy
 from ConfigParser import RawConfigParser
@@ -64,6 +66,44 @@ def _path_fixer(filepath, root=None):
             parser.write(fileobj)
 
 
+def _remove_project(project_name, project_files=None):
+    pr.remove_project(project_name)
+    if project_files is not None:
+        if hasattr(project_files, "__iter__"):
+            for path in project_files:
+                if op.isfile(path):
+                    os.unlink(path)
+                elif op.isdir(path):
+                    shutil.rmtree(path)
+        else:
+            if op.isfile(project_files):
+                os.unlink(project_files)
+            elif op.isdir(project_files):
+                shutil.rmtree(project_files)
+
+
+class DummyProjectFactory(object):
+
+    def __init__(self, schema, df, exporter="to_csv", **kwargs):
+        self.tempdir = tempfile.mkdtemp()
+        data_fpath = op.join(self.tempdir, "data.dat")
+        if ("index" not in kwargs) and ("index_label" not in kwargs):
+            kwargs['index'] = False
+        getattr(df, exporter)(data_fpath, **kwargs)
+        schema['data']['path'] = data_fpath
+        schema_fpath = op.join(self.tempdir, "schema.yml")
+        with open(schema_fpath, "w") as f_schema:
+            yaml.dump(schema, f_schema, Dumper=yaml.CDumper)
+        self.schema_fpath = schema_fpath
+
+    def __enter__(self):
+        pr.add_project("dummy_project", self.schema_fpath)
+        return pr.Project("dummy_project")
+
+    def __exit__(self, type, value, traceback):
+        _remove_project("dummy_project", self.tempdir)
+
+
 class BaseTestCase(unittest.TestCase):
 
     """Base test class, introduces commonly required methods."""
@@ -93,7 +133,10 @@ class BaseTestCase(unittest.TestCase):
         self.assertTrue(np.all(dframe1.index.values == dframe2.index.values))
         self.assertTrue(np.all(dframe1.columns == dframe2.columns))
         for col in dframe1:
-            self.assertTrue(np.all(dframe1[col] == dframe2[col]))
+            if dframe1[col].dtype in (np.dtype(float), np.dtype(int)):
+                np.testing.assert_allclose(dframe1[col], dframe2[col])
+            else:
+                self.assertTrue(np.all(dframe1[col] == dframe2[col]))
             self.assertEqual(dframe1[col].dtype, dframe2[col].dtype)
 
     def assertSeriesEqual(self, s1, s2):
