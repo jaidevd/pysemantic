@@ -153,26 +153,27 @@ class TestProjectClass(BaseProjectTestCase):
 
     """Tests for the project class and its methods."""
 
+    def test_min_max_datetime(self):
+        """Test if minmax rules work on datetime columns."""
+        dates = pd.date_range("01/01/2015", "12/31/2015")
+        x = np.random.rand(365,)
+        df = pd.DataFrame.from_dict(dict(day=dates, data=x))
+        schema = {'data': {'parse_dates': 'day',
+            'column_rules': {'day': {'min': '04/01/2015', 'max': "11/30/2015"}}}}
+        with DummyProjectFactory(schema, df) as project:
+            newdf = project.load_dataset('data')
+            self.assertEqual(newdf['day'].min(), pd.to_datetime("04/01/2015"))
+            self.assertEqual(newdf['day'].max(), pd.to_datetime("11/30/2015"))
+
     def test_min_nan(self):
         """Test if the minimum rules work when data contains NaNs."""
-        tempdir = tempfile.mkdtemp()
-        schema_fpath = op.join(tempdir, "schema.yaml")
-        data_fpath = op.join(tempdir, "data.csv")
         s = pd.Series(np.random.rand(10,))
         s.loc[3] = np.nan
-        s.to_csv(data_fpath, index=False)
-        schema = {'data': {'path': data_fpath, 'header': None,
+        schema = {'data': {'header': None,
                            'column_rules': {'0': {'min': 0.2}}}}
-        with open(schema_fpath, "w") as fin:
-            yaml.dump(schema, fin, Dumper=Dumper, default_flow_style=False)
-        pr.add_project("test_nan_min", schema_fpath)
-        try:
-            df = pr.Project("test_nan_min").load_dataset("data")
-            print df
+        with DummyProjectFactory(schema, s) as project:
+            df = project.load_dataset("data")
             self.assertFalse(np.any(pd.isnull(df[0])))
-        finally:
-            pr.remove_project("test_nan_min")
-            shutil.rmtree(tempdir)
 
     def test_dummy_project(self):
         df = pd.DataFrame(np.random.rand(5, 3))
