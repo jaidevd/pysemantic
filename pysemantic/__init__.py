@@ -11,10 +11,4 @@ from pysemantic.project import Project
 
 __version__ = "0.1.1"
 
-
-def test():
-    """Interactive loader for tests."""
-    import unittest
-    unittest.main(module='pysemantic.tests', exit=False)
-
 __all__ = ['Project', 'test']

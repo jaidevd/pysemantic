@@ -16,7 +16,6 @@ import datetime
 import textwrap
 import warnings
 import os.path as op
-
 import yaml
 import numpy as np
 import pandas as pd
@@ -25,7 +24,6 @@ from pandas.parser import CParserError
 from traits.api import (HasTraits, File, Property, Str, Dict, List, Type,
                         Bool, Either, push_exception_handler, cached_property,
                         Instance, Float, Any, TraitError)
-
 from pysemantic.utils import TypeEncoder, get_md5_checksum, colnames
 from pysemantic.custom_traits import AbsFile, ValidTraitList
 
@@ -40,7 +38,6 @@ logger = logging.getLogger(__name__)
 
 
 class ParseErrorHandler(object):
-
     def __init__(self, parser_args, project, maxiter=None):
         self.parser_args = parser_args
         self.project = project
@@ -113,7 +110,8 @@ class ParseErrorHandler(object):
         nrows = self.parser_args.get('nrows')
         na_reps = {}
         if self.parser_args.get('na_values', False):
-            for colname, na_vals in self.parser_args.get('na_values').iteritems():
+            for colname, na_vals in self.parser_args.get(
+                    'na_values').iteritems():
                 if colname in int_cols:
                     na_reps[colname] = na_vals
         converters = {}
@@ -144,7 +142,7 @@ class ParseErrorHandler(object):
         sep = self.parser_args.get('sep', ',')
         nrows = self.parser_args.get('nrows')
         df = self.parser(fpath, sep=sep, usecols=to_read, nrows=nrows,
-                error_bad_lines=False)
+                         error_bad_lines=False)
         bad_cols = []
         for col in df:
             try:
@@ -155,7 +153,7 @@ class ParseErrorHandler(object):
                 The specified dtype for the column '{0}' ({1}) seems to be
                 incorrect. This has been ignored for now.
                 Consider fixing this by editing the schema.""".format(col,
-                                                              specified_dtype))
+                                                                      specified_dtype))
                 warnings.warn(msg, UserWarning)
         return bad_cols
 
@@ -198,7 +196,14 @@ class ParseErrorHandler(object):
         try:
             return self.parser(**self.parser_args)
         except ValueError as e:
-            if e.message.startswith("invalid literal"):
+            if "Integer column has NA values" in e.message:
+                bad_rows = self._detect_row_with_na()
+                new_types = [(col, float) for col in bad_rows]
+                self._update_dtypes(self.parser_args['dtype'], new_types)
+                logger.info("Dtypes for following columns changed:")
+                logger.info(json.dumps(new_types, cls=TypeEncoder))
+                return self.parser(**self.parser_args)
+            elif e.message.startswith("invalid literal"):
                 bad_cols = self._detect_column_with_invalid_literals()
                 msg = textwrap.dedent("""\
                         Columns {} designated as type integer could not
@@ -244,7 +249,7 @@ class ParseErrorHandler(object):
                 The specified dtype for the column '{0}' ({1}) seems to be
                 incorrect. This has been ignored for now.
                 Consider fixing this by editing the schema.""".format(bad_cols,
-                                                              float))
+                                                                      float))
                 logger.warn(msg)
                 logger.info("dtype removed for columns:".format(bad_cols))
                 return self.parser(**self.parser_args)
@@ -273,7 +278,6 @@ class ParseErrorHandler(object):
 
 
 class DataFrameValidator(HasTraits):
-
     """A validator class for `pandas.DataFrame` objects."""
 
     # The dataframe in question
@@ -300,11 +304,18 @@ class DataFrameValidator(HasTraits):
     # Specifications relating to the selection of rows.
     nrows = Property(Any, depends_on=['rules'])
 
+    # Whether to shuffle the rows of the dataframe before returning
+    shuffle = Property(Bool, depends_on=['rules'])
+
     # Unique values to maintain per column
     unique_values = Property(Dict, depends_on=['column_rules'])
 
     def _rules_default(self):
         return {}
+
+    @cached_property
+    def _get_shuffle(self):
+        return self.rules.get("shuffle", False)
 
     @cached_property
     def _get_index_col(self):
@@ -341,7 +352,8 @@ class DataFrameValidator(HasTraits):
                 for val in org_vals:
                     if len(uniques) > 0:
                         if val not in uniques:
-                            drop_ix = self.data.index[self.data[colname] == val]
+                            drop_ix = self.data.index[
+                                self.data[colname] == val]
                             self.data.drop(drop_ix, axis=0, inplace=True)
 
     def rename_columns(self):
@@ -378,15 +390,12 @@ class DataFrameValidator(HasTraits):
             ix = self.nrows(self.data.index)
             self.data = self.data.ix[self.data.index[ix]]
 
-        if self.is_drop_na:
-            x = self.data.shape[0]
-            self.data.dropna(inplace=True)
-            y = self.data.shape[0]
-            logger.info("{0} rows containing NAs were dropped.".format(x - y))
-
         if self.is_drop_duplicates:
             x = self.data.shape[0]
-            self.data.drop_duplicates(inplace=True)
+            try:
+                self.data.drop_duplicates(inplace=True)
+            except TypeError:
+                print "Cannot drop duplicate rows."
             y = self.data.shape[0]
             logger.info("{0} duplicate rows were dropped.".format(x - y))
 
@@ -401,10 +410,19 @@ class DataFrameValidator(HasTraits):
                     self.data.drop(self.data.index[self.data[col] == exval],
                                    inplace=True)
                 logger.info("Excluding following values from col {0}".format(
-                                                                          col))
+                    col))
                 logger.info(json.dumps(validator.exclude_values))
-            # self.data.dropna(inplace=True)
+                # self.data.dropna(inplace=True)
         self.rename_columns()
+
+        if self.is_drop_na:
+            x = self.data.shape[0]
+            try:
+                self.data.dropna(inplace=True)
+            except TypeError:
+                print "Cannot drop na."
+            y = self.data.shape[0]
+            logger.info("{0} rows containing NAs were dropped.".format(x - y))
 
         if self.index_col:
             self.data.set_index(self.index_col, drop=True, inplace=True)
@@ -412,11 +430,13 @@ class DataFrameValidator(HasTraits):
             na_ix = pd.isnull(un_ix)
             self.data.drop(un_ix[na_ix], axis=0, inplace=True)
 
+        if self.shuffle:
+            self.data = self.data.sample(self.data.shape[0])
+
         return self.data
 
 
 class SeriesValidator(HasTraits):
-
     """A validator class for `pandas.Series` objects."""
 
     # the series in question
@@ -479,8 +499,8 @@ class SeriesValidator(HasTraits):
     def drop_excluded(self):
         """Remove all values specified in `exclude_values`."""
         if len(self.exclude_values) > 0:
-            logger.info("Removing the following excluded values:")
-            logger.info(json.dumps(self.excluded_values))
+            logger.info("Removing the following exclude values:")
+            logger.info(json.dumps(self.exclude_values))
             for value in self.exclude_values:
                 self.data.drop(self.data.index[self.data == value],
                                inplace=True)
@@ -505,7 +525,7 @@ class SeriesValidator(HasTraits):
                 self.data = self.data[self.data.str.contains(self.regex)]
 
     def clean(self):
-        """Return the converted dataframe after enforcing all rules."""
+        """Return the converted series after enforcing all rules."""
         self.do_drop_duplicates()
         self.do_drop_na()
         self.do_postprocessing()
@@ -542,23 +562,203 @@ class SeriesValidator(HasTraits):
         return self.rules.get("regex", "")
 
 
+MYSQL_URL = "mysql+mysqldb://{username}:{password}@{hostname}/{db_name}"
+
+
+class MySQLTableValidator(HasTraits):
+    """A validator used when the data source is a mysql table."""
+
+    # Specifications to use when making parser arguments
+    specs = Dict
+
+    # Name of the MySQL table to read
+    table_name = Property(Str, depends_on=['specs'])
+
+    # A dictionary containing the configuration
+    config = Property(Dict, depends_on=['specs'])
+
+    # Username used to connect to the DB
+    username = Property(Str, depends_on=['config'])
+
+    # Password used to connect to the DB
+    password = Property(Str, depends_on=['config'])
+
+    # hostname of the DB
+    hostname = Property(Str, depends_on=['config'])
+
+    # name of the database
+    db_name = Property(Str, depends_on=['config'])
+
+    # Chunksize
+    chunksize = Property(Any, depends_on=['specs'])
+
+    # Query
+    query = Property(Str, depends_on=['specs'])
+
+    # SQlAlchemy connection object to be used by the parser
+    connection = Property(Any, depends_on=['username', 'password', 'hostname',
+                                           'db_name'])
+
+    # Parser args to be used by the pandas parser
+    parser_args = Property(Dict, depends_on=['connection', 'specs'])
+
+    @cached_property
+    def _get_chunksize(self):
+        return self.specs.get("chunksize")
+
+    @cached_property
+    def _get_config(self):
+        return self.specs.get("config")
+
+    @cached_property
+    def _get_username(self):
+        return self.config.get('username')
+
+    @cached_property
+    def _get_password(self):
+        return self.config.get('password')
+
+    @cached_property
+    def _get_hostname(self):
+        return self.config.get('hostname')
+
+    @cached_property
+    def _get_db_name(self):
+        return self.config.get('db_name')
+
+    @cached_property
+    def _get_table_name(self):
+        return self.config.get("table_name")
+
+    @cached_property
+    def _get_query(self):
+        return self.specs.get("query")
+
+    @cached_property
+    def _get_connection(self):
+        from sqlalchemy import create_engine
+        url = MYSQL_URL.format(username=self.username, password=self.password,
+                               hostname=self.hostname, db_name=self.db_name)
+        return create_engine(url)
+
+    @cached_property
+    def _get_parser_args(self):
+        return dict(table_name=self.table_name,
+                    con=self.connection,
+                    coerce_float=self.specs.get("coerce_float", True),
+                    index_col=self.specs.get("index_col"),
+                    parse_dates=self.specs.get("parse_dates"),
+                    columns=self.specs.get("use_columns"),
+                    chunksize=self.specs.get("chunksize"),
+                    query=self.specs.get("query"))
+
+
+POSTGRE_URL = "postgresql+psycopg2://{username}:{password}@{hostname}/{" \
+              "db_name}"
+
+
+class PostGRESTableValidator(HasTraits):
+    """A validator used when the data source is a postgres table."""
+
+    # Specifications to use when making parser arguments
+    specs = Dict
+
+    # Name of the MySQL table to read
+    table_name = Property(Str, depends_on=['specs'])
+
+    # A dictionary containing the configuration
+    config = Property(Dict, depends_on=['specs'])
+
+    # Username used to connect to the DB
+    username = Property(Str, depends_on=['config'])
+
+    # Password used to connect to the DB
+    password = Property(Str, depends_on=['config'])
+
+    # hostname of the DB
+    hostname = Property(Str, depends_on=['config'])
+
+    # name of the database
+    db_name = Property(Str, depends_on=['config'])
+
+    # Query
+    query = Property(Str, depends_on=['specs'])
+
+    # Chunksize
+    chunksize = Property(Any, depends_on=['specs'])
+
+    # SQlAlchemy connection object to be used by the parser
+    connection = Property(Any, depends_on=['username', 'password', 'hostname',
+                                           'db_name'])
+
+    # Parser args to be used by the pandas parser
+    parser_args = Property(Dict, depends_on=['connection', 'specs'])
+
+    @cached_property
+    def _get_chunksize(self):
+        return self.specs.get("chunksize")
+
+    @cached_property
+    def _get_config(self):
+        return self.specs.get("config")
+
+    @cached_property
+    def _get_username(self):
+        return self.config.get('username')
+
+    @cached_property
+    def _get_password(self):
+        return self.config.get('password')
+
+    @cached_property
+    def _get_hostname(self):
+        return self.config.get('hostname')
+
+    @cached_property
+    def _get_db_name(self):
+        return self.config.get('db_name')
+
+    @cached_property
+    def _get_table_name(self):
+        return self.specs.get("table_name")
+
+    @cached_property
+    def _get_connection(self):
+        from sqlalchemy import create_engine
+        url = POSTGRE_URL.format(username=self.username,
+                                 password=self.password,
+                                 hostname=self.hostname,
+                                 db_name=self.db_name)
+        return create_engine(url)
+
+    @cached_property
+    def _get_parser_args(self):
+        return dict(table_name=self.table_name,
+                    con=self.connection,
+                    query=self.specs.get("query"),
+                    coerce_float=self.specs.get("coerce_float", True),
+                    index_col=self.specs.get("index_col"),
+                    parse_dates=self.specs.get("parse_dates"),
+                    columns=self.specs.get("use_columns"),
+                    chunksize=self.specs.get("chunksize"))
+
+
 TRAIT_NAME_MAP = {
-        "filepath": "filepath_or_buffer",
-        "nrows": "nrows",
-        "index_col": "index_col",
-        "delimiter": "sep",
-        "dtypes": "dtype",
-        "colnames": "usecols",
-        "na_values": "na_values",
-        "converters": "converters",
-        "header": "header",
-        "error_bad_lines": "error_bad_lines",
-        "parse_dates": "parse_dates"
-       }
+    "filepath": "filepath_or_buffer",
+    "nrows": "nrows",
+    "index_col": "index_col",
+    "delimiter": "sep",
+    "dtypes": "dtype",
+    "colnames": "usecols",
+    "na_values": "na_values",
+    "converters": "converters",
+    "header": "header",
+    "error_bad_lines": "error_bad_lines",
+    "parse_dates": "parse_dates"
+}
 
 
 class SchemaValidator(HasTraits):
-
     """A validator class for schema in the data dictionary."""
 
     @classmethod
@@ -594,12 +794,18 @@ class SchemaValidator(HasTraits):
     # Name of the dataset described in the data dictionary
     name = Str
 
+    # whether the data is a mysql table
+    is_mysql = Property(Bool, depends_on=['specification'])
+
+    # whether the data is a mysql table
+    is_postgresql = Property(Bool, depends_on=['specification'])
+
     # Dict trait that holds the properties of the dataset
     specification = Dict
 
     # Path to the file containing the data
-    filepath = Property(Either(AbsFile, List(AbsFile)),
-                        depends_on=['specification'])
+    filepath = Property(Either(AbsFile, List(AbsFile), Str),
+                        depends_on=['specification', 'specfile'])
 
     # Whether the dataset spans multiple files
     is_multifile = Property(Bool, depends_on=['filepath'])
@@ -708,7 +914,7 @@ class SchemaValidator(HasTraits):
                           default_flow_style=False)
         else:
             logger.info("Following parser args were set for dataset {}".format(
-                                                                    self.name))
+                self.name))
         logger.info(json.dumps(specs, cls=TypeEncoder))
         return True
 
@@ -729,6 +935,19 @@ class SchemaValidator(HasTraits):
                 warnings.warn(msg.format(self.filepath), UserWarning)
 
     # Property getters and setters
+
+    @cached_property
+    def _get_is_mysql(self):
+        if "source" in self.specification:
+            return self.specification.get("source") == "mysql"
+        return False
+
+    @cached_property
+    def _get_is_postgresql(self):
+        if "source" in self.specification:
+            return self.specification.get("source") == "postgresql"
+        return False
+
     @cached_property
     def _get_parse_dates(self):
         parse_dates = self.specification.get("parse_dates", False)
@@ -742,14 +961,20 @@ class SchemaValidator(HasTraits):
         if not self.is_pickled:
             fpath = self.specification.get('path', "")
         else:
-            fpath = self.pickled_args['filepath_or_buffer']
+            if not (self.is_mysql or self.is_postgresql):
+                fpath = self.pickled_args['filepath_or_buffer']
+            else:
+                return ""
         if isinstance(fpath, list):
             for path in fpath:
                 if not (op.exists(path) and op.isabs(path)):
                     raise TraitError("filepaths must be absolute.")
         elif isinstance(fpath, str):
-            if not (op.exists(fpath) and op.isabs(fpath)):
-                raise TraitError("filepaths must be absolute.")
+            if not op.isabs(fpath):
+                fpath = op.join(op.dirname(self.specfile), fpath)
+            if not (self.is_mysql or self.is_postgresql):
+                if not (op.exists(fpath) and op.isabs(fpath)):
+                    raise TraitError("filepaths must be absolute.")
         return fpath
 
     @cached_property
@@ -763,7 +988,8 @@ class SchemaValidator(HasTraits):
     @cached_property
     def _get_is_spreadsheet(self):
         if (not self.is_multifile) and (not self.is_pickled):
-            return self.filepath.endswith('.xls') or self.filepath.endswith('xlsx')
+            return self.filepath.endswith('.xls') or self.filepath.endswith(
+                'xlsx')
         return False
 
     @cached_property
@@ -788,55 +1014,70 @@ class SchemaValidator(HasTraits):
 
     @cached_property
     def _get_parser_args(self):
-        self._check_md5()
-        args = {}
+        if not (self.is_mysql or self.is_postgresql):
+            self._check_md5()
+            args = {}
 
-        for traitname, argname in TRAIT_NAME_MAP.iteritems():
-            args[argname] = getattr(self, traitname)
+            for traitname, argname in TRAIT_NAME_MAP.iteritems():
+                args[argname] = getattr(self, traitname)
 
-        # Date/Time arguments
-        # FIXME: Allow for a mix of datetime column groupings and individual
-        # columns
-        # All column renaming delegated to df_validtor
-        if self.column_names is not None:
-            self.df_rules['column_names'] = self.column_names
+            # Date/Time arguments
+            # FIXME: Allow for a mix of datetime column groupings and
+            # individual
+            # columns
+            # All column renaming delegated to df_validtor
+            if self.column_names is not None:
+                self.df_rules['column_names'] = self.column_names
 
-        if self.header not in (0, 'infer'):
-            del args['usecols']
+            if self.header not in (0, 'infer'):
+                del args['usecols']
 
-        if self.is_multifile:
-            arglist = []
-            for i in range(len(self.filepath)):
-                argset = copy.deepcopy(args)
-                argset.update({'filepath_or_buffer': self.filepath[i]})
-                argset.update({'nrows': self.nrows[i]})
-                arglist.append(argset)
-            return arglist
-        else:
-            if self.filepath:
-                args.update({'filepath_or_buffer': self.filepath})
-            if "nrows" in self.specification:
-                if isinstance(self.nrows, int):
-                    args.update({'nrows': self.nrows})
-                elif isinstance(self.nrows, dict):
-                    if self.nrows.get('random', False):
+            if self.is_multifile:
+                arglist = []
+                for i in range(len(self.filepath)):
+                    argset = copy.deepcopy(args)
+                    argset.update({'filepath_or_buffer': self.filepath[i]})
+                    argset.update({'nrows': self.nrows[i]})
+                    arglist.append(argset)
+                return arglist
+            else:
+                if self.filepath:
+                    args.update({'filepath_or_buffer': self.filepath})
+                if "nrows" in self.specification:
+                    if isinstance(self.nrows, int):
+                        args.update({'nrows': self.nrows})
+                    elif isinstance(self.nrows, dict):
+                        if self.nrows.get('random', False):
+                            self.df_rules.update({'nrows': self.nrows})
+                            del args['nrows']
+                        if "range" in self.nrows:
+                            start, stop = self.nrows['range']
+                            args['skiprows'] = start
+                            args['names'] = args.pop('usecols')
+                            args['nrows'] = stop - start
+                        if self.nrows.get("count", False) and \
+                                self.nrows.get("shuffle", False):
+                            args['nrows'] = self.nrows.get('count')
+                            self.df_rules['shuffle'] = True
+                    elif callable(self.nrows):
                         self.df_rules.update({'nrows': self.nrows})
                         del args['nrows']
-                    if "range" in self.nrows:
-                        start, stop = self.nrows['range']
-                        args['skiprows'] = start
-                        args['names'] = args.pop('usecols')
-                        args['nrows'] = stop - start
-                elif callable(self.nrows):
-                    self.df_rules.update({'nrows': self.nrows})
-                    del args['nrows']
-            self.pickled_args.update(args)
-            if self.is_spreadsheet:
-                self.pickled_args['sheetname'] = self.sheetname
-                self.pickled_args['io'] = self.pickled_args.pop('filepath_or_buffer')
-                for argname in self.non_spreadsheet_args:
-                    self.pickled_args.pop(argname, None)
-            return self.pickled_args
+                self.pickled_args.update(args)
+                if self.is_spreadsheet:
+                    self.pickled_args['sheetname'] = self.sheetname
+                    self.pickled_args['io'] = self.pickled_args.pop(
+                        'filepath_or_buffer')
+                    for argname in self.non_spreadsheet_args:
+                        self.pickled_args.pop(argname, None)
+                return self.pickled_args
+        else:
+            if self.is_mysql:
+                self.sql_validator = MySQLTableValidator(
+                    specs=self.specification)
+            elif self.is_postgresql:
+                self.sql_validator = PostGRESTableValidator(
+                    specs=self.specification)
+            return self.sql_validator.parser_args
 
     def _non_spreadsheet_args_default(self):
         return ['sep', 'parse_dates', 'nrows', 'names', 'usecols',
@@ -897,6 +1138,8 @@ class SchemaValidator(HasTraits):
     @cached_property
     def _get_colnames(self):
         usecols = self.specification.get('use_columns')
+        if (usecols is None) and (self.is_mysql or self.is_postgresql):
+            return None
         if len(self.exclude_columns) > 0:
             if usecols:
                 for colname in self.exclude_columns:
@@ -910,8 +1153,9 @@ class SchemaValidator(HasTraits):
                 if self.filepath and not self.is_multifile:
                     return colnames(self.filepath, sep=self.delimiter)
         if self.index_col is not None:
-            if self.index_col not in usecols:
-                usecols.append(self.index_col)
+            if usecols is not None:
+                if self.index_col not in usecols:
+                    usecols.append(self.index_col)
         return usecols
 
     @cached_property
@@ -933,7 +1177,7 @@ class SchemaValidator(HasTraits):
             with open(self.specfile, "r") as f:
                 self.specification = yaml.load(f,
                                                Loader=Loader).get(
-                                                                 self.name, {})
+                    self.name, {})
 
     def _filepath_default(self):
         return self.specification.get("path")

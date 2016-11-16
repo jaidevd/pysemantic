@@ -9,7 +9,6 @@
 """Tests for the project class."""
 
 import os.path as op
-import os
 import tempfile
 import shutil
 import warnings
@@ -24,7 +23,8 @@ from pandas.io.parsers import ParserWarning
 
 import pysemantic.project as pr
 from pysemantic.tests.test_base import (BaseProjectTestCase, TEST_DATA_DICT,
-                                        TEST_CONFIG_FILE_PATH, _dummy_postproc)
+                                        TEST_CONFIG_FILE_PATH, _dummy_postproc,
+                                        DummyProjectFactory, _remove_project)
 from pysemantic.errors import MissingProject
 from pysemantic.utils import colnames
 
@@ -138,6 +138,10 @@ class TestProjectModule(BaseProjectTestCase):
         test_dict = pr.get_default_specfile(test_project_name)
         self.assertTrue(test_dict, TEST_DATA_DICT)
 
+    def test_add_project_relpath(self):
+        """Check that adding a project with relative path to schemafile fails."""
+        self.assertRaises(ValueError, pr.add_project, "test_relpath", "foo/bar")
+
     def test_remove_project(self):
         """Test if removing a project works properly."""
         self.assertTrue(pr.remove_project("test_project"))
@@ -170,118 +174,121 @@ class TestProjectClass(BaseProjectTestCase):
             pr.remove_project("test_nan_min")
             shutil.rmtree(tempdir)
 
+    def test_dummy_project(self):
+        df = pd.DataFrame(np.random.rand(5, 3))
+        schema = {"data": {"header": None}}
+        dummy = DummyProjectFactory(schema, df, header=False, index=False)
+        with dummy as project:
+            newdf = project.load_dataset("data")
+            self.assertDataFrameEqual(df, newdf)
+
+    def test_min_dropna_on_cols(self):
+        """Test if specifying a minimum value for a column also drops the NaNs."""
+        x1 = np.random.rand(10, 2) / 10
+        x2 = np.random.rand(10, 2)
+        x = np.r_[x1, x2]
+        np.random.shuffle(x)
+        df = pd.DataFrame(x, columns="col_a col_b".split())
+        df.loc[3, "col_a"] = np.nan
+        df.loc[7, "col_b"] = np.nan
+        schema = {'data': {"column_rules": {"col_a": {"min": 0.1}}}}
+        with DummyProjectFactory(schema, df) as project:
+            loaded = project.load_dataset("data")
+            self.assertFalse(np.any(pd.isnull(loaded)))
+            self.assertGreater(loaded['col_a'].min(), 0.1)
+
+    def test_relpath(self):
+        """Test if specifying datapaths relative to schema workds."""
+        df = pd.DataFrame(np.random.randint(low=1, high=10, size=(10, 2)),
+                          columns="a b".split())
+        schema = {'data': {"dataframe_rules": {"drop_duplicates": False}}}
+        with DummyProjectFactory(schema, df) as project:
+            loaded = project.load_dataset("data")
+            self.assertDataFrameEqual(loaded, df)
+
+    def test_nrows_shuffling(self):
+        """Test if the shuffle parameter works with the nrows parameter."""
+        X = np.c_[np.arange(10), np.arange(10)]
+        ix = range(5) + "a b c d e".split()
+        df = pd.DataFrame(X, index=ix)
+        schema = {'data': {"index_col": "index",
+                           'nrows': {'count': 5, "shuffle": True}}}
+        with DummyProjectFactory(schema, df, index_label="index") as project:
+            df = project.load_dataset("data")
+            for row_label in "a b c d e".split():
+                self.assertNotIn(row_label, df.index)
+            self.assertFalse(np.all(df.index == range(5)))
+
     def test_index_column_exclude(self):
         """Test if values are excluded from index column if so specified."""
-        tempdir = tempfile.mkdtemp()
-        schema_fpath = op.join(tempdir, "schema.yml")
-        data_fpath = op.join(tempdir, "data.csv")
         df = pd.DataFrame.from_dict({'index': np.arange(10), 'col_a':
                                      np.arange(10)})
-        df.to_csv(data_fpath, index=False)
-        schema = {'data': {'path': data_fpath, 'index_col': 'index',
+        schema = {'data': {'index_col': 'index',
                            'column_rules': {'index': {'exclude': [1, 2]}}}}
-        with open(schema_fpath, "w") as fin:
-            yaml.dump(schema, fin, Dumper=Dumper, default_flow_style=False)
-        pr.add_project("index_exclude", schema_fpath)
-        try:
-            df = pr.Project("index_exclude").load_dataset("data")
+        with DummyProjectFactory(schema, df) as project:
+            df = project.load_dataset("data")
             self.assertItemsEqual(df.shape, (8, 1))
             self.assertEqual(df.index.name, "index")
             self.assertNotIn(1, df.index)
             self.assertNotIn(2, df.index)
-        finally:
-            pr.remove_project("index_exclude")
-            shutil.rmtree(tempdir)
 
     def test_index_column_rules(self):
         """Test if column rules specified for index columns are enforced."""
-        schema = {'iris': {'path': self.data_specs['iris']['path'],
-                           'index_col': 'Species',
+        schema = {'data': {'index_col': 'Species',
                            'dataframe_rules': {'drop_duplicates': False},
                            'column_rules': {'Species': {'regex': '.*e.*'}}}}
-        with tempfile.NamedTemporaryFile(delete=False) as f_schema:
-            yaml.dump(schema, f_schema, Dumper=Dumper, default_flow_style=False)
-        pr.add_project("index_col_rules", f_schema.name)
-        try:
-            project = pr.Project("index_col_rules")
-            df = project.load_dataset("iris")
+        df = pd.read_csv(self.data_specs['iris']['path'])
+        with DummyProjectFactory(schema, df) as project:
+            df = project.load_dataset("data")
             self.assertEqual(df.index.name.lower(), 'species')
             self.assertNotIn("virginica", df.index.unique())
-            self.assertItemsEqual(df.shape, (100, 4))
-        finally:
-            pr.remove_project("index_col_rules")
-            os.unlink(f_schema.name)
 
     def test_indexcol_not_in_usecols(self):
         """
         Test if the specified index column is added to the usecols
         argument."""
-        schema = {'iris': {'path': self.data_specs['iris']['path'],
-                           'index_col': 'Species',
+        df = pd.read_csv(self.data_specs['iris']['path'])
+        schema = {'data': {'index_col': 'Species',
                            'use_columns': ['Sepal Length', 'Petal Width']}}
-        with tempfile.NamedTemporaryFile(delete=False) as f_schema:
-            yaml.dump(schema, f_schema, Dumper=Dumper, default_flow_style=False)
-        pr.add_project("testindex_usecols", f_schema.name)
-        try:
-            project = pr.Project("testindex_usecols")
-            df = project.load_dataset("iris")
+        with DummyProjectFactory(schema, df) as project:
+            df = project.load_dataset("data")
             self.assertEqual(df.index.name, "Species")
             self.assertItemsEqual(df.columns, ['Sepal Length', 'Petal Width'])
-        finally:
-            pr.remove_project("testindex_usecols")
-            os.unlink(f_schema.name)
 
     def test_invalid_literals(self):
         """Test if columns containing invalid literals are parsed safely."""
-        tempdir = tempfile.mkdtemp()
-        schema_fpath = op.join(tempdir, "schema.yml")
-        data_fpath = op.join(tempdir, "data.csv")
-        data = pd.DataFrame.from_dict(dict(col_a=range(10)))
-        data['col_b'] = ["x"] * 10
-        data.to_csv(data_fpath, index=False)
-        schema = {'dataset': {'path': data_fpath, 'dtypes': {'col_a': int,
-                                                             'col_b': int}}}
-        with open(schema_fpath, "w") as fin:
-            yaml.dump(schema, fin, Dumper=Dumper, default_flow_style=False)
-        pr.add_project("invalid_literal", schema_fpath)
-        try:
-            pr.Project("invalid_literal").load_dataset('dataset')
-        finally:
-            shutil.rmtree(tempdir)
-            pr.remove_project("invalid_literal")
+        df = pd.DataFrame.from_dict(dict(col_a=range(10)))
+        df['col_b'] = ["x"] * 10
+        schema = {'data': {'dtypes': {'col_a': int, 'col_b': int}}}
+        with DummyProjectFactory(schema, df) as project:
+            project.load_dataset('data')
 
     def test_index_col(self):
         """Test if specifying the index_col works."""
-        iris_fpath = self.expected_specs['iris']['filepath_or_buffer']
-        specs = {'path': iris_fpath, 'index_col': 'Species',
-                 'dataframe_rules': {'drop_duplicates': False}}
-        pr.add_dataset("pysemantic", "iris_indexed", specs)
-        try:
-            df = pr.Project('pysemantic').load_dataset('iris_indexed')
+        df = pd.read_csv(self.expected_specs['iris']['filepath_or_buffer'])
+        specs = {"data": {'index_col': 'Species', 'dataframe_rules':
+            {'drop_duplicates': False}}}
+        with DummyProjectFactory(specs, df) as project:
+            df = project.load_dataset('data')
             for specie in ['setosa', 'versicolor', 'virginica']:
                 self.assertEqual(df.ix[specie].shape[0], 50)
-        finally:
-            pr.remove_dataset('pysemantic', 'iris_indexed')
 
     def test_multiindex(self):
         """Test if providing a list of indices in the schema returns a proper
         multiindexed dataframe."""
-        pa_fpath = self.expected_specs['person_activity']['filepath_or_buffer']
+        orgdf = pd.read_table(
+                self.expected_specs['person_activity']['filepath_or_buffer'])
         index_cols = ['sequence_name', 'tag']
-        specs = {'path': pa_fpath, 'index_col': index_cols, 'delimiter': '\t'}
-        pr.add_dataset("pysemantic", "pa_multiindex", specs)
-        try:
-            df = pr.Project('pysemantic').load_dataset('pa_multiindex')
+        schema = {"data": {'index_col': index_cols, 'delimiter': '\t'}}
+        with DummyProjectFactory(schema, orgdf, sep="\t") as project:
+            df = project.load_dataset('data')
             self.assertTrue(isinstance(df.index, pd.MultiIndex))
             self.assertEqual(len(df.index.levels), 2)
             seq_name, tags = df.index.levels
-            org_df = pd.read_table(specs['path'])
             for col in index_cols:
-                x = org_df[col].unique().tolist()
+                x = orgdf[col].unique().tolist()
                 y = df.index.get_level_values(col).unique().tolist()
                 self.assertItemsEqual(x, y)
-        finally:
-            pr.remove_dataset('pysemantic', 'pa_multiindex')
 
     @unittest.skipIf(OPENPYXL_NOT_INSTALLED, "Loading Excel files requires openpyxl.")
     def test_load_excel_multisheet(self):
@@ -303,8 +310,7 @@ class TestProjectClass(BaseProjectTestCase):
             actual = pr.Project('multi_iris').load_dataset("iris")
             self.assertDataFrameEqual(ideal, actual)
         finally:
-            pr.remove_project("multi_iris")
-            shutil.rmtree(tempdir)
+            _remove_project("multi_iris", tempdir)
 
     @unittest.skipIf(XLRD_NOT_INSTALLED, "Reading Excel files requires xlrd.")
     def test_load_excel_sheetname(self):
@@ -406,29 +412,23 @@ class TestProjectClass(BaseProjectTestCase):
         """Test if importing data with excluded columns works."""
         filepath = op.join(op.abspath(op.dirname(__file__)), "testdata",
                            "iris.csv")
-        specs = {'path': filepath, 'exclude_columns': ['Species']}
-        pr.add_dataset('pysemantic', 'excl_iris', specs)
-        try:
-            project = pr.Project("pysemantic")
-            loaded = project.load_dataset("excl_iris")
+        df = pd.read_csv(filepath)
+        specs = {"data": {'exclude_columns': ['Species']}}
+        with DummyProjectFactory(specs, df) as project:
+            loaded = project.load_dataset("data")
             self.assertNotIn('Species', loaded.columns)
-        finally:
-            pr.remove_dataset("pysemantic", "excl_iris")
 
     def test_column_postprocessors(self):
         """Test if postprocessors work on column data properly."""
         filepath = op.join(op.abspath(op.dirname(__file__)), "testdata",
                            "iris.csv")
+        df = pd.read_csv(filepath)
         col_rules = {'Species': {'postprocessors': [_dummy_postproc]}}
-        specs = {'path': filepath, 'column_rules': col_rules}
-        pr.add_dataset("pysemantic", "postproc_iris", specs)
-        try:
-            project = pr.Project("pysemantic")
-            loaded = project.load_dataset("postproc_iris")
+        schema = {"data": {'column_rules': col_rules}}
+        with DummyProjectFactory(schema, df) as project:
+            loaded = project.load_dataset("data")
             processed = loaded['Species']
             self.assertNotIn("setosa", processed.unique())
-        finally:
-            pr.remove_dataset("pysemantic", "postproc_iris")
 
     def test_na_reps(self):
         """Test if the NA representations are parsed properly."""
@@ -438,61 +438,39 @@ class TestProjectClass(BaseProjectTestCase):
 
     def test_na_reps_list(self):
         """Test if NA values work when specified as a list."""
-        tempdir = tempfile.mkdtemp()
         df = pd.DataFrame(np.random.rand(10, 2))
         ix = np.random.randint(0, df.shape[0], size=(5,))
         ix = np.unique(ix)
         df.iloc[ix, 0] = "foo"
         df.iloc[ix, 1] = "bar"
-        fpath = op.join(tempdir, "test_na.csv")
-        df.to_csv(fpath, index=False)
-        schema = {'path': fpath, 'na_values': ["foo", "bar"],
+        schema = {"data": {'na_values': ["foo", "bar"],
                   'dataframe_rules': {'drop_na': False,
-                                      'drop_duplicates': False}}
-        schema_fpath = op.join(tempdir, "test_na.yaml")
-        with open(schema_fpath, "w") as fid:
-            yaml.dump({'test_na': schema}, fid, Dumper=Dumper,
-                      default_flow_style=False)
-        pr.add_project("test_na", schema_fpath)
-        try:
-            df = pr.Project("test_na").load_dataset("test_na")
+                                      'drop_duplicates': False}}}
+        with DummyProjectFactory(schema, df) as project:
+            df = project.load_dataset("data")
             self.assertEqual(pd.isnull(df).sum().sum(), ix.shape[0] * 2)
-        finally:
-            pr.remove_project("test_na")
-            shutil.rmtree(tempdir)
 
     def test_global_na_reps(self):
         """Test is specifying a global NA value for a dataset works."""
-        tempdir = tempfile.mkdtemp()
         df = pd.DataFrame(np.random.rand(10, 10))
         ix = np.random.randint(0, df.shape[0], size=(5,))
         ix = np.unique(ix)
         for i in xrange(ix.shape[0]):
             df.iloc[ix[i], ix[i]] = "foobar"
-        fpath = op.join(tempdir, "test_na.csv")
-        df.to_csv(fpath, index=False)
-        schema = {'path': fpath, 'na_values': "foobar",
+        schema = {"data": {'na_values': "foobar",
                   'dataframe_rules': {'drop_na': False,
-                                      'drop_duplicates': False}}
-        schema_fpath = op.join(tempdir, "test_na.yaml")
-        with open(schema_fpath, "w") as fid:
-            yaml.dump({'test_na': schema}, fid, Dumper=Dumper,
-                      default_flow_style=False)
-        pr.add_project("test_na", schema_fpath)
-        try:
-            df = pr.Project("test_na").load_dataset("test_na")
+                                      'drop_duplicates': False}}}
+        with DummyProjectFactory(schema, df) as project:
+            df = project.load_dataset("data")
             self.assertEqual(pd.isnull(df).sum().sum(), ix.shape[0])
-        finally:
-            pr.remove_project("test_na")
-            shutil.rmtree(tempdir)
 
     def test_error_bad_lines_correction(self):
         """test if the correction for bad lines works."""
-        tempdir = tempfile.mkdtemp()
         iris_path = op.join(op.abspath(op.dirname(__file__)), "testdata",
                             "iris.csv")
         with open(iris_path, "r") as fid:
             iris_lines = fid.readlines()
+        tempdir = tempfile.mkdtemp()
         outpath = op.join(tempdir, "bad_iris.csv")
         iris_lines[50] = iris_lines[50].rstrip() + ",0,23,\n"
         with open(outpath, 'w') as fid:
@@ -505,10 +483,9 @@ class TestProjectClass(BaseProjectTestCase):
         try:
             project = pr.Project('dummy_project')
             df = project.load_dataset('bad_iris')
-            self.assertItemsEqual(df.shape, (146, 5))
+            self.assertItemsEqual(df.shape, (147, 5))
         finally:
-            shutil.rmtree(tempdir)
-            pr.remove_project('dummy_project')
+            _remove_project("dummy_project", tempdir)
 
     @unittest.skipIf(PYTABLES_NOT_INSTALLED, "HDF export requires PyTables.")
     def test_export_dataset_hdf(self):
@@ -634,26 +611,15 @@ class TestProjectClass(BaseProjectTestCase):
         # dtypes, but one has random string types.
         x = np.random.randint(0, 10, size=(100, 2))
         dframe = pd.DataFrame(x, columns=['a', 'b'])
-        tempdir = tempfile.mkdtemp()
-        outfile = op.join(tempdir, "testdata.csv")
         _ix = np.random.randint(0, 100, size=(5,))
         dframe['b'][_ix] = "aa"
-        dframe.to_csv(outfile, index=False)
-        specs = dict(delimiter=',', dtypes={'a': int, 'b': int}, path=outfile)
-        specfile = op.join(tempdir, "dict.yaml")
-        with open(specfile, "w") as fileobj:
-            yaml.dump({'testdata': specs}, fileobj, Dumper=Dumper,
-                      default_flow_style=False)
-        pr.add_project("wrong_dtype", specfile)
-        try:
-            _pr = pr.Project("wrong_dtype")
+        specs = dict(delimiter=',', dtypes={'a': int, 'b': int})
+        schema = dict(data=specs)
+        with DummyProjectFactory(schema, dframe) as project:
             with warnings.catch_warnings(record=True) as catcher:
-                dframe = _pr.load_dataset("testdata")
+                dframe = project.load_dataset("data")
                 assert len(catcher) == 1
                 assert issubclass(catcher[-1].category, UserWarning)
-        finally:
-            pr.remove_project("wrong_dtype")
-            shutil.rmtree(tempdir)
 
     def test_integer_col_na_values(self):
         """Test if the Loader can load columns with integers and NAs.
@@ -662,23 +628,12 @@ class TestProjectClass(BaseProjectTestCase):
         x = map(str, range(20))
         x[13] = ""
         df = pd.DataFrame.from_dict(dict(a=x, b=x))
-        tempdir = tempfile.mkdtemp()
-        outfile = op.join(tempdir, "testdata.csv")
-        df.to_csv(outfile, index=False)
-        specfile = op.join(tempdir, "dict.yaml")
-        specs = dict(delimiter=',', dtypes={'a': int, 'b': int}, path=outfile)
-        with open(specfile, "w") as fileobj:
-            yaml.dump({'testdata': specs}, fileobj, Dumper=Dumper,
-                      default_flow_style=False)
-        pr.add_project("wrong_dtype", specfile)
-        try:
-            _pr = pr.Project("wrong_dtype")
-            df = _pr.load_dataset("testdata")
+        specs = dict(delimiter=',', dtypes={'a': int, 'b': int})
+        schema = dict(data=specs)
+        with DummyProjectFactory(schema, df) as project:
+            df = project.load_dataset("data")
             self.assertEqual(df['a'].dtype, float)
             self.assertEqual(df['b'].dtype, float)
-        finally:
-            pr.remove_project("wrong_dtype")
-            shutil.rmtree(tempdir)
 
     def test_load_dataset_missing_nrows(self):
         """Test if the project loads datasets properly if the nrows parameter

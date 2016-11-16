@@ -10,7 +10,7 @@
 
 import os.path as op
 
-from traits.api import File, List
+from traits.api import File, List, TraitError
 
 
 class ValidTraitList(List):
@@ -32,9 +32,13 @@ class AbsFile(File):
     file.
     """
 
+    exists = True
+
     def validate(self, obj, name, value):
         validated_value = super(AbsFile, self).validate(obj, name, value)
-        if op.isabs(validated_value) and op.isfile(value):
+        if validated_value and op.isabs(validated_value) and op.isfile(value):
             return validated_value
+        elif not op.isfile(value):
+            raise TraitError("The filepath does not exist.")
 
         self.error(obj, name, value)
